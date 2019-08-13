@@ -10,7 +10,7 @@ import (
 )
 
 type ReputationTester struct {
-	acc0, acc1, acc2, acc3, acc4, acc5, acc6  *DandelionAccount
+	acc0, acc1, acc2, acc3, acc4, acc5, acc6, acc7  *DandelionAccount
 	bpNum, threshold int
 	bpList []*DandelionAccount
 }
@@ -27,6 +27,7 @@ func (tester* ReputationTester)Test(t *testing.T, d *Dandelion)  {
 	tester.acc4 = d.Account("actor4")
 	tester.acc5 = d.Account("actor5")
 	tester.acc6 = d.Account("actor6")
+	tester.acc7 = d.Account("actor7")
 
 	a.NoError(DeploySystemContract(constants.COSSysAccount, repCrtName, d))
 	a.True(d.Contract(constants.COSSysAccount, repCrtName).CheckExist())
@@ -51,6 +52,7 @@ func (tester* ReputationTester)Test(t *testing.T, d *Dandelion)  {
 	t.Run("modified reputation overFlow", d.Test(tester.repOverFlow))
 	t.Run("successfully modify reputation", d.Test(tester.successMdRep))
 	t.Run("register bp when reputation is min", d.Test(tester.regBpWithMinRep))
+	t.Run("account with min reputation do not cashout", d.Test(tester.minReputationCashout))
 	t.Run("vote when reputation is min", d.Test(tester.voteWithMinRep))
 	t.Run("use ticket vote when reputation is min", d.Test(tester.voteByTicketWithMinRep))
 	t.Run("modify memo to empty", d.Test(tester.mdRepMemoToEmptyStr))
@@ -196,17 +198,52 @@ func (tester *ReputationTester) successMdRep(t *testing.T, d *Dandelion) {
 //account register as bp After reputation modified to min value
 func (tester *ReputationTester) regBpWithMinRep(t *testing.T, d *Dandelion) {
 	a := assert.New(t)
+
+	modWithMinReputation(t, d, tester.acc6)
+
+	//bp register
+	a.Error(RegisterBp([]*DandelionAccount{tester.acc6}, d))
+}
+
+func (tester *ReputationTester) minReputationCashout(t *testing.T, d *Dandelion) {
+	a := assert.New(t)
+
+	modWithMinReputation(t, d, tester.acc7)
+
+	title := "title7"
+	content := "content7"
+	pId, err := PostArticle(tester.acc7, title, content, []string{"tag7"}, d)
+	if a.NoError(err) {
+		// vote to the article
+		a.NoError( VoteToPost(tester.acc7, pId) )
+
+		// reply to article
+		rId, err := ReplyArticle(tester.acc7, pId, "test reply")
+		a.NoError(err)
+
+		// vote to the reply
+		a.NoError( VoteToPost(tester.acc7, rId) )
+	}
+
+	authorWrap := d.Account(tester.acc7.Name).SoAccountWrap
+	oldVest := authorWrap.GetVest()
+	a.NoError( d.ProduceBlocks(constants.PostCashOutDelayBlock + 1) )
+	newVest := authorWrap.GetVest()
+	a.Equal(oldVest.Value, newVest.Value)
+}
+
+func modWithMinReputation (t *testing.T, d *Dandelion, account *DandelionAccount) {
+	a := assert.New(t)
+
 	a.True(d.Contract(constants.COSSysAccount, repCrtName).CheckExist())
 	admin := d.GlobalProps().ReputationAdmin
 	a.NotNil(admin)
 	mdRep := uint32(constants.MinReputation)
-	newMemo := GetNewMemo(tester.acc6.GetReputationMemo())
-	//modify actor6's reputation to MinReputation
-	ApplyNoError(t, d, fmt.Sprintf("%s: %s.%s.setrep %q, %d, %q", admin.Value, constants.COSSysAccount, repCrtName,tester.acc6.Name, mdRep, newMemo))
-    a.Equal(mdRep, tester.acc6.GetReputation())
-	a.Equal(newMemo, tester.acc6.GetReputationMemo())
-	//bp register
-	a.Error(RegisterBp([]*DandelionAccount{tester.acc6}, d))
+	newMemo := GetNewMemo(account.GetReputationMemo())
+	//modify account reputation to MinReputation
+	ApplyNoError(t, d, fmt.Sprintf("%s: %s.%s.setrep %q, %d, %q", admin.Value, constants.COSSysAccount, repCrtName,account.Name, mdRep, newMemo))
+	a.Equal(mdRep, account.GetReputation())
+	a.Equal(newMemo, account.GetReputationMemo())
 }
 
 //vote when a account's reputation is modified to min value

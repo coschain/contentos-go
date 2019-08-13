@@ -103,6 +103,18 @@ func PostArticle(author *dandelion.DandelionAccount, title string, content strin
     return postId,err
 }
 
+func VoteToPost(author *dandelion.DandelionAccount, postId uint64) error {
+	err := author.SendTrxAndProduceBlock(dandelion.Vote(author.Name, postId))
+	return err
+}
+
+func ReplyArticle(author *dandelion.DandelionAccount, parentId uint64, content string) (uint64, error) {
+	postId := utils.GenerateUUID(author.Name)
+	rout := map[string]int{author.Name:1}
+	beneficiaries :=  []map[string]int{rout}
+	err := author.SendTrxAndProduceBlock(dandelion.Reply(postId, parentId, author.Name, content, beneficiaries))
+	return postId, err
+}
 
 func NonBpProposalAdmin(t *testing.T, d *dandelion.Dandelion, caller string, bp string, contract string)  {
 	a := assert.New(t)

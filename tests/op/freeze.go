@@ -268,6 +268,10 @@ func (tester *FreezeTester) freezeAndUnFreeze(t *testing.T, d *Dandelion) {
 	a.Equal(newSta, freezeAcct.GetFreeze())
 	a.Equal(newMemo, freezeAcct.GetFreezeMemo())
 
+	// freeze account post an article, should fail
+	_, err = PostArticle(freezeAcct, "test", "test post", []string{"tt"}, d)
+	a.Error(err)
+
 	//unFreeze
 	mdSta := tester.mdFreezeStatus(newSta)
 	a.NotEqual(mdSta, newSta)

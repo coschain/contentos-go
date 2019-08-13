@@ -239,8 +239,24 @@ func (tester *BpTest) bpVote(t *testing.T, d *Dandelion) {
 
 	witWrap := d.BlockProducer(bpName)
 	// check bp's vote count and bpName's vote count
-	a.True(witWrap.GetBpVest().VoteVest.Value > 0)
+	bpVest := witWrap.GetBpVest().VoteVest.Value
+	a.True(bpVest > 0)
 	a.True(d.Account(voteName).GetBpVoteCount() == 1)
+
+	// transfer cos to voteName
+	a.NoError(d.Account(constants.COSInitMiner).SendTrx(Transfer(constants.COSInitMiner, voteName, 1000000, "")))
+	a.NoError(d.ProduceBlocks(1))
+
+	// voteName transfer cos to vest, then bp vest should change
+	accountWrap := d.Account(voteName).SoAccountWrap
+	voteNameCos := accountWrap.GetBalance().Value
+	voteNameVest := accountWrap.GetVest().Value
+	a.NoError(d.Account(voteName).SendTrx(TransferToVest(voteName, voteName, 100000)))
+	a.NoError(d.ProduceBlocks(1))
+	a.Equal(voteNameCos-100000, accountWrap.GetBalance().Value)
+	a.Equal(voteNameVest+100000, accountWrap.GetVest().Value)
+
+	a.Equal(bpVest+100000, witWrap.GetBpVest().VoteVest.Value)
 }
 
 func (tester *BpTest) bpVoteNoExist(t *testing.T, d *Dandelion) {

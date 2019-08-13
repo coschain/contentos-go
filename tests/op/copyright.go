@@ -50,6 +50,7 @@ func (tester* CopyrightTester) Test(t *testing.T, d *Dandelion) {
 	t.Run("modify non exist post", d.Test(tester.mdNotExiPost))
 	t.Run("modify wrong status", d.Test(tester.mdWrongStatus))
 	t.Run("success modify post", d.Test(tester.mdSuccess))
+	t.Run("reply infringement", d.Test(tester.replyInfringement))
 	t.Run("modify empty memo", d.Test(tester.mdEmptyMemo))
 	t.Run("modify admin", d.Test(tester.mdAdmin))
 }
@@ -207,13 +208,17 @@ func (tester *CopyrightTester) mdSuccess(t *testing.T, d *Dandelion) {
 	a.True(d.Contract(constants.COSSysAccount, crCrtName).CheckExist())
 	admin := d.GlobalProps().CopyrightAdmin
 	a.NotNil(admin)
-	title := "title3"
-	content := "content3"
-	pId,err := PostArticle(tester.acc3, title, content, []string{"tag3"}, d)
+	title := "title4"
+	content := "content4"
+	pId,err := PostArticle(tester.acc4, title, content, []string{"tag4"}, d)
 	if a.NoError(err) {
 		pWrap := d.Post(pId)
 		a.True(pWrap.CheckExist())
 		a.True(d.Contract(constants.COSSysAccount, crCrtName).CheckExist())
+
+		// vote to the article
+		a.NoError( VoteToPost(tester.acc4, pId) )
+
 		cr := pWrap.GetCopyright()
 		newCr := tester.getNewCopyrightStatus(cr)
 		a.NotEqual(newCr, cr)
@@ -224,6 +229,48 @@ func (tester *CopyrightTester) mdSuccess(t *testing.T, d *Dandelion) {
 		a.Equal(pWrap.GetCopyright(), newCr)
 		a.Equal(pWrap.GetCopyrightMemo(), newMemo)
 	}
+
+	authorWrap := d.Account(tester.acc4.Name).SoAccountWrap
+	oldVest := authorWrap.GetVest()
+	a.NoError( d.ProduceBlocks(constants.PostCashOutDelayBlock + 1) )
+	newVest := authorWrap.GetVest()
+	a.Equal(oldVest.Value, newVest.Value)
+}
+
+func (tester *CopyrightTester) replyInfringement(t *testing.T, d *Dandelion) {
+	a := assert.New(t)
+	a.True(d.Contract(constants.COSSysAccount, crCrtName).CheckExist())
+	admin := d.GlobalProps().CopyrightAdmin
+	a.NotNil(admin)
+	title := "title6"
+	content := "content6"
+	pId, err := PostArticle(tester.acc6, title, content, []string{"tag6"}, d)
+	a.NoError(err)
+	rId, err := ReplyArticle(tester.acc6, pId, "test reply")
+	if a.NoError(err) {
+		rWrap := d.Post(rId)
+		a.True(rWrap.CheckExist())
+		a.True(d.Contract(constants.COSSysAccount, crCrtName).CheckExist())
+
+		// vote to the reply
+		a.NoError( VoteToPost(tester.acc6, rId) )
+
+		cr := rWrap.GetCopyright()
+		newCr := tester.getNewCopyrightStatus(cr)
+		a.NotEqual(newCr, cr)
+		crMemo :=rWrap.GetCopyrightMemo()
+		newMemo := GetNewMemo(crMemo)
+		a.NotEqual(newMemo, crMemo)
+		ApplyNoError(t, d, fmt.Sprintf("%s: %s.%s.setcopyright %v,%d,%q", admin.Value, constants.COSSysAccount, crCrtName, rId, newCr, newMemo))
+		a.Equal(rWrap.GetCopyright(), newCr)
+		a.Equal(rWrap.GetCopyrightMemo(), newMemo)
+	}
+
+	authorWrap := d.Account(tester.acc6.Name).SoAccountWrap
+	oldVest := authorWrap.GetVest()
+	a.NoError( d.ProduceBlocks(constants.PostCashOutDelayBlock + 1) )
+	newVest := authorWrap.GetVest()
+	a.Equal(oldVest.Value, newVest.Value)
 }
 
 func (tester *CopyrightTester) mdEmptyMemo(t *testing.T, d *Dandelion) {

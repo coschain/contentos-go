@@ -762,8 +762,7 @@ func (ev *TransferToVestEvaluator) Apply() {
 	tidWrap.MustExist("to account do not exist")
 
 	//fBalance := fidWrap.GetBalance()
-	tVests := tidWrap.GetVest()
-	oldVest := prototype.NewVest(tVests.Value)
+	oldVest := tidWrap.GetVest()
 	addVests := prototype.NewVest(op.Amount.Value)
 
 	//fBalance.Sub(op.Amount)
@@ -772,13 +771,12 @@ func (ev *TransferToVestEvaluator) Apply() {
 		tInfo.Balance.Sub(op.Amount)
 	})
 
-	//tVests.Add(addVests)
-	//tidWrap.SetVest(tVests)
 	tidWrap.Modify(func(tInfo *table.SoAccount) {
 		tInfo.Vest.Add(addVests)
 	})
+	newVest := tidWrap.GetVest()
 
-	updateBpVoteValue(ev.Database(), op.To, oldVest, tVests)
+	updateBpVoteValue(ev.Database(), op.To, oldVest, newVest)
 
 	ev.GlobalProp().TransferToVest(op.Amount)
 }
