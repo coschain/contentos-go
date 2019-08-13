@@ -8,7 +8,6 @@ import (
 	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/iservices"
-	"github.com/coschain/contentos-go/iservices/itype"
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -54,6 +53,11 @@ type Economist struct {
 	noticer  EventBus.Bus
 	log *logrus.Logger
 	dgp *DynamicGlobalPropsRW
+}
+
+type VoteProxy struct {
+	VoteId *prototype.VoterId
+	WeightedVp *big.Int
 }
 
 
@@ -312,7 +316,7 @@ func (e *Economist) Do(trxObserver iservices.ITrxObserver) {
 	if !voteCashoutWrap.CheckExist() {
 		return
 	}
-	var votes []*itype.VoteProxy
+	var votes []*VoteProxy
 	var voteWeightedVpsAccumulator big.Int
 	voteIds := voteCashoutWrap.GetVoterIds()
 	for _, voteId := range voteIds {
@@ -326,7 +330,7 @@ func (e *Economist) Do(trxObserver iservices.ITrxObserver) {
 		bigPostWeightedVp := StringToBigInt(postWrap.GetWeightedVp())
 		bigVoteWeightedVp := StringToBigInt(voteWrap.GetWeightedVp())
 		bigWeightedVp := new(big.Int).Mul(bigPostWeightedVp, bigVoteWeightedVp)
-		voteProxy := &itype.VoteProxy{VoteId:voteId, WeightedVp: bigWeightedVp}
+		voteProxy := &VoteProxy{VoteId:voteId, WeightedVp: bigWeightedVp}
 		votes = append(votes, voteProxy)
 		voteWeightedVpsAccumulator.Add(&voteWeightedVpsAccumulator, bigWeightedVp)
 	}
@@ -346,7 +350,7 @@ func (e *Economist) Do(trxObserver iservices.ITrxObserver) {
 func (e *Economist) decayGlobalVotePower() {
 	e.dgp.ModifyProps(func(props *prototype.DynamicProperties) {
 		postWeightedVps := StringToBigInt(props.PostWeightedVps)
-		replyWeightedVps := StringToBigInt(props.PostWeightedVps)
+		replyWeightedVps := StringToBigInt(props.ReplyWeightedVps)
 		voteWeightedVps := StringToBigInt(props.VoteWeightedVps)
 		decay(postWeightedVps)
 		decay(replyWeightedVps)
@@ -560,7 +564,7 @@ func (e *Economist) replyCashout(replies []*table.SoPostWrap, bigBlockRewards *b
 	})
 }
 
-func (e *Economist) voteCashout(votes []*itype.VoteProxy, currentBlockVotesReward *big.Int, currentTotalCashoutVotesWeightedVps *big.Int, trxObserver iservices.ITrxObserver) {
+func (e *Economist) voteCashout(votes []*VoteProxy, currentBlockVotesReward *big.Int, currentTotalCashoutVotesWeightedVps *big.Int, trxObserver iservices.ITrxObserver) {
 	for _, vote := range votes {
 		weightedVp := vote.WeightedVp
 		bigVoteReward := ProportionAlgorithm(weightedVp, currentTotalCashoutVotesWeightedVps, currentBlockVotesReward)
