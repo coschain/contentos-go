@@ -290,6 +290,35 @@ func initStateDb(cmd *cobra.Command, args []string) {
   cashout bigint unsigned default 0,
   unique key statecashout_account_index (account)
 );`
+
+	createStatePost := `create table postlist
+(
+  id int AUTO_INCREMENT primary key,
+  postid bigint unsigned not null,
+  created int unsigned,
+  author varchar(20) not null,
+  title varchar(256) default null,
+  content text,
+  tag varchar(256),
+  votecount int unsigned default 0,
+  replycount int unsigned default 0,
+  reward bigint unsigned default 0,
+  parentid bigint unsigned defualt 0,
+  UNIQUE INDEX index_pid(postid),
+  INDEX index_time(created)
+)ENGINE=InnoDB DEFAULT CHARSET=utf8;`
+
+	createStateVote := `create table votelist
+(
+  id int AUTO_INCREMENT primary key,
+  postid bigint unsigned not null,
+  created int unsigned,
+  voter varchar(20) not null,
+  votepower varchar(30),
+  INDEX index_pid(postid),
+  INDEX index_voter(voter),
+)ENGINE=InnoDB DEFAULT CHARSET=utf8;`
+
 	dropTables := []string{"statelog", "stateloglibinfo", "stateaccount", "statemint", "statecashout"}
 	for _, table := range dropTables {
 		dropSql := fmt.Sprintf("DROP TABLE IF EXISTS `%s`", table)
@@ -297,7 +326,7 @@ func initStateDb(cmd *cobra.Command, args []string) {
 			fmt.Println(err)
 		}
 	}
-	createTables := []string{createStateLog, createStateLogLibInfo, createStateAccount, createStateMint, createStateCashout}
+	createTables := []string{createStateLog, createStateLogLibInfo, createStateAccount, createStateMint, createStateCashout, createStatePost, createStateVote}
 	for _, table := range createTables {
 		if _, err = db.Exec(table); err != nil {
 			fmt.Println(err)

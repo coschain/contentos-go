@@ -237,10 +237,8 @@ func (s *StateLogService) handlePost(blockId string, trxId string, action int, t
 
 	switch action {
 	case iservices.Add:
-		_, _ = s.db.Exec("INSERT INTO postlist (id, created, author, title, content, tag) VALUES (?, ?, ?, ?, ?, ?)",
+		_, _ = s.db.Exec("INSERT INTO postlist (postid, created, author, title, content, tag) VALUES (?, ?, ?, ?, ?, ?)",
 			post.Id, post.Created.UtcSeconds, post.Author, post.Title, post.Content, wholeTag)
-	case iservices.Update:
-		_,_ = s.db.Exec("UPDATE postlist set reward=? where ")
 	}
 }
 
@@ -253,7 +251,7 @@ func (s *StateLogService) handlePostReward(blockId string, trxId string, action 
 
 	switch action {
 	case iservices.Update:
-		_,_ = s.db.Exec("UPDATE postlist set reward = reward + ? where id=?",reward.Reward,reward.PostId)
+		_,_ = s.db.Exec("UPDATE postlist set reward = reward + ? where postid=?",reward.Reward,reward.PostId)
 	}
 }
 
@@ -268,7 +266,7 @@ func (s *StateLogService) handleVote(blockId string, trxId string, action int, t
 	case iservices.Add:
 		_, _ = s.db.Exec("INSERT INTO votelist (postid, created, voter, votepower) VALUES (?, ?, ?, ?)",
 			vote.PostId, vote.Created.UtcSeconds, vote.Voter, vote.VotePower)
-		_, _ = s.db.Exec("UPDATE postlist set votecount = votecount + 1 where id=?",
+		_, _ = s.db.Exec("UPDATE postlist set votecount = votecount + 1 where postid=?",
 			vote.PostId)
 	}
 }
@@ -282,9 +280,9 @@ func (s *StateLogService) handleReply(blockId string, trxId string, action int, 
 
 	switch action {
 	case iservices.Add:
-		_, _ = s.db.Exec("INSERT INTO postlist (id, created, author, parentid, content) VALUES (?, ?, ?, ?, ?)",
+		_, _ = s.db.Exec("INSERT INTO postlist (postid, created, author, parentid, content) VALUES (?, ?, ?, ?, ?)",
 			reply.Id, reply.Created.UtcSeconds, reply.Author, reply.ParentId, reply.Content)
-		_, _ = s.db.Exec("UPDATE postlist set replycount = replycount + 1 where id=?",
+		_, _ = s.db.Exec("UPDATE postlist set replycount = replycount + 1 where postid=?",
 			reply.ParentId)
 	}
 }
