@@ -776,6 +776,8 @@ func EnableBP(rpcClient grpcpb.ApiServiceClient, index int) error {
 
 func getBPListOnChain(rpcClient grpcpb.ApiServiceClient) (bpList *grpcpb.GetBlockProducerListResponse, err error) {
 	req := &grpcpb.GetBlockProducerListByVoteCountRequest{}
+	req.Start = prototype.MaxVest
+	req.End = prototype.MinVest
 	req.Limit = uint32(len(BPList))
 	resp, err := rpcClient.GetBlockProducerListByVoteCount(context.Background(), req)
 	if err != nil {

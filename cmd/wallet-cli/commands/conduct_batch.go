@@ -245,6 +245,12 @@ func conductBatch(cmd *cobra.Command, args []string) {
 				return
 			}
 
+			upgradeable, err := strconv.ParseBool(cmdArgs[7])
+			if err != nil {
+				fmt.Println("Parse Upgradeable error: ", err)
+				return
+			}
+
 			deployerAccount := &wallet.PrivAccount{
 				Account: wallet.Account{Name: deployerName, PubKey: deployerPubKeyStr},
 				PrivKey: deployerPriKeyStr,
@@ -255,7 +261,7 @@ func conductBatch(cmd *cobra.Command, args []string) {
 				Contract: contractName,
 				Abi:      compressedAbi,
 				Code:     compressedCode,
-				Upgradeable: false,
+				Upgradeable: upgradeable,
 			}
 
 			signTx, err = utils.GenerateSignedTxAndValidate(cmd, []interface{}{contractDeployOp}, deployerAccount)
