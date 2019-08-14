@@ -293,7 +293,7 @@ func initStateDb(cmd *cobra.Command, args []string) {
 
 	createStatePost := `create table postlist
 (
-  id int AUTO_INCREMENT primary key,
+  id int unsigned AUTO_INCREMENT primary key,
   postid bigint unsigned not null,
   created int unsigned,
   author varchar(20) not null,
@@ -310,7 +310,7 @@ func initStateDb(cmd *cobra.Command, args []string) {
 
 	createStateVote := `create table votelist
 (
-  id int AUTO_INCREMENT primary key,
+  id int unsigned AUTO_INCREMENT primary key,
   postid bigint unsigned not null,
   created int unsigned,
   voter varchar(20) not null,
