@@ -480,8 +480,13 @@ func (ev *VoteEvaluator) Apply() {
 	regeneratedPower := constants.FullVP * elapsedSeconds / constants.VoteRegenerateTime
 	var currentVp uint32
 	votePower := voterWrap.GetVotePower() + regeneratedPower
+<<<<<<< HEAD
 	if votePower > constants.FullVP {
 		currentVp = constants.FullVP
+=======
+	if votePower > 1000 {
+		currentVp = 1000
+>>>>>>> 3d30824738033b9a0976205b48a2b7876f21dfda
 	} else {
 		currentVp = votePower
 	}
@@ -731,8 +736,13 @@ func (ev *BpUpdateEvaluator) Apply() {
 	opAssert(accountCreateFee.Value <= constants.MaxAccountCreateFee,
 		fmt.Sprintf("account create fee too high max value %d", constants.MaxAccountCreateFee))
 
+<<<<<<< HEAD
 	topNAcquireFreeToken := op.Props.TopNAcquireFreeToken
 	opAssert(topNAcquireFreeToken <= constants.MaxTopN, fmt.Sprintf("top N VEST holders, the N is too big, " +
+=======
+	topNAcquireFreeToken := op.TopNAcquireFreeToken
+	opAssert(topNAcquireFreeToken <= constants.MaxTopN, fmt.Sprintf("top N VEST holders, the N is too big, "+
+>>>>>>> 3d30824738033b9a0976205b48a2b7876f21dfda
 		"which should lower than %d", constants.MaxTopN))
 
 	//epochDuration := op.EpochDuration
