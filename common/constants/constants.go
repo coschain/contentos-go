@@ -135,7 +135,7 @@ const (
 	// 2 * 1e9
 	InitPostWeightedVps = "2000000000"
 	InitReplyWeightedVps = "2000000000"
-	InitVoteWeightedVps = "0"
+	InitVoteWeightedVps = "2000000000"
 
 	FullVP = 1000
 	VPMarks = 30

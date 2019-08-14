@@ -45,7 +45,6 @@ func (tester *DecayTester) normal(t *testing.T, d *Dandelion) {
 	a.NoError(d.ProduceBlocks(1))
 
 	// only vote weighted
-	a.Equal("0", d.GlobalProps().VoteWeightedVps)
 	a.Equal(d.GlobalProps().PostWeightedVps, bigDecay(StringToBigInt(postWeightedVps)).String())
 	a.Equal(d.GlobalProps().ReplyWeightedVps, bigDecay(StringToBigInt(replyWeightedVps)).String())
 	a.Equal(d.GlobalProps().VoteWeightedVps, bigDecay(StringToBigInt(voteWeightedVps)).String())
