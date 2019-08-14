@@ -14,6 +14,8 @@ type TrxTester struct{}
 func (tester *TrxTester) Test(t *testing.T, d *Dandelion) {
 	t.Run("too_big", d.Test(tester.tooBig))
 	t.Run("require_multi_signers", d.Test(tester.requireMultiSigners))
+	t.Run("double_spent", d.Test(tester.doubleSpent))
+
 }
 
 func (tester *TrxTester) tooBig(t *testing.T, d *Dandelion) {
@@ -26,6 +28,30 @@ func (tester *TrxTester) tooBig(t *testing.T, d *Dandelion) {
 	// trxs larger than constants.MaxTransactionSize must be ignored.
 	a.Nil(tester.transferWithMemo(d, strings.Repeat("A", constants.MaxTransactionSize)))
 	a.Nil(tester.transferWithMemo(d, strings.Repeat("B", constants.MaxTransactionSize + 100)))
+}
+
+func (tester *TrxTester) doubleSpent(t *testing.T, d *Dandelion) {
+	a := assert.New(t)
+
+	act1 := "actor1"
+	act2 := "actor2"
+
+	op := Transfer(act1, act2, 1, "double spent")
+
+	prevBalance := d.Account(act1).GetBalance()
+
+	trx, _, err := d.SendTrxEx2( d.GetAccountKey(act1), op )
+	a.NoError(err)
+	d.ProduceBlocks(1)
+	a.Equal( prevBalance.Value - 1 , d.Account(act1).GetBalance().Value )
+
+	// start double spent test
+	for index := 0; index < constants.TrxMaxExpirationTime + 10 ; index++ {
+		_, err = d.SendRawTrx(trx)
+		d.ProduceBlocks(1)
+		a.Error(err)
+		a.Equal( prevBalance.Value - 1 , d.Account(act1).GetBalance().Value )
+	}
 }
 
 func (tester *TrxTester) transferWithMemo(d *Dandelion, memo string) *prototype.TransactionReceiptWithInfo {

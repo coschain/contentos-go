@@ -199,6 +199,12 @@ func (d *DandelionCore) GetTrxReceipt(trx *prototype.SignedTransaction) *prototy
 	return nil
 }
 
+
+func (d *DandelionCore) SendRawTrx(signedTrx *prototype.SignedTransaction) (*prototype.SignedTransaction, error) {
+	err := d.TrxPool().PushTrxToPending(signedTrx)
+	return signedTrx, err
+}
+
 func (d *DandelionCore) sendTrx(privateKey *prototype.PrivateKeyType, operations...*prototype.Operation) (*prototype.SignedTransaction, error) {
 	data, err := proto.Marshal(&prototype.Transaction{
 		RefBlockNum: common.TaposRefBlockNum(d.Head().BlockNum()),
