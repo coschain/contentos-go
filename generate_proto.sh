@@ -5,16 +5,20 @@ CUR_DIR=$(cd "$(dirname "${BASH_SOURCE-$0}")"; pwd)
 cd ${CUR_DIR}
 
 # install or upgrade dependencies
-if brew ls --versions protobuf > /dev/null; then
-    brew upgrade protobuf
-else
-    brew install protobuf
+if [ "$1" == "update" ] ; then
+  echo 'update brew and protobuf'
+
+  if brew ls --versions protobuf > /dev/null; then
+      brew upgrade protobuf
+  else
+      brew install protobuf
+  fi
+  go get -u github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway
+  go get -u github.com/grpc-ecosystem/grpc-gateway/protoc-gen-swagger
+  go get -u github.com/golang/protobuf/protoc-gen-go
+  go get -u github.com/golang/mock/gomock
+  go get -u github.com/golang/mock/mockgen
 fi
-go get -u github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway
-go get -u github.com/grpc-ecosystem/grpc-gateway/protoc-gen-swagger
-go get -u github.com/golang/protobuf/protoc-gen-go
-go get -u github.com/golang/mock/gomock
-go get -u github.com/golang/mock/mockgen
 
 # base type proto generate
 protoc --go_out=paths=source_relative:. prototype/*.proto
