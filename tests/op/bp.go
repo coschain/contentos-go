@@ -68,7 +68,7 @@ func makeBp(name string,t *testing.T,d *Dandelion) {
 	pub,_ := pri.PubKey()
 
 	// give new bp 10000 vesting
-	a.NoError(checkError(d.Account(constants.COSInitMiner).TrxReceipt(TransferToVest(constants.COSInitMiner,name,constants.MinBpRegisterVest))))
+	a.NoError(checkError(d.Account(constants.COSInitMiner).TrxReceipt(TransferToVest(constants.COSInitMiner,name,constants.MinBpRegisterVest, ""))))
 
 	a.NoError(checkError(d.Account(name).TrxReceipt(BpRegister(name,"","",pub,makeBPChainProperty()))))
 }
@@ -135,7 +135,7 @@ func (tester *BpTest) registDup(t *testing.T, d *Dandelion) {
 
 	props := makeBPChainProperty()
 	// regist as bp
-	a.NoError(checkError(d.Account(constants.COSInitMiner).TrxReceipt(TransferToVest(constants.COSInitMiner,bpName,constants.MinBpRegisterVest))))
+	a.NoError(checkError(d.Account(constants.COSInitMiner).TrxReceipt(TransferToVest(constants.COSInitMiner,bpName,constants.MinBpRegisterVest, ""))))
 	a.NoError(checkError(d.Account(bpName).TrxReceipt(BpRegister(bpName,"www.me.com","nothing",pub,props))))
 	witWrap := d.BlockProducer(bpName)
 	a.True(witWrap.CheckExist())
@@ -194,7 +194,7 @@ func (tester *BpTest) registInvalidParam(t *testing.T, d *Dandelion) {
 	a.Error(checkError(d.Account(newBpName).TrxReceipt(BpRegister(newBpName,"","",pub,props))))
 
 	// now give new bp 10000 vesting
-	a.NoError(checkError(d.Account(constants.COSInitMiner).TrxReceipt(TransferToVest(constants.COSInitMiner,newBpName,constants.MinBpRegisterVest))))
+	a.NoError(checkError(d.Account(constants.COSInitMiner).TrxReceipt(TransferToVest(constants.COSInitMiner,newBpName,constants.MinBpRegisterVest, ""))))
 
 	// set invalid stamina, should failed
 	props.StaminaFree = constants.MaxStaminaFree + 1
@@ -251,7 +251,7 @@ func (tester *BpTest) bpVote(t *testing.T, d *Dandelion) {
 	accountWrap := d.Account(voteName).SoAccountWrap
 	voteNameCos := accountWrap.GetBalance().Value
 	voteNameVest := accountWrap.GetVest().Value
-	a.NoError(d.Account(voteName).SendTrx(TransferToVest(voteName, voteName, 100000)))
+	a.NoError(d.Account(voteName).SendTrx(TransferToVest(voteName, voteName, 100000, "")))
 	a.NoError(d.ProduceBlocks(1))
 	a.Equal(voteNameCos-100000, accountWrap.GetBalance().Value)
 	a.Equal(voteNameVest+100000, accountWrap.GetVest().Value)
@@ -389,7 +389,7 @@ func (tester *BpTest) bpUpdateCheckDgp(t *testing.T, d *Dandelion) {
 		pub,_ := pri.PubKey()
 
 		// give new bp 10000 vesting
-		a.NoError(checkError(d.Account(constants.COSInitMiner).TrxReceipt(TransferToVest(constants.COSInitMiner,tmpName,constants.MinBpRegisterVest))))
+		a.NoError(checkError(d.Account(constants.COSInitMiner).TrxReceipt(TransferToVest(constants.COSInitMiner,tmpName,constants.MinBpRegisterVest, ""))))
 
 		props := makeBPChainProperty()
 		props.TpsExpected = tps
@@ -410,7 +410,7 @@ func (tester *BpTest) bpUnVoteDup(t *testing.T, d *Dandelion) {
 	pri := newAccount(bpName,t,d)
 	pub,_ := pri.PubKey()
 	// give new bp 10000 vesting
-	a.NoError(checkError(d.Account(constants.COSInitMiner).TrxReceipt(TransferToVest(constants.COSInitMiner,bpName,constants.MinBpRegisterVest))))
+	a.NoError(checkError(d.Account(constants.COSInitMiner).TrxReceipt(TransferToVest(constants.COSInitMiner,bpName,constants.MinBpRegisterVest, ""))))
 	// new account regist bp
 	a.NoError(checkError(d.Account(bpName).TrxReceipt(BpRegister(bpName,"","",pub,makeBPChainProperty()))))
 

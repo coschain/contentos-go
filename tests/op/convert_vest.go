@@ -31,7 +31,7 @@ func (tester *ConvertVestTester) Test(t *testing.T, d *Dandelion) {
 	tester.acc4 = d.Account("actor4")
 
 	a := assert.New(t)
-	a.NoError(tester.acc2.SendTrxAndProduceBlock(TransferToVest(tester.acc2.Name, tester.acc2.Name, constants.MinBpRegisterVest)))
+	a.NoError(tester.acc2.SendTrxAndProduceBlock(TransferToVest(tester.acc2.Name, tester.acc2.Name, constants.MinBpRegisterVest, "")))
 	a.NoError(tester.acc2.SendTrxAndProduceBlock(BpRegister(tester.acc2.Name, "", "", tester.acc2.GetPubKey(), cvProps)))
 
 	t.Run("normal", d.Test(tester.normal))
@@ -45,7 +45,7 @@ func (tester *ConvertVestTester) normal(t *testing.T, d *Dandelion) {
 	a := assert.New(t)
 
 	const TRANSFER = 10000000
-	a.NoError(tester.acc0.SendTrxAndProduceBlock(TransferToVest(tester.acc0.Name, tester.acc0.Name, TRANSFER)))
+	a.NoError(tester.acc0.SendTrxAndProduceBlock(TransferToVest(tester.acc0.Name, tester.acc0.Name, TRANSFER, "")))
 
 	vest0 := d.Account(tester.acc0.Name).GetVest().Value
 	balance0 := d.Account(tester.acc0.Name).GetBalance().Value
@@ -74,7 +74,7 @@ func (tester *ConvertVestTester) Reset(t *testing.T, d *Dandelion) {
 		TRANSFER2 = 2000000
 	)
 
-	a.NoError(tester.acc1.SendTrxAndProduceBlock(TransferToVest(tester.acc1.Name, tester.acc1.Name, TRANSFER)))
+	a.NoError(tester.acc1.SendTrxAndProduceBlock(TransferToVest(tester.acc1.Name, tester.acc1.Name, TRANSFER, "")))
 
 	vest1 := d.Account(tester.acc1.Name).GetVest().Value
 	balance1 := d.Account(tester.acc1.Name).GetBalance().Value
@@ -104,7 +104,7 @@ func (tester *ConvertVestTester) Reset(t *testing.T, d *Dandelion) {
 func (tester *ConvertVestTester) tooMuch(t *testing.T, d *Dandelion) {
 	a := assert.New(t)
 	const TRANSFER = 10000000
-	a.NoError(tester.acc3.SendTrxAndProduceBlock(TransferToVest(tester.acc3.Name, tester.acc3.Name, TRANSFER)))
+	a.NoError(tester.acc3.SendTrxAndProduceBlock(TransferToVest(tester.acc3.Name, tester.acc3.Name, TRANSFER, "")))
 	vest := d.Account(tester.acc3.Name).GetVest().Value
 	toConvert := d.Account(tester.acc3.Name).GetToPowerdown().Value
 
@@ -119,7 +119,7 @@ func (tester *ConvertVestTester) tooMuch(t *testing.T, d *Dandelion) {
 func (tester *ConvertVestTester) tooSmall(t *testing.T, d *Dandelion) {
 	a := assert.New(t)
 	const TRANSFER = 10000000
-	a.NoError(tester.acc4.SendTrxAndProduceBlock(TransferToVest(tester.acc4.Name, tester.acc4.Name, TRANSFER)))
+	a.NoError(tester.acc4.SendTrxAndProduceBlock(TransferToVest(tester.acc4.Name, tester.acc4.Name, TRANSFER, "")))
 	vest := d.Account(tester.acc4.Name).GetVest().Value
 	toConvert := d.Account(tester.acc4.Name).GetToPowerdown().Value
 	a.Error(tester.acc4.SendTrx(ConvertVest(tester.acc4.Name, 1)))

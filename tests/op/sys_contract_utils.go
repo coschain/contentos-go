@@ -74,7 +74,7 @@ func RegisterBp(list []*dandelion.DandelionAccount, d *dandelion.Dandelion) erro
 		name := acct.Name
 		var ops []*prototype.Operation
 		amount := uint64(constants.MinBpRegisterVest*10)
-		ops = append(ops, dandelion.TransferToVest(constants.COSInitMiner, name, amount))
+		ops = append(ops, dandelion.TransferToVest(constants.COSInitMiner, name, amount, ""))
 		ops = append(ops, dandelion.Stake(constants.COSInitMiner, name, amount))
 		err := d.Account(constants.COSInitMiner).SendTrxAndProduceBlock(ops...)
 		if err != nil {

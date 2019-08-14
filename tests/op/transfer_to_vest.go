@@ -34,9 +34,9 @@ func (tester *TransferToVestTester) normalToSelf(t *testing.T, d *Dandelion) {
 	balance2 := tester.acc2.GetBalance().Value
 
 
-	a.NoError(tester.acc0.SendTrx(TransferToVest(tester.acc0.Name, tester.acc0.Name, 100000)))
-	a.NoError(tester.acc1.SendTrx(TransferToVest(tester.acc1.Name, tester.acc1.Name, 100001)))
-	a.NoError(tester.acc2.SendTrx(TransferToVest(tester.acc2.Name, tester.acc2.Name, 100002)))
+	a.NoError(tester.acc0.SendTrx(TransferToVest(tester.acc0.Name, tester.acc0.Name, 100000, "")))
+	a.NoError(tester.acc1.SendTrx(TransferToVest(tester.acc1.Name, tester.acc1.Name, 100001, "")))
+	a.NoError(tester.acc2.SendTrx(TransferToVest(tester.acc2.Name, tester.acc2.Name, 100002, "")))
 	a.NoError(d.ProduceBlocks(1))
 
 	a.Equal(balance0 - 100000, tester.acc0.GetBalance().Value)
@@ -58,9 +58,9 @@ func (tester *TransferToVestTester) normalToOther(t *testing.T, d *Dandelion) {
 	balance2 := tester.acc2.GetBalance().Value
 
 
-	a.NoError(tester.acc0.SendTrx(TransferToVest(tester.acc0.Name, tester.acc1.Name, 100000)))
-	a.NoError(tester.acc0.SendTrx(TransferToVest(tester.acc0.Name, tester.acc2.Name, 100001)))
-	a.NoError(tester.acc2.SendTrx(TransferToVest(tester.acc2.Name, tester.acc1.Name, 100002)))
+	a.NoError(tester.acc0.SendTrx(TransferToVest(tester.acc0.Name, tester.acc1.Name, 100000, "")))
+	a.NoError(tester.acc0.SendTrx(TransferToVest(tester.acc0.Name, tester.acc2.Name, 100001, "")))
+	a.NoError(tester.acc2.SendTrx(TransferToVest(tester.acc2.Name, tester.acc1.Name, 100002, "")))
 	a.NoError(d.ProduceBlocks(1))
 
 	a.Equal(balance0 - 200001, tester.acc0.GetBalance().Value)
@@ -77,8 +77,8 @@ func (tester *TransferToVestTester) tooMuch(t *testing.T, d *Dandelion) {
 	balance0 := tester.acc0.GetBalance().Value
 	balance1 := tester.acc1.GetBalance().Value
 
-	a.NoError(tester.acc0.SendTrx(TransferToVest(tester.acc0.Name, tester.acc1.Name, balance0 + 1)))
-	a.NoError(tester.acc0.SendTrx(TransferToVest(tester.acc0.Name, tester.acc1.Name, math.MaxUint64)))
+	a.NoError(tester.acc0.SendTrx(TransferToVest(tester.acc0.Name, tester.acc1.Name, balance0 + 1, "")))
+	a.NoError(tester.acc0.SendTrx(TransferToVest(tester.acc0.Name, tester.acc1.Name, math.MaxUint64, "")))
 	a.NoError(d.ProduceBlocks(1))
 
 	a.Equal(balance0, tester.acc0.GetBalance().Value)
@@ -89,9 +89,9 @@ func (tester *TransferToVestTester) toUnknown(t *testing.T, d *Dandelion) {
 	a := assert.New(t)
 
 	balance0 := tester.acc0.GetBalance().Value
-	a.NoError(tester.acc0.SendTrx(TransferToVest(tester.acc0.Name, "NONEXIST1", 10)))
-	a.NoError(tester.acc0.SendTrx(TransferToVest(tester.acc0.Name, "NONEXIST2", 20)))
-	a.NoError(tester.acc0.SendTrx(TransferToVest(tester.acc0.Name, "NONEXIST3", 30)))
+	a.NoError(tester.acc0.SendTrx(TransferToVest(tester.acc0.Name, "NONEXIST1", 10, "")))
+	a.NoError(tester.acc0.SendTrx(TransferToVest(tester.acc0.Name, "NONEXIST2", 20, "")))
+	a.NoError(tester.acc0.SendTrx(TransferToVest(tester.acc0.Name, "NONEXIST3", 30, "")))
 	a.NoError(d.ProduceBlocks(1))
 
 	a.Equal(balance0, tester.acc0.GetBalance().Value)
@@ -104,9 +104,9 @@ func (tester *TransferToVestTester) wrongSender(t *testing.T, d *Dandelion) {
 	balance1 := tester.acc1.GetBalance().Value
 	balance2 := tester.acc2.GetBalance().Value
 
-	a.Error(tester.acc0.SendTrx(TransferToVest(tester.acc1.Name, tester.acc2.Name, 10)))
-	a.Error(tester.acc1.SendTrx(TransferToVest(tester.acc0.Name, tester.acc1.Name, 10)))
-	a.Error(tester.acc2.SendTrx(TransferToVest(tester.acc1.Name, tester.acc2.Name, 10)))
+	a.Error(tester.acc0.SendTrx(TransferToVest(tester.acc1.Name, tester.acc2.Name, 10, "")))
+	a.Error(tester.acc1.SendTrx(TransferToVest(tester.acc0.Name, tester.acc1.Name, 10, "")))
+	a.Error(tester.acc2.SendTrx(TransferToVest(tester.acc1.Name, tester.acc2.Name, 10, "")))
 	a.NoError(d.ProduceBlocks(1))
 
 	a.Equal(balance0, tester.acc0.GetBalance().Value)

@@ -21,9 +21,9 @@ func (tester *TicketTester) Test(t *testing.T, d *Dandelion) {
 	tester.acc1 = d.Account("actor1")
 	tester.acc2 = d.Account("actor2")
 	var ops []*prototype.Operation
-	ops = append(ops,TransferToVest(constants.COSInitMiner, "actor0", constants.MinBpRegisterVest))
-	ops = append(ops,TransferToVest(constants.COSInitMiner, "actor1", constants.MinBpRegisterVest))
-	ops = append(ops,TransferToVest(constants.COSInitMiner, "actor2", constants.MinBpRegisterVest))
+	ops = append(ops,TransferToVest(constants.COSInitMiner, "actor0", constants.MinBpRegisterVest, ""))
+	ops = append(ops,TransferToVest(constants.COSInitMiner, "actor1", constants.MinBpRegisterVest, ""))
+	ops = append(ops,TransferToVest(constants.COSInitMiner, "actor2", constants.MinBpRegisterVest, ""))
 
 	ops = append(ops,Stake(constants.COSInitMiner,"actor0",1))
 	ops = append(ops,Stake(constants.COSInitMiner,"actor1",1))
@@ -91,7 +91,7 @@ func (tester *TicketTester) invalidAcquireOp(t *testing.T, d *Dandelion) {
 	d.ProduceBlocks(1)
 
 	balance0 := tester.acc0.GetBalance().Value
-	op = TransferToVest(tester.acc0.Name, tester.acc0.Name, balance0)
+	op = TransferToVest(tester.acc0.Name, tester.acc0.Name, balance0, "")
 	a.NoError(checkError(tester.acc0.TrxReceipt(op)))
 	d.ProduceBlocks(1)
 

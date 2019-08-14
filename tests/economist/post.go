@@ -21,7 +21,7 @@ func (tester *PostTester) Test1(t *testing.T, d *Dandelion) {
 	tester.acc2 = d.Account("actor2")
 
 	a := assert.New(t)
-	a.NoError(tester.acc2.SendTrxAndProduceBlock(TransferToVest(tester.acc2.Name, tester.acc2.Name, constants.MinBpRegisterVest)))
+	a.NoError(tester.acc2.SendTrxAndProduceBlock(TransferToVest(tester.acc2.Name, tester.acc2.Name, constants.MinBpRegisterVest, "")))
 	a.NoError(tester.acc2.SendTrxAndProduceBlock(BpRegister(tester.acc2.Name, "", "", tester.acc2.GetPubKey(), mintProps)))
 
 	t.Run("normal", d.Test(tester.normal))
@@ -33,7 +33,7 @@ func (tester *PostTester) Test2(t *testing.T, d *Dandelion) {
 	tester.acc2 = d.Account("actor2")
 
 	a := assert.New(t)
-	a.NoError(tester.acc2.SendTrxAndProduceBlock(TransferToVest(tester.acc2.Name, tester.acc2.Name, constants.MinBpRegisterVest)))
+	a.NoError(tester.acc2.SendTrxAndProduceBlock(TransferToVest(tester.acc2.Name, tester.acc2.Name, constants.MinBpRegisterVest, "")))
 	a.NoError(tester.acc2.SendTrxAndProduceBlock(BpRegister(tester.acc2.Name, "", "", tester.acc2.GetPubKey(), mintProps)))
 
 	t.Run("cashout", d.Test(tester.cashout))
@@ -47,7 +47,7 @@ func (tester *PostTester) Test3(t *testing.T, d *Dandelion) {
 	tester.acc2 = d.Account("actor2")
 
 	a := assert.New(t)
-	a.NoError(tester.acc2.SendTrxAndProduceBlock(TransferToVest(tester.acc2.Name, tester.acc2.Name, constants.MinBpRegisterVest)))
+	a.NoError(tester.acc2.SendTrxAndProduceBlock(TransferToVest(tester.acc2.Name, tester.acc2.Name, constants.MinBpRegisterVest, "")))
 	a.NoError(tester.acc2.SendTrxAndProduceBlock(BpRegister(tester.acc2.Name, "", "", tester.acc2.GetPubKey(), mintProps)))
 
 	t.Run("huge global vp", d.Test(tester.hugeGlobalVp))
@@ -60,7 +60,7 @@ func (tester *PostTester) Test4(t *testing.T, d *Dandelion) {
 	tester.acc2 = d.Account("actor2")
 
 	a := assert.New(t)
-	a.NoError(tester.acc2.SendTrxAndProduceBlock(TransferToVest(tester.acc2.Name, tester.acc2.Name, constants.MinBpRegisterVest)))
+	a.NoError(tester.acc2.SendTrxAndProduceBlock(TransferToVest(tester.acc2.Name, tester.acc2.Name, constants.MinBpRegisterVest, "")))
 	a.NoError(tester.acc2.SendTrxAndProduceBlock(BpRegister(tester.acc2.Name, "", "", tester.acc2.GetPubKey(), mintProps)))
 
 	t.Run("with ticket", d.Test(tester.withTicket))
@@ -133,8 +133,8 @@ func (tester *PostTester) normal(t *testing.T, d *Dandelion) {
 	post1Block := d.GlobalProps().GetHeadBlockNumber() - 1
 	post1Cashout := post1Block + constants.PostCashOutDelayBlock
 	a.Equal(post1Cashout, d.Post(1).GetCashoutBlockNum())
-	a.NoError(tester.acc0.SendTrx(TransferToVest(tester.acc0.Name, tester.acc0.Name, VEST)))
-	a.NoError(tester.acc1.SendTrx(TransferToVest(tester.acc1.Name, tester.acc1.Name, VEST)))
+	a.NoError(tester.acc0.SendTrx(TransferToVest(tester.acc0.Name, tester.acc0.Name, VEST, "")))
+	a.NoError(tester.acc1.SendTrx(TransferToVest(tester.acc1.Name, tester.acc1.Name, VEST, "")))
 	// waiting for vp charge
 	// next block post will be cashout
 	a.NoError(d.ProduceBlocks(BLOCKS))
@@ -162,8 +162,8 @@ func (tester *PostTester) cashout(t *testing.T, d *Dandelion) {
 	post1Block := d.GlobalProps().GetHeadBlockNumber() - 1
 	post1Cashout := post1Block + constants.PostCashOutDelayBlock
 	a.Equal(post1Cashout, d.Post(1).GetCashoutBlockNum())
-	a.NoError(tester.acc0.SendTrx(TransferToVest(tester.acc0.Name, tester.acc0.Name, VEST)))
-	a.NoError(tester.acc1.SendTrx(TransferToVest(tester.acc1.Name, tester.acc1.Name, VEST)))
+	a.NoError(tester.acc0.SendTrx(TransferToVest(tester.acc0.Name, tester.acc0.Name, VEST, "")))
+	a.NoError(tester.acc1.SendTrx(TransferToVest(tester.acc1.Name, tester.acc1.Name, VEST, "")))
 
 	a.NoError(d.ProduceBlocks(BLOCKS))
 	vest0 := d.Account(tester.acc0.Name).GetVest().Value
@@ -298,7 +298,7 @@ func (tester *PostTester) hugeGlobalVp(t *testing.T, d *Dandelion) {
 		props.PostWeightedVps = postWeightedVp.String()
 	})
 	a.NoError(tester.acc0.SendTrxAndProduceBlock(Post(1, tester.acc0.Name, "title", "content", []string{"1"}, nil)))
-	a.NoError(tester.acc0.SendTrx(TransferToVest(tester.acc0.Name, tester.acc0.Name, VEST)))
+	a.NoError(tester.acc0.SendTrx(TransferToVest(tester.acc0.Name, tester.acc0.Name, VEST, "")))
 
 	a.NoError(d.ProduceBlocks(BLOCKS))
 	vest0 := d.Account(tester.acc0.Name).GetVest().Value
@@ -375,7 +375,7 @@ func (tester *PostTester) withTicket(t *testing.T, d *Dandelion) {
 	const BLOCKS = 100
 	const VEST = 10 * constants.COSTokenDecimals
 
-	a.NoError(tester.acc0.SendTrxAndProduceBlock(TransferToVest(tester.acc0.Name, tester.acc0.Name, VEST)))
+	a.NoError(tester.acc0.SendTrxAndProduceBlock(TransferToVest(tester.acc0.Name, tester.acc0.Name, VEST, "")))
 	a.NoError(tester.acc0.SendTrxAndProduceBlock(AcquireTicket(tester.acc0.Name, 1)))
 
 	a.NoError(tester.acc0.SendTrxAndProduceBlock(Post(1, tester.acc0.Name, "title", "content", []string{"1"}, nil)))

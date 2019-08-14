@@ -112,7 +112,7 @@ func (tester *TicketBpBonusTester) newBlockProducers() {
 	ops = append(ops, Stake(constants.COSInitMiner, constants.COSInitMiner, 10000 * constants.COSTokenDecimals))
 	for _, actor := range tester.actors {
 		ops = append(ops, Stake(constants.COSInitMiner, actor.Name, 10000 * constants.COSTokenDecimals))
-		ops = append(ops, TransferToVest(constants.COSInitMiner, actor.Name, constants.MinBpRegisterVest))
+		ops = append(ops, TransferToVest(constants.COSInitMiner, actor.Name, constants.MinBpRegisterVest, ""))
 	}
 	r := tester.d.Account(constants.COSInitMiner).TrxReceipt(ops...)
 	a.True(r != nil && r.Status == prototype.StatusSuccess)

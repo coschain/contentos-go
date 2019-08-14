@@ -31,11 +31,12 @@ func AccountUpdate(name string, pubkey *prototype.PublicKeyType) *prototype.Oper
 	})
 }
 
-func TransferToVest(from, to string, amount uint64) *prototype.Operation {
+func TransferToVest(from, to string, amount uint64, memo string) *prototype.Operation {
 	return prototype.GetPbOperation(&prototype.TransferToVestOperation{
 		From: prototype.NewAccountName(from),
 		To: prototype.NewAccountName(to),
 		Amount: prototype.NewCoin(amount),
+		Memo: memo,
 	})
 }
 
