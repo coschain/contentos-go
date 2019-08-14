@@ -23,6 +23,9 @@ func (tester *ReplyTest) Test(t *testing.T, d *Dandelion) {
 	t.Run("duplicateReplyId", d.Test(tester.duplicateReplyId))
 	t.Run("parentIdNoExist", d.Test(tester.parentIdNoExist))
 	t.Run("replyDepthOverflow", d.Test(tester.replyDepthOverflow))
+	t.Run("reply beneficiary normal", d.Test(tester.beneficiaryWeightNormal))
+	t.Run("reply beneficiary illegal account", d.Test(tester.beneficiaryWeightIllegalAccount))
+	t.Run("reply beneficiary illegal weight", d.Test(tester.beneficiaryWeightIllegalWeight))
 }
 
 func (tester *ReplyTest) normal(t *testing.T, d *Dandelion) {
@@ -93,6 +96,36 @@ func (tester *ReplyTest) replyDepthOverflow(t *testing.T, d *Dandelion) {
 
 	// other account reply, should no error
 	doNormalReply(t, d, tester.acc2.Name, rootId)
+}
+
+func (tester *ReplyTest) beneficiaryWeightNormal(t *testing.T, d *Dandelion) {
+	a := assert.New(t)
+	const POST = 1
+	const REPLY = 2
+	beneficiary := []map[string]int{{tester.acc0.Name: 5000}, {tester.acc1.Name: 4000}}
+	a.NoError(tester.acc0.SendTrxAndProduceBlock(Post(POST, tester.acc0.Name, "title", "content", []string{"tags"}, nil)))
+	receipt, _ := tester.acc0.SendTrxEx(Reply(REPLY, POST, tester.acc0.Name, "reply", beneficiary))
+	a.NoError(checkError(receipt))
+}
+
+func (tester *ReplyTest) beneficiaryWeightIllegalAccount(t *testing.T, d *Dandelion) {
+	a := assert.New(t)
+	const POST = 3
+	const REPLY = 4
+	beneficiary := []map[string]int{{tester.acc0.Name: 5000}, {tester.acc1.Name: 4000}, {"illegal": 2000}}
+	a.NoError(tester.acc0.SendTrxAndProduceBlock(Post(POST, tester.acc0.Name, "title", "content", []string{"tags"}, nil)))
+	receipt, _ := tester.acc0.SendTrxEx(Reply(REPLY, POST, tester.acc0.Name, "reply", beneficiary))
+	a.Error(checkError(receipt))
+}
+
+func (tester *ReplyTest) beneficiaryWeightIllegalWeight(t *testing.T, d *Dandelion) {
+	a := assert.New(t)
+	const POST = 5
+	const REPLY = 6
+	beneficiary := []map[string]int{{tester.acc0.Name: 5000}, {tester.acc1.Name: 4000}, {tester.acc2.Name: 2000}}
+	a.NoError(tester.acc0.SendTrxAndProduceBlock(Post(POST, tester.acc0.Name, "title", "content", []string{"tags"}, nil)))
+	receipt, _ := tester.acc0.SendTrxEx(Reply(REPLY, POST, tester.acc0.Name, "reply", beneficiary))
+	a.Error(checkError(receipt))
 }
 
 func doNormalReply(t *testing.T, d *Dandelion, name string, parentId uint64) uint64 {

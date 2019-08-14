@@ -10,15 +10,20 @@ import (
 )
 
 type PostTest struct {
-	acc0 *DandelionAccount
+	acc0, acc1, acc2 *DandelionAccount
 }
 
 func (tester *PostTest) Test(t *testing.T, d *Dandelion) {
 	tester.acc0 = d.Account("actor0")
+	tester.acc1 = d.Account("actor1")
+	tester.acc2 = d.Account("actor2")
 
 	t.Run("normal", d.Test(tester.normal))
 	t.Run("noExistAccountPost", d.Test(tester.noExistAccountPost))
 	t.Run("duplicatePostId", d.Test(tester.duplicatePostId))
+	t.Run("beneficiary weight normal", d.Test(tester.beneficiaryWeightNormal))
+	t.Run("beneficiary weight illegal account", d.Test(tester.beneficiaryWeightIllegalAccount))
+	t.Run("beneficiary weight illegal weight", d.Test(tester.beneficiaryWeightIllegalWeight))
 }
 
 func (tester *PostTest) normal(t *testing.T, d *Dandelion) {
@@ -44,6 +49,30 @@ func (tester *PostTest) duplicatePostId(t *testing.T, d *Dandelion) {
 
 	postOp := createPostOpWithId(tester.acc0.Name, "test post", postId)
 	a.Error( checkError( d.Account(tester.acc0.Name).TrxReceipt(postOp) ) )
+}
+
+func (tester *PostTest) beneficiaryWeightNormal(t *testing.T, d *Dandelion) {
+	a := assert.New(t)
+	const POST = 1
+	beneficiary := []map[string]int{{tester.acc0.Name: 5000}, {tester.acc1.Name: 4000}}
+	receipt, _ := tester.acc0.SendTrxEx(Post(POST, tester.acc0.Name, "title", "content", []string{"tags"}, beneficiary))
+	a.NoError(checkError(receipt))
+}
+
+func (tester *PostTest) beneficiaryWeightIllegalAccount(t *testing.T, d *Dandelion) {
+	a := assert.New(t)
+	const POST = 2
+	beneficiary := []map[string]int{{tester.acc0.Name: 5000}, {tester.acc1.Name: 4000}, {"illegal": 2000}}
+	receipt, _ := tester.acc0.SendTrxEx(Post(POST, tester.acc0.Name, "title", "content", []string{"tags"}, beneficiary))
+	a.Error(checkError(receipt))
+}
+
+func (tester *PostTest) beneficiaryWeightIllegalWeight(t *testing.T, d *Dandelion) {
+	a := assert.New(t)
+	const POST = 3
+	beneficiary := []map[string]int{{tester.acc0.Name: 5000}, {tester.acc1.Name: 4000}, {tester.acc2.Name: 2000}}
+	receipt, _ := tester.acc0.SendTrxEx(Post(POST, tester.acc0.Name, "title", "content", []string{"tags"}, beneficiary))
+	a.Error(checkError(receipt))
 }
 
 func doNormalPost(t *testing.T, d *Dandelion, name string) uint64 {

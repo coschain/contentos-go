@@ -320,6 +320,18 @@ func (ev *TransferEvaluator) Apply() {
 	ev.TrxObserver().AddOpState(iservices.Replace, "balance", toWrap.GetName().Value, toWrap.GetBalance().Value)
 }
 
+func (ev *PostEvaluator) checkBeneficiaries(beneficiaries []*prototype.BeneficiaryRouteType) {
+	var weightAccumulator uint32
+	for _, beneficiary := range beneficiaries {
+		name := beneficiary.Name
+		beneficiaryRouteWrap := table.NewSoAccountWrap(ev.Database(), name)
+		beneficiaryRouteWrap.MustExist(fmt.Sprintf("beneficiary route %s does not exist in chaindb", name.Value))
+		weight := beneficiary.Weight
+		weightAccumulator += weight
+	}
+	opAssert(weightAccumulator <= constants.PERCENT, "the total weight from all beneficiary routes at most 10000")
+}
+
 func (ev *PostEvaluator) Apply() {
 	op := ev.op
 	ev.VMInjector().RecordStaminaFee(op.Owner.Value, constants.CommonOpStamina)
@@ -328,6 +340,10 @@ func (ev *PostEvaluator) Apply() {
 	idWrap.MustNotExist("post uuid exist")
 
 	authorWrap := table.NewSoAccountWrap(ev.Database(), op.Owner)
+	authorWrap.MustExist("author does not exist in db")
+	if len(op.Beneficiaries) > 0 {
+		ev.checkBeneficiaries(op.Beneficiaries)
+	}
 	elapsedSeconds := ev.GlobalProp().HeadBlockTime().UtcSeconds - authorWrap.GetLastPostTime().UtcSeconds
 	opAssert(elapsedSeconds > constants.MinPostInterval, "posting frequently")
 
@@ -365,11 +381,18 @@ func (ev *PostEvaluator) Apply() {
 		props.TotalPostCnt++
 	})
 
-	//timestamp := ev.GlobalProp().HeadBlockTime().UtcSeconds + uint32(constants.PostCashOutDelayTime) - uint32(constants.GenesisTime)
-	//key := fmt.Sprintf("cashout:%d_%d", common.GetBucket(timestamp), op.Uuid)
-	//value := "post"
-	//opAssertE(ev.Database().Put([]byte(key), []byte(value)), "put post key into db error")
+}
 
+func (ev *ReplyEvaluator) checkBeneficiaries(beneficiaries []*prototype.BeneficiaryRouteType) {
+	var weightAccumulator uint32
+	for _, beneficiary := range beneficiaries {
+		name := beneficiary.Name
+		beneficiaryRouteWrap := table.NewSoAccountWrap(ev.Database(), name)
+		beneficiaryRouteWrap.MustExist(fmt.Sprintf("beneficiary route %s does not exist in chaindb", name.Value))
+		weight := beneficiary.Weight
+		weightAccumulator += weight
+	}
+	opAssert(weightAccumulator <= constants.PERCENT, "the total weight from all beneficiary routes at most 10000")
 }
 
 func (ev *ReplyEvaluator) Apply() {
@@ -385,6 +408,10 @@ func (ev *ReplyEvaluator) Apply() {
 	opAssert(pidWrap.GetDepth()+1 < constants.PostMaxDepth, "reply depth error")
 
 	authorWrap := table.NewSoAccountWrap(ev.Database(), op.Owner)
+	authorWrap.MustExist("author does not exist in db")
+	if len(op.Beneficiaries) > 0 {
+		ev.checkBeneficiaries(op.Beneficiaries)
+	}
 	elapsedSeconds := ev.GlobalProp().HeadBlockTime().UtcSeconds - authorWrap.GetLastPostTime().UtcSeconds
 	opAssert(elapsedSeconds > constants.MinPostInterval, "reply frequently")
 

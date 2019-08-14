@@ -28,7 +28,7 @@ func TestOperations(t *testing.T) {
 	t.Run("unStake", dandelion.NewDandelionTest(new(UnStakeTester).Test, 3))
 	t.Run("ticket", dandelion.NewDandelionTest(new(TicketTester).Test, 3))
 	t.Run("ticket_bp_bonus", dandelion.NewDandelionTest(new(TicketBpBonusTester).Test, TicketBpBonusActors))
-	t.Run("post", dandelion.NewDandelionTest(new(PostTest).Test, 1))
+	t.Run("post", dandelion.NewDandelionTest(new(PostTest).Test, 3))
 	t.Run("reply", dandelion.NewDandelionTest(new(ReplyTest).Test, 3))
 	t.Run("reputation", NewDandelionContractTest(new(ReputationTester).Test, 8, "actor0.reputation"))
 	t.Run("copyright", NewDandelionContractTest(new(CopyrightTester).Test, 7, "actor0.copyright"))

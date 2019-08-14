@@ -33,7 +33,7 @@ func (tester *ReplyDappTester) Test(t *testing.T, d *Dandelion) {
 	t.Run("normal self and other half-and-half", d.Test(tester.normal4))
 	t.Run("normal three people", d.Test(tester.normal5))
 	t.Run("normal two people less 100%", d.Test(tester.normal6))
-	t.Run("three people greater than 100%", d.Test(tester.normal7))
+	//t.Run("three people greater than 100%", d.Test(tester.normal7))
 }
 
 func (tester *ReplyDappTester) normal1(t *testing.T, d *Dandelion) {
@@ -308,52 +308,52 @@ func (tester *ReplyDappTester) normal6(t *testing.T, d *Dandelion) {
 	a.NoError(d.ProduceBlocks(constants.PostCashOutDelayBlock))
 }
 
-func (tester *ReplyDappTester) normal7(t *testing.T, d *Dandelion) {
-	a := assert.New(t)
-
-	const BLOCKS = 100
-	const POST = 13
-	const REPLY = 14
-
-	beneficiary := []map[string]int{{tester.acc0.Name: 5000}, {tester.acc1.Name: 4000}, {tester.acc2.Name: 2000}}
-	a.NoError(tester.acc0.SendTrxAndProduceBlock(Post(POST, tester.acc0.Name, "title", "content", []string{"7"}, nil)))
-	a.NoError(tester.acc0.SendTrxAndProduceBlock(Reply(REPLY, POST,  tester.acc0.Name, "content",  beneficiary)))
-
-	a.NoError(d.ProduceBlocks(BLOCKS))
-	acc0vest0 := d.Account(tester.acc0.Name).GetVest().Value
-	acc1vest0 := d.Account(tester.acc1.Name).GetVest().Value
-	acc2vest0 := d.Account(tester.acc2.Name).GetVest().Value
-
-	a.NoError(tester.acc0.SendTrx(Vote(tester.acc0.Name, REPLY)))
-	a.NoError(d.ProduceBlocks(constants.PostCashOutDelayBlock - BLOCKS - 1))
-
-	replyWeight := StringToBigInt(d.Post(REPLY).GetWeightedVp())
-	globalReplyReward := new(big.Int).SetUint64(d.GlobalProps().GetReplyRewards().Value)
-	globalReplyDappReward := new(big.Int).SetUint64(d.GlobalProps().GetReplyDappRewards().Value)
-	bigTotalReplyWeight, _ := new(big.Int).SetString(d.GlobalProps().GetReplyWeightedVps(), 10)
-	decayedReplyWeight := bigDecay(bigTotalReplyWeight)
-	exceptNextBlockReplyWeightedVps := decayedReplyWeight.Add(decayedReplyWeight, replyWeight)
-	bigGlobalReplyReward := globalReplyReward.Add(globalReplyReward, new(big.Int).SetUint64(perBlockReplyReward(d)))
-	bigGlobalReplyDappReward := globalReplyDappReward.Add(globalReplyDappReward, new(big.Int).SetUint64(perBlockReplyDappReward(d)))
-	pr1 := new(big.Int).Mul(replyWeight, bigGlobalReplyReward)
-	exceptReplyReward := new(big.Int).Div(pr1, exceptNextBlockReplyWeightedVps).Uint64()
-	pr2 := new(big.Int).Mul(replyWeight, bigGlobalReplyDappReward)
-	exceptReplyDappReward := new(big.Int).Div(pr2, exceptNextBlockReplyWeightedVps).Uint64()
-
-	reward2 := exceptReplyDappReward * 4 / 10
-	reward3 := exceptReplyDappReward * 0
-	reward1 := exceptReplyReward + exceptReplyDappReward - reward2
-
-	a.NoError(d.ProduceBlocks(1))
-	a.Equal(d.GlobalProps().GetReplyWeightedVps(), exceptNextBlockReplyWeightedVps.String())
-	acc0vest1 := d.Account(tester.acc0.Name).GetVest().Value
-	acc1vest1 := d.Account(tester.acc1.Name).GetVest().Value
-	acc2vest1 := d.Account(tester.acc2.Name).GetVest().Value
-	a.NotZero(reward1)
-	a.NotZero(reward2)
-	a.Equal(reward1, acc0vest1 - acc0vest0)
-	a.Equal(reward2, acc1vest1 - acc1vest0)
-	a.Equal(reward3, acc2vest1 - acc2vest0)
-	// make all post/test has been cashouted
-	a.NoError(d.ProduceBlocks(constants.PostCashOutDelayBlock))
-}
+//func (tester *ReplyDappTester) normal7(t *testing.T, d *Dandelion) {
+//	a := assert.New(t)
+//
+//	const BLOCKS = 100
+//	const POST = 13
+//	const REPLY = 14
+//
+//	beneficiary := []map[string]int{{tester.acc0.Name: 5000}, {tester.acc1.Name: 4000}, {tester.acc2.Name: 2000}}
+//	a.NoError(tester.acc0.SendTrxAndProduceBlock(Post(POST, tester.acc0.Name, "title", "content", []string{"7"}, nil)))
+//	a.NoError(tester.acc0.SendTrxAndProduceBlock(Reply(REPLY, POST,  tester.acc0.Name, "content",  beneficiary)))
+//
+//	a.NoError(d.ProduceBlocks(BLOCKS))
+//	acc0vest0 := d.Account(tester.acc0.Name).GetVest().Value
+//	acc1vest0 := d.Account(tester.acc1.Name).GetVest().Value
+//	acc2vest0 := d.Account(tester.acc2.Name).GetVest().Value
+//
+//	a.NoError(tester.acc0.SendTrx(Vote(tester.acc0.Name, REPLY)))
+//	a.NoError(d.ProduceBlocks(constants.PostCashOutDelayBlock - BLOCKS - 1))
+//
+//	replyWeight := StringToBigInt(d.Post(REPLY).GetWeightedVp())
+//	globalReplyReward := new(big.Int).SetUint64(d.GlobalProps().GetReplyRewards().Value)
+//	globalReplyDappReward := new(big.Int).SetUint64(d.GlobalProps().GetReplyDappRewards().Value)
+//	bigTotalReplyWeight, _ := new(big.Int).SetString(d.GlobalProps().GetReplyWeightedVps(), 10)
+//	decayedReplyWeight := bigDecay(bigTotalReplyWeight)
+//	exceptNextBlockReplyWeightedVps := decayedReplyWeight.Add(decayedReplyWeight, replyWeight)
+//	bigGlobalReplyReward := globalReplyReward.Add(globalReplyReward, new(big.Int).SetUint64(perBlockReplyReward(d)))
+//	bigGlobalReplyDappReward := globalReplyDappReward.Add(globalReplyDappReward, new(big.Int).SetUint64(perBlockReplyDappReward(d)))
+//	pr1 := new(big.Int).Mul(replyWeight, bigGlobalReplyReward)
+//	exceptReplyReward := new(big.Int).Div(pr1, exceptNextBlockReplyWeightedVps).Uint64()
+//	pr2 := new(big.Int).Mul(replyWeight, bigGlobalReplyDappReward)
+//	exceptReplyDappReward := new(big.Int).Div(pr2, exceptNextBlockReplyWeightedVps).Uint64()
+//
+//	reward2 := exceptReplyDappReward * 4 / 10
+//	reward3 := exceptReplyDappReward * 0
+//	reward1 := exceptReplyReward + exceptReplyDappReward - reward2
+//
+//	a.NoError(d.ProduceBlocks(1))
+//	a.Equal(d.GlobalProps().GetReplyWeightedVps(), exceptNextBlockReplyWeightedVps.String())
+//	acc0vest1 := d.Account(tester.acc0.Name).GetVest().Value
+//	acc1vest1 := d.Account(tester.acc1.Name).GetVest().Value
+//	acc2vest1 := d.Account(tester.acc2.Name).GetVest().Value
+//	a.NotZero(reward1)
+//	a.NotZero(reward2)
+//	a.Equal(reward1, acc0vest1 - acc0vest0)
+//	a.Equal(reward2, acc1vest1 - acc1vest0)
+//	a.Equal(reward3, acc2vest1 - acc2vest0)
+//	// make all post/test has been cashouted
+//	a.NoError(d.ProduceBlocks(constants.PostCashOutDelayBlock))
+//}
