@@ -118,7 +118,7 @@ func (tester *BpTest) TestSwitch(t *testing.T, d *Dandelion) {
 func (tester *BpTest) enableDup(t *testing.T, d *Dandelion) {
 	a := assert.New(t)
 
-	bpName := "enableDup"
+	bpName := "enabledup"
 	makeBp(bpName,t,d)
 
 	// enable duplicate, should failed
@@ -128,7 +128,7 @@ func (tester *BpTest) enableDup(t *testing.T, d *Dandelion) {
 func (tester *BpTest) registDup(t *testing.T, d *Dandelion) {
 	a := assert.New(t)
 
-	bpName := "registDupBp"
+	bpName := "registdupbp"
 	pri := newAccount(bpName,t,d)
 	pub,_ := pri.PubKey()
 
@@ -150,10 +150,10 @@ func (tester *BpTest) registDup(t *testing.T, d *Dandelion) {
 func (tester *BpTest) bpVoteDup(t *testing.T, d *Dandelion) {
 	a := assert.New(t)
 
-	bpName := "newBpVoteDup"
+	bpName := "newbpvoteuup"
 	makeBp(bpName,t,d)
 
-	voter := "bpVoteDupVoter"
+	voter := "bpvotedupvoter"
 	newAccount(voter,t,d)
 
 	// vote for bp
@@ -173,7 +173,7 @@ func (tester *BpTest) bpVoteDup(t *testing.T, d *Dandelion) {
 func (tester *BpTest) regist(t *testing.T, d *Dandelion) {
 	a := assert.New(t)
 
-	newBpName := "registBp"
+	newBpName := "registbp"
 	makeBp(newBpName,t,d)
 
 	// should appear in bp
@@ -229,11 +229,11 @@ func (tester *BpTest) registInvalidParam(t *testing.T, d *Dandelion) {
 func (tester *BpTest) bpVote(t *testing.T, d *Dandelion) {
 	a := assert.New(t)
 
-	bpName := "bpVote"
+	bpName := "bpvote"
 	makeBp(bpName,t,d)
 
-	voteName := "bpVoteVoter"
-	newAccount("bpVoteVoter",t,d)
+	voteName := "vpvotevoter"
+	newAccount("vpvotevoter",t,d)
 	// voteName vote for bp
 	a.NoError(checkError(d.Account(voteName).TrxReceipt(BpVote(voteName,bpName,false))))
 
@@ -262,7 +262,7 @@ func (tester *BpTest) bpVote(t *testing.T, d *Dandelion) {
 func (tester *BpTest) bpVoteNoExist(t *testing.T, d *Dandelion) {
 	a := assert.New(t)
 
-	name := "bpVoteNoExist"
+	name := "vpvotenoexist"
 	newAccount(name,t,d)
 
 	noExistName := "actor10"
@@ -274,10 +274,10 @@ func (tester *BpTest) bpVoteNoExist(t *testing.T, d *Dandelion) {
 func (tester *BpTest) bpVoteNoBp(t *testing.T, d *Dandelion) {
 	a := assert.New(t)
 
-	name := "bpVoteNoBp"
+	name := "bpvotenobp"
 	newAccount(name,t,d)
 
-	bpName := "bpVoteNoBpBp"
+	bpName := "bpvotenobpbp"
 	newAccount(bpName,t,d)
 
 	// vote for newaccount,but newaccount is not bp, should failed
@@ -286,7 +286,7 @@ func (tester *BpTest) bpVoteNoBp(t *testing.T, d *Dandelion) {
 
 func (tester *BpTest) bpVoteDisableBp(t *testing.T, d *Dandelion) {
 	a := assert.New(t)
-	bpName := "bpVoteDisableBp"
+	bpName := "bpvotedisablebp"
 	makeBp(bpName,t,d)
 
 	// bpName disable
@@ -294,7 +294,7 @@ func (tester *BpTest) bpVoteDisableBp(t *testing.T, d *Dandelion) {
 	witWrap := d.BlockProducer(bpName)
 	a.False(witWrap.GetBpVest().Active)
 
-	name := "bpVoteDisable"
+	name := "bpvotedisable"
 	newAccount(name,t,d)
 	// vote for disable bp, should failed
 	a.Error(checkError(d.Account(name).TrxReceipt(BpVote(name,bpName,false))))
@@ -303,10 +303,10 @@ func (tester *BpTest) bpVoteDisableBp(t *testing.T, d *Dandelion) {
 func (tester *BpTest) bpUnVote(t *testing.T, d *Dandelion) {
 	a := assert.New(t)
 
-	bpName := "bpUnVote"
+	bpName := "bpunvote"
 	makeBp(bpName,t,d)
 
-	voter := "bpUnVoteVoter"
+	voter := "bpunvotevoter"
 	newAccount(voter,t,d)
 
 	// vote for bp
@@ -326,7 +326,7 @@ func (tester *BpTest) bpUnVote(t *testing.T, d *Dandelion) {
 func (tester *BpTest) bpUpdate(t *testing.T, d *Dandelion) {
 	a := assert.New(t)
 
-	bpName := "bpUpdate"
+	bpName := "bpudate"
 	makeBp(bpName,t,d)
 
 	// change staminaFree param
@@ -346,10 +346,10 @@ func (tester *BpTest) bpUpdate(t *testing.T, d *Dandelion) {
 
 func (tester *BpTest) bpEnableDisable(t *testing.T, d *Dandelion) {
 	a := assert.New(t)
-	bpName := "EnableDisable"
+	bpName := "enabledisable"
 	makeBp(bpName,t,d)
 
-	accountName := "EnableDisableA"
+	accountName := "enabledisablea"
 	newAccount(accountName,t,d)
 
 	// account not a bp, enable should failed
@@ -367,7 +367,7 @@ func (tester *BpTest) bpEnableDisable(t *testing.T, d *Dandelion) {
 
 func (tester *BpTest) disableDup(t *testing.T, d *Dandelion) {
 	a := assert.New(t)
-	bpName := "bpDisableDup"
+	bpName := "bpdisabledup"
 	makeBp(bpName,t,d)
 	// unregist
 	a.NoError(checkError(d.Account(bpName).TrxReceipt(BpDisable(bpName))))
@@ -406,7 +406,7 @@ func (tester *BpTest) bpUpdateCheckDgp(t *testing.T, d *Dandelion) {
 
 func (tester *BpTest) bpUnVoteDup(t *testing.T, d *Dandelion) {
 	a := assert.New(t)
-	bpName := "bpUnVoteMulti"
+	bpName := "bpunvotemulti"
 	pri := newAccount(bpName,t,d)
 	pub,_ := pri.PubKey()
 	// give new bp 10000 vesting
@@ -414,7 +414,7 @@ func (tester *BpTest) bpUnVoteDup(t *testing.T, d *Dandelion) {
 	// new account regist bp
 	a.NoError(checkError(d.Account(bpName).TrxReceipt(BpRegister(bpName,"","",pub,makeBPChainProperty()))))
 
-	voter := "bpUnVoteMultiv"
+	voter := "bpunvotemultiv"
 	newAccount(voter,t,d)
 	// voter vote for new account bp
 	a.NoError(checkError(d.Account(voter).TrxReceipt(BpVote(voter,bpName,false))))

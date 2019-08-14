@@ -19,8 +19,6 @@ func isValidNameChar(c byte) bool {
 		return true
 	} else if c >= 'a' && c <= 'z' {
 		return true
-	} else if c >= 'A' && c <= 'Z' {
-		return true
 	} else {
 		return false
 	}

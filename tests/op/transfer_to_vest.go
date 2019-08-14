@@ -89,9 +89,9 @@ func (tester *TransferToVestTester) toUnknown(t *testing.T, d *Dandelion) {
 	a := assert.New(t)
 
 	balance0 := tester.acc0.GetBalance().Value
-	a.NoError(tester.acc0.SendTrx(TransferToVest(tester.acc0.Name, "NONEXIST1", 10, "")))
-	a.NoError(tester.acc0.SendTrx(TransferToVest(tester.acc0.Name, "NONEXIST2", 20, "")))
-	a.NoError(tester.acc0.SendTrx(TransferToVest(tester.acc0.Name, "NONEXIST3", 30, "")))
+	a.NoError(tester.acc0.SendTrx(TransferToVest(tester.acc0.Name, "noexist1", 10, "")))
+	a.NoError(tester.acc0.SendTrx(TransferToVest(tester.acc0.Name, "noexist2", 20, "")))
+	a.NoError(tester.acc0.SendTrx(TransferToVest(tester.acc0.Name, "noexist3", 30, "")))
 	a.NoError(d.ProduceBlocks(1))
 
 	a.Equal(balance0, tester.acc0.GetBalance().Value)
