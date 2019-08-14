@@ -31,6 +31,7 @@ message transfer_to_vest_operation{
     account_name from = 1;
     account_name to = 2;
     coin amount = 3;
+    string memo = 4;
 }
 
 message vote_operation{
