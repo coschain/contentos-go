@@ -88,10 +88,10 @@ func (hf *HardFork) RollBack(height uint64) {
 		for k, v := range hf.hardForks[hf.checkpoints[hf.currentIdx]].actions {
 			if k == NewOP {
 				// delete this op
-				v().(OperationDeleter)()
+				OperationDeleter(v().(func()))()
 			} else if k == NewVMNativeFunc {
 				// remove this native function
-				v().(VMNativeFuncDeleter)()
+				VMNativeFuncDeleter(v().(func()))()
 			} else {
 				// for general actions, if:
 				// 1. this action has a earlier version in prev hardfork, just replace. Otherwise,

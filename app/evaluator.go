@@ -187,9 +187,9 @@ func init() {
 	RegisterEvaluator((*prototype.ReplyOperation)(nil), func(delegate ApplyDelegate, op prototype.BaseOperation) BaseEvaluator {
 		return &ReplyEvaluator{BaseDelegate: BaseDelegate{delegate: delegate}, op: op.(*prototype.ReplyOperation)}
 	})
-	RegisterEvaluator((*prototype.FollowOperation)(nil), func(delegate ApplyDelegate, op prototype.BaseOperation) BaseEvaluator {
-		return &FollowEvaluator{BaseDelegate: BaseDelegate{delegate: delegate}, op: op.(*prototype.FollowOperation)}
-	})
+	//RegisterEvaluator((*prototype.FollowOperation)(nil), func(delegate ApplyDelegate, op prototype.BaseOperation) BaseEvaluator {
+	//	return &FollowEvaluator{BaseDelegate: BaseDelegate{delegate: delegate}, op: op.(*prototype.FollowOperation)}
+	//})
 	RegisterEvaluator((*prototype.VoteOperation)(nil), func(delegate ApplyDelegate, op prototype.BaseOperation) BaseEvaluator {
 		return &VoteEvaluator{BaseDelegate: BaseDelegate{delegate: delegate}, op: op.(*prototype.VoteOperation)}
 	})
@@ -234,6 +234,17 @@ func init() {
 			(*prototype.ReportOperation)(nil),
 			func(delegate ApplyDelegate, op prototype.BaseOperation) BaseEvaluator {
 				return &ReportEvaluator{BaseDelegate: BaseDelegate{delegate: delegate}, op: op.(*prototype.ReportOperation)}
+			},
+		)
+	})
+
+	hardfork.HF.RegisterAction(10, hardfork.NewOP, func(i ...interface{}) interface{} {
+		return EnableNewEvaluatorAndOperation(
+			"follow",
+			(*prototype.Operation_Op8)(nil),
+			(*prototype.FollowOperation)(nil),
+			func(delegate ApplyDelegate, op prototype.BaseOperation) BaseEvaluator {
+				return &FollowEvaluator{BaseDelegate: BaseDelegate{delegate: delegate}, op: op.(*prototype.FollowOperation)}
 			},
 		)
 	})

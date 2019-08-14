@@ -157,7 +157,7 @@ func (d *DandelionCore) GetAccountKey(name string) *prototype.PrivateKeyType {
 	return d.accounts[name]
 }
 
-func (d *DandelionCore) produceBlock() (block *prototype.SignedBlock, err error) {
+func (d *DandelionCore) produceBlock(commit bool) (block *prototype.SignedBlock, err error) {
 	const skip = prototype.Skip_block_signatures
 	var blockId common.BlockID
 
@@ -173,7 +173,9 @@ func (d *DandelionCore) produceBlock() (block *prototype.SignedBlock, err error)
 		return
 	}
 	blockId = block.Id()
-	d.TrxPool().Commit(num)
+	if commit {
+		d.TrxPool().Commit(num)
+	}
 	copy(d.prevHash.Hash, blockId.Data[:])
 	d.timeStamp += constants.BlockInterval
 	return
@@ -181,11 +183,28 @@ func (d *DandelionCore) produceBlock() (block *prototype.SignedBlock, err error)
 
 func (d *DandelionCore) ProduceBlocks(count int) error {
 	for i := 0; i < count; i++ {
-		if _, err := d.produceBlock(); err != nil {
+		if _, err := d.produceBlock(true); err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+func (d *DandelionCore) ProduceTempBlock() (err error) {
+	_, err = d.produceBlock(false)
+
+	// wait for the block to be applied
+	d.Database().Lock()
+	d.Database().Unlock()
+	return err
+}
+
+func (d *DandelionCore) PopBlock(num uint64) {
+	var blockId common.BlockID
+	copy(blockId.Data[:], d.prevHash.Hash)
+	popNum := blockId.BlockNum() - num
+	d.timeStamp -= uint32(constants.BlockInterval)*uint32(popNum)
+	d.TrxPool().PopBlock(num)
 }
 
 func (d *DandelionCore) trxApplied(trx *prototype.SignedTransaction, result *prototype.TransactionReceiptWithInfo) {
@@ -226,7 +245,7 @@ func (d *DandelionCore) sendTrxAndProduceBlock(privateKey *prototype.PrivateKeyT
 	if trx, err = d.sendTrx(privateKey, operations...); err != nil {
 		return
 	}
-	block, err = d.produceBlock()
+	block, err = d.produceBlock(true)
 	return
 }
 
@@ -278,7 +297,10 @@ func (d *DandelionCore) TrxReceipt(privateKey *prototype.PrivateKeyType, operati
 }
 
 func (d *DandelionCore) TrxReceiptByAccount(name string, operations...*prototype.Operation) *prototype.TransactionReceiptWithInfo {
-	r, _ := d.SendTrxByAccountEx(name, operations...)
+	r, err := d.SendTrxByAccountEx(name, operations...)
+	if err != nil {
+		fmt.Println("eeee ", err)
+	}
 	return r
 }
 

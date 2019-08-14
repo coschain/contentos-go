@@ -15,6 +15,7 @@ func (tester *FollowTester) Test(t *testing.T, d *Dandelion) {
 	tester.acc0 = d.Account("actor0")
 	tester.acc1 = d.Account("actor1")
 	tester.acc2 = d.Account("actor2")
+	d.ProduceBlocks(8) // FollowOp is enabled at block height 10
 
 	t.Run("follow", d.Test(tester.follow))
 	t.Run("unfollow", d.Test(tester.unfollow))
