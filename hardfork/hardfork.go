@@ -63,7 +63,7 @@ func (hf *HardFork) Apply(height uint64) {
 	if height <= hf.checkpoints[hf.currentIdx] || hf.currentIdx == uint64(len(hf.hardForks)) {
 		return
 	}
-	for {
+	for int(hf.currentIdx+1) < len(hf.checkpoints) {
 		if hf.checkpoints[hf.currentIdx+1] > height {
 			return
 		}
