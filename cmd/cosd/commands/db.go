@@ -319,7 +319,7 @@ func initStateDb(cmd *cobra.Command, args []string) {
   INDEX index_voter(voter),
 )ENGINE=InnoDB DEFAULT CHARSET=utf8;`
 
-	dropTables := []string{"statelog", "stateloglibinfo", "stateaccount", "statemint", "statecashout"}
+	dropTables := []string{"statelog", "stateloglibinfo", "stateaccount", "statemint", "statecashout","postlist","votelist"}
 	for _, table := range dropTables {
 		dropSql := fmt.Sprintf("DROP TABLE IF EXISTS `%s`", table)
 		if _, err = db.Exec(dropSql); err != nil {
