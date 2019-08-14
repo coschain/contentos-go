@@ -36,8 +36,8 @@ func (logHeap BlockLogHeap) Swap(i, j int) {
 }
 
 func (logHeap *BlockLogHeap) Push(x interface{}) {
-	logHeap.Mu.RLock()
-	defer logHeap.Mu.RUnlock()
+	logHeap.Mu.Lock()
+	defer logHeap.Mu.Unlock()
 	n := len(logHeap.Logs)
 	item := x.(*iservices.BlockLog)
 	item.Index = n
@@ -45,8 +45,8 @@ func (logHeap *BlockLogHeap) Push(x interface{}) {
 }
 
 func (logHeap *BlockLogHeap) Pop() interface{} {
-	logHeap.Mu.RLock()
-	defer logHeap.Mu.RUnlock()
+	logHeap.Mu.Lock()
+	defer logHeap.Mu.Unlock()
 	old := logHeap.Logs
 	n := len(old)
 	item := old[n-1]
