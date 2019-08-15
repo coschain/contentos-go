@@ -146,7 +146,7 @@ BFT 过程可以被认为是状态机，由高度(H)，轮次(R)和步骤组成�
 - 每个新区块产生奖励的 15% 会直接作为激励进入 block producer 的账户.
 - 每个新区块产生奖励的 10% 作为 dapp 的奖励，如果结算对象是通过 dapp 发布，那么 dapp 的作者会根据结算对象的权重来从这个奖励池中获取奖励。
 - 创造者和评论者奖励遵循同样的算法，称为”过去窗口权重累计算法“。具体到某个创作品和评论，其在结算时间点分得的 VEST 数主要由三个因素决定，第一个是当前的“历史积累 weighted vote power ”，第二个是当前奖励池的大小，第三个是该作品的 weighted vote power。
-- vote 用来描述一个作品被投票（点赞）之后获取的权重。该值由两个变量决定，一个是投票用户的 VEST，一个是该用户的 USED VOTE POWER。后者是一个常数。VEST 和 USED VOTE POWER 进行一个计算之后，可以得出该用户的 weighted vote power。而所有对该作品进行投票用户的 weighted vote power 之和，即为这个作品的 weighted vote power。
+- vote 用来描述一个作品被投票（点赞）之后获取的权重。该值由两个变量决定: 用户的 VEST 和当天点赞的次数 N，这两个值通过加权计算可以得出该用户本次投票的 weighted vote power。而所有对该作品进行投票用户的 weighted vote power 之和，即为这个作品的 weighted vote power。
 - 每当一个作品被结算，其 weighted vote power 会被累加进 “过去积累 weighted vote power”，即 `past_wvp` 中。为了防止 `past_wvp` 只增不减，额外规定了 `past_wvp` 的衰减函数。准确来说，每一个区块产生的时候，`past_wvp` 会衰减掉 `1 / D * past_vp` 的数量， D 称为风化函数系数，控制衰减快慢，目前这个值为 86400 * 17。这是自然对数衰减函数，可以计算，一篇文章在结算的 12 天之后，它原本的 wvp 会衰退掉一半；40 天后，衰退到原来的 10%。
 - 如果已知 `past_wvp` , `rewards`, 与一个作品在结算点的 `weighted vote power` 或者说 `wvp` ，那么该作品作者能得到的奖励为 `wvp / (past_wvp + wvp) * rewards`。
 - 除了点赞，用户还可以通过打赏的方式，来提升作品的 `wvp`。打赏需要购买打赏票，价格由 bp 决定，使用 COS 进行购买。每一张打赏票是等价的，包括一定量的 `wvp`，初始是 1e8，这个权重可以被 bp 投票修改。
