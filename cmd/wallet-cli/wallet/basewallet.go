@@ -103,8 +103,8 @@ func DecryptData(cipherdata, passphrase, iv []byte) ([]byte, error) {
 }
 
 func (w *BaseWallet) Start() error {
-	w.mu.RLock()
-	defer w.mu.RUnlock()
+	w.mu.Lock()
+	defer w.mu.Unlock()
 	w.ticker = time.NewTicker(1 * time.Minute)
 	go func() {
 		for range w.ticker.C {
@@ -129,8 +129,8 @@ func (w *BaseWallet) Path() string {
 }
 
 func (w *BaseWallet) LoadAll() error {
-	w.mu.RLock()
-	defer w.mu.RUnlock()
+	w.mu.Lock()
+	defer w.mu.Unlock()
 	var err error
 	if _, err = os.Stat(w.dirPath); os.IsNotExist(err) {
 		return err
@@ -205,8 +205,8 @@ func (w *BaseWallet) Create(name, passphrase, pubKeyStr, privKeyStr string) erro
 }
 
 func (w *BaseWallet) GetUnlockedAccount(name string) (*PrivAccount, bool) {
-	w.mu.RLock()
-	defer w.mu.RUnlock()
+	w.mu.Lock()
+	defer w.mu.Unlock()
 	acc, ok := w.unlocked[name]
 	// access account will update expiration time
 	if ok {
@@ -218,8 +218,8 @@ func (w *BaseWallet) GetUnlockedAccount(name string) (*PrivAccount, bool) {
 // name should not be a path
 // todo: check name
 func (w *BaseWallet) Load(name string) error {
-	w.mu.RLock()
-	defer w.mu.RUnlock()
+	w.mu.Lock()
+	defer w.mu.Unlock()
 	var filename string
 	if strings.HasSuffix(name, ".json") {
 		filename = name
@@ -245,8 +245,8 @@ func (w *BaseWallet) Load(name string) error {
 // w.locked hold all EncryptAccount and never modifies  its content except add new account
 // when unlock, a account being decrypted and added into unlock map
 func (w *BaseWallet) Lock(name string) error {
-	w.mu.RLock()
-	defer w.mu.RUnlock()
+	w.mu.Lock()
+	defer w.mu.Unlock()
 	if _, ok := w.locked[name]; !ok {
 		return &UnknownLockedAccountError{Name: name}
 	}
@@ -257,8 +257,8 @@ func (w *BaseWallet) Lock(name string) error {
 }
 
 func (w *BaseWallet) Unlock(name, passphrase string) error {
-	w.mu.RLock()
-	defer w.mu.RUnlock()
+	w.mu.Lock()
+	defer w.mu.Unlock()
 	if _, ok := w.unlocked[name]; ok {
 		return &ReentrantUnlockedAccountError{Name: name}
 	}
@@ -307,16 +307,16 @@ func (w *BaseWallet) IsExist(name string) bool {
 }
 
 func (w *BaseWallet) updateAccountExpiredTime(name string) {
-	w.mu.RLock()
-	defer w.mu.RUnlock()
+	w.mu.Lock()
+	defer w.mu.Unlock()
 	if acc, ok := w.unlocked[name]; ok {
 		acc.Expire = time.Now().Unix() + ExpirationSeconds
 	}
 }
 
 func (w *BaseWallet) seal(account *EncryptAccount) error {
-	w.mu.RLock()
-	defer w.mu.RUnlock()
+	w.mu.Lock()
+	defer w.mu.Unlock()
 	name := account.Name
 
 	// I knew there is a problem when user create a pair key but using a name which have been occupied.
