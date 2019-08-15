@@ -56,7 +56,7 @@ func createFundAccount(cmd *cobra.Command, args []string) {
 		go func(start, end int){
 			for index:=start; index < end; index ++ {
 				accName := fmt.Sprintf("%s%d", prefix, index)
-				privKey, err := prototype.GenerateNewKeyFromBytes([]byte(accName))
+				privKey, err := prototype.FixBytesToPrivateKey([]byte(accName))
 				if err != nil {
 					fmt.Println(err)
 					break

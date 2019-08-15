@@ -67,7 +67,7 @@ func transferCosToVestTrx(cmd *cobra.Command, client grpcpb.ApiServiceClient, co
 	trx := &prototype.SignedTransaction{Trx: tx}
 
 	accountName := fmt.Sprintf("%s%d", constants.COSInitMiner, count)
-	keys, err := prototype.GenerateNewKeyFromBytes([]byte(accountName))
+	keys, err := prototype.FixBytesToPrivateKey([]byte(accountName))
 	if err != nil {
 		return nil, err
 	}
@@ -99,7 +99,7 @@ func makeBpRegVoteTrx(cmd *cobra.Command, client grpcpb.ApiServiceClient, count 
 	trx := &prototype.SignedTransaction{Trx: tx}
 
 	bpName := fmt.Sprintf("%s%d", constants.COSInitMiner, count)
-	keys, err := prototype.GenerateNewKeyFromBytes([]byte(bpName))
+	keys, err := prototype.FixBytesToPrivateKey([]byte(bpName))
 	if err != nil {
 		return nil, err
 	}
@@ -162,7 +162,7 @@ func createMNTAccountTrx(cmd *cobra.Command, client grpcpb.ApiServiceClient, cou
 
 	for index := int64(1); index < count; index++ {
 		bpName := fmt.Sprintf("%s%d", constants.COSInitMiner, index)
-		keys, err := prototype.GenerateNewKeyFromBytes([]byte(bpName))
+		keys, err := prototype.FixBytesToPrivateKey([]byte(bpName))
 		if err != nil {
 			return nil, err
 		}
@@ -214,7 +214,7 @@ func makeMultiNodeTeseterTrx(count int64, onlyCreate bool) (*prototype.SignedTra
 
 	for index := int64(1); index < count; index++ {
 		bpName := fmt.Sprintf("%s%d", constants.COSInitMiner, index)
-		keys, err := prototype.GenerateNewKeyFromBytes([]byte(bpName))
+		keys, err := prototype.FixBytesToPrivateKey([]byte(bpName))
 		if err != nil {
 			return nil, err
 		}
