@@ -494,18 +494,7 @@ func (ev *VoteEvaluator) Apply() {
 		usedVp = 0
 	}
 
-	voterWrap.Modify(func(tInfo *table.SoAccount) {
-		tInfo.VotePower = currentVp - usedVp
-		tInfo.LastVoteTime = ev.GlobalProp().HeadBlockTime()
-	})
-
-	//voterWrap.SetVotePower(currentVp - usedVp)
-	//voterWrap.SetLastVoteTime(ev.GlobalProp().HeadBlockTime())
 	vest := voterWrap.GetVest().Value
-	// after constants.PERCENT replaced by 1000, max value is 10000000000 * 1000000 * 1000 / 30
-	// 10000000000 * 1000000 * 1000 < 18446744073709552046 but 10000000000 * 1000000 > 9223372036854775807
-	// so can not using int64 here
-	//weightedVp := vest * uint64(usedVp)
 	weightedVp := new(big.Int).SetUint64(vest)
 	weightedVp.Sqrt(weightedVp)
 	weightedVp.Mul(weightedVp, new(big.Int).SetUint64(uint64(usedVp)))
@@ -514,6 +503,15 @@ func (ev *VoteEvaluator) Apply() {
 	if voterWrap.GetReputation() == constants.MinReputation {
 		weightedVp.SetUint64(0)
 	}
+
+	// record this vote
+	voteWrap.Create(func(t *table.SoVote) {
+		t.Voter = &voterId
+		t.PostId = op.Idx
+		t.Upvote = true
+		t.WeightedVp = weightedVp.String()
+		t.VoteTime = ev.GlobalProp().HeadBlockTime()
+	})
 
 	if postWrap.GetCashoutBlockNum() > ev.GlobalProp().GetProps().HeadBlockNumber {
 		lastVp := postWrap.GetWeightedVp()
@@ -527,13 +525,13 @@ func (ev *VoteEvaluator) Apply() {
 			tInfo.VoteCnt++
 		})
 
-		voteWrap.Create(func(t *table.SoVote) {
-			t.Voter = &voterId
-			t.PostId = op.Idx
-			t.Upvote = true
-			t.WeightedVp = weightedVp.String()
-			t.VoteTime = ev.GlobalProp().HeadBlockTime()
+		// only weightedVp actually be added into post, the vote power be declined.
+		voterWrap.Modify(func(tInfo *table.SoAccount) {
+			tInfo.VotePower = currentVp - usedVp
+			tInfo.LastVoteTime = ev.GlobalProp().HeadBlockTime()
 		})
+		//voterWrap.SetVotePower(currentVp - usedVp)
+		//voterWrap.SetLastVoteTime(ev.GlobalProp().HeadBlockTime())
 
 		// add vote into cashout table
 		voteCashoutBlockHeight := ev.GlobalProp().GetProps().HeadBlockNumber + constants.VoteCashOutDelayBlock
