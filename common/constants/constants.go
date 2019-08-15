@@ -24,6 +24,7 @@ const (
 	NoticeAddTrx       = "addTrx"
 	NoticeCashout      = "rewardCashout"
 	NoticeState        = "blockstate"
+	NoticeLibChange    = "LibChange"
 
 	GenesisTime = 0
 

@@ -266,8 +266,16 @@ func (s *StateLogService) handleCashout(blockId string, trxId string, action int
 func (s *StateLogService) hookEvent() {
 	_ = s.ev.Subscribe(constants.NoticeState, s.onStateLogOperation)
 }
+
 func (s *StateLogService) unhookEvent() {
 	_ = s.ev.Unsubscribe(constants.NoticeState, s.onStateLogOperation)
+}
+
+func (s *StateLogService) onLibChange(block []prototype.SignedBlock) {
+	for _ , item := range block {
+		s.log.Println("onLibChange: %v", item.SignedHeader.Header.GetTimestamp())
+		// TODO insert log to sql db
+	}
 }
 
 func (s *StateLogService) onStateLogOperation(blockLog *iservices.BlockLog) {
