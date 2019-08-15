@@ -20,8 +20,8 @@ func TestForkDB(t *testing.T) {
 	}
 	db := forkdb.NewDB()
 	assert.Equal(db.Empty(), true)
-	b := db.PushBlock(msb0)
-	assert.Equal(b, msb0, "wrong head")
+	db.PushBlock(msb0)
+	assert.Equal(db.Head(), msb0, "wrong head")
 	assert.Equal(db.Empty(), false)
 
 	prevID := msb0.Id()
@@ -45,20 +45,20 @@ func TestForkDB(t *testing.T) {
 		Prev:    prevID,
 	}
 
-	b = db.PushBlock(msb1)
-	assert.Equal(b, msb1, "wrong head")
+	db.PushBlock(msb1)
+	assert.Equal(db.Head(), msb1, "wrong head")
 	assert.Equal(2, db.TotalBlockNum(), "wrong total block number")
 
-	b = db.PushBlock(msb3)
-	assert.Equal(b, msb1, "wrong head")
+	db.PushBlock(msb3)
+	assert.Equal(db.Head(), msb1, "wrong head")
 	assert.Equal(2, db.TotalBlockNum(), "wrong total block number")
 
-	b = db.PushBlock(msb2)
-	assert.Equal(b, msb2, "wrong head")
+	db.PushBlock(msb2)
+	assert.Equal(db.Head(), msb2, "wrong head")
 	assert.Equal(3, db.TotalBlockNum(), "wrong total block number")
 
-	b = db.PushBlock(msb3)
-	assert.Equal(b, msb3, "wrong head")
+	db.PushBlock(msb3)
+	assert.Equal(db.Head(), msb3, "wrong head")
 	assert.Equal(4, db.TotalBlockNum(), "wrong total block number")
 
 	prevID = msb0.Id()
@@ -96,20 +96,20 @@ func TestForkDB(t *testing.T) {
 	// 	Prev:    prevID,
 	// }
 
-	b = db.PushBlock(msb1_1)
-	assert.Equal(b, msb3, "wrong head")
+	db.PushBlock(msb1_1)
+	assert.Equal(db.Head(), msb3, "wrong head")
 	assert.Equal(5, db.TotalBlockNum(), "wrong total block number")
 
-	b = db.PushBlock(msb1_3)
-	assert.Equal(b, msb3, "wrong head")
+	db.PushBlock(msb1_3)
+	assert.Equal(db.Head(), msb3, "wrong head")
 	assert.Equal(5, db.TotalBlockNum(), "wrong total block number")
 
-	b = db.PushBlock(msb1_4)
-	assert.Equal(b, msb3, "wrong head")
+	db.PushBlock(msb1_4)
+	assert.Equal(db.Head(), msb3, "wrong head")
 	assert.Equal(5, db.TotalBlockNum(), "wrong total block number")
 
-	b = db.PushBlock(msb1_2)
-	assert.Equal(b, msb1_4, "wrong head")
+	db.PushBlock(msb1_2)
+	assert.Equal(db.Head(), msb1_4, "wrong head")
 	assert.Equal(8, db.TotalBlockNum(), "wrong total block number")
 
 	var fullBranch [2][]common.BlockID
@@ -145,8 +145,8 @@ func TestForkDB(t *testing.T) {
 		Num:     3,
 		Prev:    prevID,
 	}
-	b = db.PushBlock(msb2_3)
-	assert.Equal(b, msb1_4)
+	db.PushBlock(msb2_3)
+	assert.Equal(db.Head(), msb1_4)
 	assert.Equal(9, db.TotalBlockNum())
 
 	var afterCommit []common.BlockID
