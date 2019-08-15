@@ -72,7 +72,7 @@ const (
 	VoteLimitDuringRegenerate = 30
 
 
-	TrxMaxExpirationTime = 60
+	TrxMaxExpirationTime = 30
 
 	// from total minted
 	RewardRateCreator = 7500
