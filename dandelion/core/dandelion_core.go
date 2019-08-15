@@ -188,7 +188,7 @@ func (d *DandelionCore) ProduceBlocks(count int) error {
 	return nil
 }
 
-func (d *DandelionCore) trxApplied(trx *prototype.SignedTransaction, result *prototype.TransactionReceiptWithInfo) {
+func (d *DandelionCore) trxApplied(trx *prototype.SignedTransaction, result *prototype.TransactionReceiptWithInfo, blockNum uint64) {
 	d.trxReceipts.Add(string(trx.Signature.Sig), result)
 }
 

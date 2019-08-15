@@ -17,6 +17,10 @@ const (
 	NoticeTrxPost      = "trxpost"
 	NoticeTrxApplied   = "trxapplyresult"
 	NoticeBlockApplied = "blockapply"
+	NoticeBlockApplyFailed  = "block_apply_failed"
+	NoticeBlockGenerationFailed  = "block_gen_failed"
+	NoticeBlockCommit  = "blockcommit"
+	NoticeBlockRevert  = "blockrevert"
 	NoticeAddTrx       = "addTrx"
 	NoticeCashout      = "rewardCashout"
 	NoticeState        = "blockstate"
@@ -34,7 +38,8 @@ const (
 	InitminerPubKey  = "COS5JVLLcTPhq4Unr194JzWPDNSYGoMcam8yxnsjgRVo3Nb7ioyFW"
 	InitminerPrivKey = "4DjYx2KAGh1NP3dai7MZTLUBMMhMBPmwouKE8jhVSESywccpVZ"
 
-	RpcPageSizeLimit = 100
+	RpcTimeoutSeconds = 30
+	RpcPageSizeLimit  = 100
 
 	MaxBlockProducerCount = 21
 

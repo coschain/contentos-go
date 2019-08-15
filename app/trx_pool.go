@@ -150,7 +150,7 @@ func (c *TrxPool) EstimateStamina(trx *prototype.SignedTransaction) (invoice *pr
 	defer func() {
 		recover()
 	}()
-	c.applyTransactionOnDb(db,entry)
+	c.applyTransactionOnDb(db,entry, 0)
 	return
 }
 
@@ -183,6 +183,7 @@ func (c *TrxPool) pushBlockNoLock(blk *prototype.SignedBlock, skip prototype.Ski
 			c.stateObserver.EndBlock("")
 			c.log.Debug("ICEBERG: EndBlock FALSE")
 			c.log.Errorf("push block fail,the error is %v,the block num is %v", r, blk.Id().BlockNum())
+			c.notifyBlockApplyFailed(blk)
 		}
 	}()
 
@@ -275,6 +276,8 @@ func (c *TrxPool) generateBlockNoLock(bpName string, pre *prototype.Sha256, time
 	timing := common.NewTiming()
 	timing.Begin()
 
+	headBlockNum := c.headBlockNum()
+
 	defer func() {
 		if err := recover(); err != nil {
 			c.log.Debug("ICEBERG: EndBlock FALSE")
@@ -282,6 +285,7 @@ func (c *TrxPool) generateBlockNoLock(bpName string, pre *prototype.Sha256, time
 			c.stateObserver.EndBlock("")
 
 			b, e = nil, fmt.Errorf("%v", err)
+			c.notifyBlockGenerationFailed(headBlockNum + 1)
 		}
 	}()
 
@@ -299,7 +303,7 @@ func (c *TrxPool) generateBlockNoLock(bpName string, pre *prototype.Sha256, time
 	signBlock.SignedHeader = &prototype.SignedBlockHeader{}
 	signBlock.SignedHeader.Header = &prototype.BlockHeader{}
 
-	blkNum := c.headBlockNum()
+	blkNum := headBlockNum
 	var prevBlockId common.BlockID
 	copy(prevBlockId.Data[:], pre.Hash[:32])
 	prevNum := prevBlockId.BlockNum()
@@ -320,7 +324,7 @@ func (c *TrxPool) generateBlockNoLock(bpName string, pre *prototype.Sha256, time
 	})
 
 	const batchCount = 64
-	ma := NewMultiTrxsApplier(c.db, c.applyTransactionOnDb)
+	ma := NewMultiTrxsApplier(c.db, c.applyTransactionOnDb, blkNum)
 
 	timing.Mark()
 
@@ -423,12 +427,29 @@ func (c *TrxPool) notifyBlockApply(block *prototype.SignedBlock) {
 	c.log.Debugf("NOTIFYBLOCK %d: %s, #tx=%d", blockNum, timing.String(), len(block.Transactions))
 }
 
-func (c *TrxPool) notifyTrxApplyResult(trx *prototype.SignedTransaction, res bool,
-	receipt *prototype.TransactionReceiptWithInfo) {
-	c.noticer.Publish(constants.NoticeTrxApplied, trx, receipt)
+func (c *TrxPool) notifyBlockGenerationFailed(blockNum uint64) {
+	c.noticer.Publish(constants.NoticeBlockGenerationFailed, blockNum)
 }
 
-func (c *TrxPool) applyTransactionOnDb(db iservices.IDatabasePatch, entry *TrxEntry) {
+func (c *TrxPool) notifyBlockApplyFailed(block *prototype.SignedBlock) {
+	c.noticer.Publish(constants.NoticeBlockApplyFailed, block)
+}
+
+func (c *TrxPool) notifyBlockCommitted(blockNum uint64) {
+	c.noticer.Publish(constants.NoticeBlockCommit, blockNum)
+}
+
+func (c *TrxPool) notifyBlockReverted(blockNum uint64) {
+	c.noticer.Publish(constants.NoticeBlockRevert, blockNum)
+}
+
+func (c *TrxPool) notifyTrxApplyResult(trx *prototype.SignedTransaction, res bool, receipt *prototype.TransactionReceiptWithInfo, blockNum uint64) {
+	if blockNum > 0 {
+		c.noticer.Publish(constants.NoticeTrxApplied, trx, receipt, blockNum)
+	}
+}
+
+func (c *TrxPool) applyTransactionOnDb(db iservices.IDatabasePatch, entry *TrxEntry, blockNum uint64) {
 	result := entry.GetTrxResult()
 	receipt, sigTrx := result.GetReceipt(), result.GetSigTrx()
 
@@ -448,10 +469,10 @@ func (c *TrxPool) applyTransactionOnDb(db iservices.IDatabasePatch, entry *TrxEn
 			trxObserver.EndTrx(false)
 			if useGas && constants.EnableResourceControl {
 				receipt.Status = prototype.StatusDeductStamina
-				c.notifyTrxApplyResult(sigTrx, true, receipt)
+				c.notifyTrxApplyResult(sigTrx, true, receipt, blockNum)
 			} else {
 				receipt.Status = prototype.StatusError
-				c.notifyTrxApplyResult(sigTrx, false, receipt)
+				c.notifyTrxApplyResult(sigTrx, false, receipt, blockNum)
 				panic(receipt.ErrorInfo)
 			}
 		} else {
@@ -459,7 +480,7 @@ func (c *TrxPool) applyTransactionOnDb(db iservices.IDatabasePatch, entry *TrxEn
 			_ = trxDB.Apply()
 			receipt.Status = prototype.StatusSuccess
 			trxObserver.EndTrx(true)
-			c.notifyTrxApplyResult(sigTrx, true, receipt)
+			c.notifyTrxApplyResult(sigTrx, true, receipt, blockNum)
 		}
 		c.PayGas(db,trxContext)
 	}()
@@ -513,7 +534,7 @@ func (c *TrxPool) applyBlock(blk *prototype.SignedBlock, skip prototype.SkipFlag
 		mustNoError(err, "block trxs check failed")
 
 		applyTime := int64(0)
-		ma := NewMultiTrxsApplier(c.db, c.applyTransactionOnDb)
+		ma := NewMultiTrxsApplier(c.db, c.applyTransactionOnDb, blockNum)
 		batchCount := 64
 		totalCount := len(entries)
 		for i := 0; i < totalCount; i += batchCount {
@@ -1053,6 +1074,9 @@ func (c *TrxPool) PopBlock(num uint64) error {
 	}
 
 	c.tm.BlockReverted(num)
+	if err == nil {
+		c.notifyBlockReverted(num)
+	}
 
 	return err
 }
@@ -1069,6 +1093,9 @@ func (c *TrxPool) Commit(num uint64) {
 	mustSuccess(err == nil, fmt.Sprintf("commit block: %d, error is %v", num, err))
 
 	c.tm.BlockCommitted(num)
+	if err == nil {
+		c.notifyBlockCommitted(num)
+	}
 }
 
 func (c *TrxPool) GetLastPushedBlockNum() (uint64, error) {

@@ -6,20 +6,22 @@ import (
 	"sync"
 )
 
-type SingleTrxApplier func(iservices.IDatabasePatch, *TrxEntry)
+type SingleTrxApplier func(iservices.IDatabasePatch, *TrxEntry, uint64)
 
 // MultiTrxsApplier concurrently applies multiple transactions.
 type MultiTrxsApplier struct {
 	db            iservices.IDatabaseService
 	singleApplier SingleTrxApplier
 	sched         ITrxScheduler
+	blockNum      uint64
 }
 
-func NewMultiTrxsApplier(db iservices.IDatabaseService, singleApplier SingleTrxApplier) *MultiTrxsApplier {
+func NewMultiTrxsApplier(db iservices.IDatabaseService, singleApplier SingleTrxApplier, blockNum uint64) *MultiTrxsApplier {
 	return &MultiTrxsApplier{
 		db: db,
 		singleApplier: singleApplier,
 		sched: PropBasedTrxScheduler{},
+		blockNum: blockNum,
 	}
 }
 
@@ -65,6 +67,6 @@ func (a *MultiTrxsApplier) applySingle(db iservices.IDatabasePatch, trx *TrxEntr
 		}
 	}()
 	// singleApplier is not panic-free
-	a.singleApplier(db, trx)
+	a.singleApplier(db, trx, a.blockNum)
 	return
 }
