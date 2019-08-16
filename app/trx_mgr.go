@@ -428,6 +428,7 @@ func (m *TrxMgr) addToWaiting(entries...*TrxEntry) (count int) {
 	for _, e := range entries {
 		// check the max waiting count limit
 		if len(m.waiting) > sMaxWaitingCount {
+			m.log.Debugf("too many waiting trxs, length: %d, limit: %d", len(m.waiting), sMaxWaitingCount)
 			_ = e.SetError(errors.New("too many waiting trxs"))
 			m.deliverEntry(e)
 			continue

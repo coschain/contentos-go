@@ -75,7 +75,7 @@ const (
 
 	PERCENT = 10000
 
-	TrxMaxExpirationTime = 30
+	TrxMaxExpirationTime = 60
 
 	// from total minted
 	RewardRateCreator = 5000
