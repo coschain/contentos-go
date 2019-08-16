@@ -15,3 +15,7 @@ func (m *TransactionReceiptWithInfo) IsSuccess() bool {
 func (m *TransactionReceiptWithInfo) IsExecuted() bool {
 	return m.Status == StatusSuccess || m.Status == StatusFailDeductStamina
 }
+
+func (m *TransactionReceiptWithInfo) IsFailDeductStamina() bool {
+	return m.Status == StatusFailDeductStamina
+}

@@ -106,7 +106,7 @@ func (tester *VoteTester) normal3(t *testing.T, d *Dandelion) {
 
 	a.NoError(tester.acc0.SendTrxAndProduceBlock(Post(POST, tester.acc0.Name, "title", "content", []string{"1"}, nil)))
 	a.NoError(d.ProduceBlocks(BLOCKS))
-	a.NoError(tester.acc0.SendTrxAndProduceBlock(Vote(tester.acc0.Name, POST)))
+	a.NoError(tester.acc2.SendTrxAndProduceBlock(Vote(tester.acc2.Name, POST)))
 	a.NoError(tester.acc1.SendTrx(Vote(tester.acc1.Name, POST)))
 	a.NoError(d.ProduceBlocks(constants.VoteCashOutDelayBlock - 1))
 	vest0 := d.Account(tester.acc1.Name).GetVest().Value

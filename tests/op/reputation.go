@@ -225,14 +225,14 @@ func (tester *ReputationTester) minReputationCashout(t *testing.T, d *Dandelion)
 	pId, err := PostArticle(tester.acc7, title, content, []string{"tag7"}, d)
 	if a.NoError(err) {
 		// vote to the article
-		a.NoError( VoteToPost(tester.acc7, pId) )
+		a.NoError( VoteToPost(tester.acc6, pId) )
 
 		// reply to article
 		rId, err := ReplyArticle(tester.acc7, pId, "test reply")
 		a.NoError(err)
 
 		// vote to the reply
-		a.NoError( VoteToPost(tester.acc7, rId) )
+		a.NoError( VoteToPost(tester.acc6, rId) )
 	}
 
 	authorWrap := d.Account(tester.acc7.Name).SoAccountWrap

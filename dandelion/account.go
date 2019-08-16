@@ -1,6 +1,8 @@
 package dandelion
 
 import (
+	"errors"
+	"fmt"
 	"github.com/coschain/contentos-go/app/table"
 	"github.com/coschain/contentos-go/prototype"
 )
@@ -24,9 +26,17 @@ func (acc *DandelionAccount) SendTrx(operations...*prototype.Operation) error {
 }
 
 func (acc *DandelionAccount) SendTrxAndProduceBlock(operations...*prototype.Operation) error {
-	_, err := acc.D.SendTrxByAccountEx(acc.Name, operations...)
-	return err
+	receipt, err := acc.D.SendTrxByAccountEx(acc.Name, operations...)
+
+	if err != nil {
+		return err
+	}
+	if !receipt.IsSuccess(){
+		return errors.New(fmt.Sprintf("transaction execute fail: %v", receipt.ErrorInfo ) )
+	}
+	return nil
 }
+
 
 func (acc *DandelionAccount) SendTrxEx(operations...*prototype.Operation) (*prototype.TransactionReceiptWithInfo, error) {
 	return acc.D.SendTrxByAccountEx(acc.Name, operations...)

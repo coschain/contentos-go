@@ -104,21 +104,25 @@ func (tester *TicketTester) invalidAcquireOp(t *testing.T, d *Dandelion) {
 func (tester *TicketTester) invalidVoteOp(t *testing.T, d *Dandelion) {
 	a := assert.New(t)
 
+	const POSTID uint64 = 20
+
+	a.NoError( d.Account(constants.COSInitMiner).SendTrxAndProduceBlock( Transfer(constants.COSInitMiner, tester.acc0.Name, 2 * constants.PerTicketPrice * constants.COSTokenDecimals, "")) )
+	a.True( tester.acc0.GetBalance().Value > constants.PerTicketPrice * constants.COSTokenDecimals)
 	op := AcquireTicket(tester.acc0.Name, 1)
 	a.NoError(tester.acc0.SendTrxAndProduceBlock(op)) // ##block 1
-	op = Post(1, tester.acc1.Name, "title", "content", []string{"1"}, nil)
+	op = Post(POSTID, tester.acc1.Name, "title", "content", []string{"1"}, nil)
 	a.NoError(tester.acc1.SendTrxAndProduceBlock(op))  // ##block 2
 
 	// count = 0
-	op = VoteByTicket(tester.acc0.Name, 1, 0)
+	op = VoteByTicket(tester.acc0.Name, POSTID, 0)
 	a.Error(checkError(tester.acc0.TrxReceipt(op)))
 
 	// count exceeds limit
-	op = VoteByTicket(tester.acc0.Name, 1, 2)
+	op = VoteByTicket(tester.acc0.Name, POSTID, 2)
 	a.Error(checkError(tester.acc0.TrxReceipt(op)))
 
 	// vote for a non-existed post
-	op = VoteByTicket(tester.acc0.Name, 11, 1)
+	op = VoteByTicket(tester.acc0.Name, POSTID + 1, 1)
 	a.Error(checkError(tester.acc0.TrxReceipt(op)))
 }
 

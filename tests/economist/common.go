@@ -23,3 +23,7 @@ func registerBlockProducer(account *DandelionAccount, t *testing.T)  {
 	a.NoError(account.SendTrxAndProduceBlock(TransferToVest(account.Name, account.Name, constants.MinBpRegisterVest, "")))
 	a.NoError(account.SendTrxAndProduceBlock(BpRegister(account.Name, "", "", account.GetPubKey(), mintProps)))
 }
+
+func RegisterBlockProducer(account *DandelionAccount, t *testing.T)  {
+	registerBlockProducer(account, t)
+}
