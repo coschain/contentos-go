@@ -75,14 +75,11 @@ const (
 
 	PERCENT = 10000
 
-	VoteLimitDuringRegenerate = 30
-
-
 	TrxMaxExpirationTime = 30
 
 	// from total minted
-	RewardRateCreator = 7500
-	RewardRateBP     = 1500
+	RewardRateCreator = 5000
+	RewardRateBP     = 4000
 	RewardRateDapp   = 1000
 
 	// from Creator

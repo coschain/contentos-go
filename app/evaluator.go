@@ -489,7 +489,7 @@ func (ev *VoteEvaluator) Apply() {
 	} else {
 		currentVp = votePower
 	}
-	//usedVp := (currentVp + constants.VoteLimitDuringRegenerate - 1) / constants.VoteLimitDuringRegenerate
+
 	var usedVp uint32
 	usedVp = uint32(constants.FullVP / constants.VPMarks)
 	if currentVp < usedVp {
