@@ -115,20 +115,6 @@ func (s *StateLogService) Start(node *node.Node) error {
 	s.libHeapProxy = &HeapProxy{Heap: &libHeap}
 
 	s.hookEvent()
-	s.ticker = time.NewTicker(time.Second)
-	go func() {
-		for {
-			select {
-			case <- s.ticker.C:
-				if err := s.pollLIBHeap(); err != nil {
-					s.log.Error(err)
-				}
-			case <- s.quit:
-				s.stop()
-				return
-			}
-		}
-	}()
 	return nil
 }
 
@@ -198,15 +184,15 @@ func (s *StateLogService) onLibChange(blocks []common.ISignedBlock) {
 		libLog := &iservices.BlockLog{BlockHeight:blockHeight, BlockId:blockId}
 		s.libHeapProxy.Push(libLog)
 	}
+	if err := s.pollLIBHeap(); err != nil {
+		s.log.Error(err)
+	}
 }
 
 func (s *StateLogService) onStateLogOperation(blockLog *iservices.BlockLog) {
 	s.logHeapProxy.Push(blockLog)
 }
 
-func (s *StateLogService) stop() {
-	s.ticker.Stop()
-}
 
 func (s *StateLogService) Stop() error {
 	s.unhookEvent()
