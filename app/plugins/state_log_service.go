@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/asaskevich/EventBus"
+	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/iservices/service-configs"
@@ -17,42 +18,57 @@ import (
 	"time"
 )
 
+type BlockLogHeap []*iservices.BlockLog
 
-type BlockLogHeap struct {
-	Mu sync.RWMutex
-	Logs []*iservices.BlockLog
-}
-
-func (logHeap BlockLogHeap) Len() int {return len(logHeap.Logs)}
+func (logHeap BlockLogHeap) Len() int {return len(logHeap)}
 
 func (logHeap BlockLogHeap) Less(i, j int) bool {
-	return logHeap.Logs[i].BlockHeight < logHeap.Logs[j].BlockHeight
+	return logHeap[i].BlockHeight < logHeap[j].BlockHeight
 }
 
 func (logHeap BlockLogHeap) Swap(i, j int) {
-	logHeap.Logs[i], logHeap.Logs[j] = logHeap.Logs[j], logHeap.Logs[i]
-	logHeap.Logs[i].Index = i
-	logHeap.Logs[j].Index = j
+	logHeap[i], logHeap[j] = logHeap[j], logHeap[i]
+	logHeap[i].Index = i
+	logHeap[j].Index = j
 }
 
 func (logHeap *BlockLogHeap) Push(x interface{}) {
-	logHeap.Mu.Lock()
-	defer logHeap.Mu.Unlock()
-	n := len(logHeap.Logs)
+	n := len(*logHeap)
 	item := x.(*iservices.BlockLog)
 	item.Index = n
-	logHeap.Logs = append(logHeap.Logs, item)
+	*logHeap = append(*logHeap, item)
 }
 
 func (logHeap *BlockLogHeap) Pop() interface{} {
-	logHeap.Mu.Lock()
-	defer logHeap.Mu.Unlock()
-	old := logHeap.Logs
+	old := *logHeap
 	n := len(old)
 	item := old[n-1]
 	item.Index = -1 // for safety
-	logHeap.Logs = old[0 : n-1]
+	*logHeap = old[0 : n-1]
 	return item
+}
+
+type HeapProxy struct {
+	Mu sync.RWMutex
+	Heap *BlockLogHeap
+}
+
+func (proxy *HeapProxy) Push(blockLog interface{}) {
+	proxy.Mu.Lock()
+	defer proxy.Mu.Unlock()
+	heap.Push(proxy.Heap, blockLog)
+}
+
+func (proxy *HeapProxy) Pop() interface{} {
+	proxy.Mu.Lock()
+	defer proxy.Mu.Unlock()
+	return heap.Pop(proxy.Heap)
+}
+
+func (proxy *HeapProxy) Len() int {
+	proxy.Mu.RLock()
+	defer proxy.Mu.RUnlock()
+	return proxy.Heap.Len()
 }
 
 var StateLogServiceName = "statelogservice"
@@ -65,9 +81,9 @@ type StateLogService struct {
 	quit chan bool
 	log *logrus.Logger
 	// for block log
-	logHeap BlockLogHeap
+	logHeapProxy *HeapProxy
 	// for receiving last irreversible blocks when onLibChange
-	libHeap BlockLogHeap
+	libHeapProxy *HeapProxy
 	db *sql.DB
 	ticker *time.Ticker
 }
@@ -90,8 +106,14 @@ func (s *StateLogService) Start(node *node.Node) error {
 
 	s.ev = node.EvBus
 
-	heap.Init(&s.logHeap)
-	heap.Init(&s.libHeap)
+	logHeap := BlockLogHeap{}
+	heap.Init(&logHeap)
+	s.logHeapProxy = &HeapProxy{Heap: &logHeap}
+
+	libHeap := BlockLogHeap{}
+	heap.Init(&libHeap)
+	s.libHeapProxy = &HeapProxy{Heap: &libHeap}
+
 	s.hookEvent()
 	s.ticker = time.NewTicker(time.Second)
 	go func() {
@@ -111,8 +133,8 @@ func (s *StateLogService) Start(node *node.Node) error {
 }
 
 func (s *StateLogService) pollLIBHeap() error {
-	for s.libHeap.Len() > 0 {
-		log := heap.Pop(&s.libHeap)
+	for s.libHeapProxy.Len() > 0 {
+		log := s.libHeapProxy.Pop()
 		libLog := log.(*iservices.BlockLog)
 		blockHeight := libLog.BlockHeight
 		blockId := libLog.BlockId
@@ -122,22 +144,23 @@ func (s *StateLogService) pollLIBHeap() error {
 }
 
 func (s *StateLogService) handleLib(lib uint64, blockId string) {
-	s.log.Debugf("[statelog] heap length: %d\n", s.logHeap.Len())
-	for s.logHeap.Len() > 0 {
-		log := heap.Pop(&s.logHeap)
+	s.log.Debugf("[statelog] heap length: %d\n", s.logHeapProxy.Len())
+	for s.logHeapProxy.Len() > 0 {
+		log := s.logHeapProxy.Pop()
 		blockLog := log.(*iservices.BlockLog)
 		s.log.Debugf("[statelog] blocklog: blockHeight:%d, blockId: %s, lib blockHeight:%d, lib blockId:%s \n",
 			blockLog.BlockHeight, blockLog.BlockId, lib, blockId)
 		// if the block log from heap > lib, re-push it else pop it
 		if blockLog.BlockHeight > lib {
-			heap.Push(&s.logHeap, blockLog)
+			//heap.Push(&s.logHeap, blockLog)
+			s.logHeapProxy.Push(blockLog)
 			break
 		}
 		// really ??
 		if blockLog.BlockHeight < lib {
 			s.pushLog(blockLog, false)
 		}
-		if blockLog.BlockHeight == lib && blockLog.BlockId == blockId {
+		if blockLog.BlockHeight == lib {
 			if blockLog.BlockId == blockId {
 				s.pushLog(blockLog, true)
 			} else {
@@ -148,7 +171,7 @@ func (s *StateLogService) handleLib(lib uint64, blockId string) {
 }
 
 func (s *StateLogService) pushLog(blockLog *iservices.BlockLog, isPicked bool) {
-	blockLogJson, _ := json.Marshal(blockLog)
+	blockLogJson, _ := json.Marshal(blockLog.TrxLogs)
 	_, err := s.db.Exec("INSERT IGNORE INTO `statelog` (`block_id`, `block_height`, `block_time`, `pick`, `block_log`) " +
 		"VALUES (?, ?, ?, ?, ?)", blockLog.BlockId, blockLog.BlockHeight, blockLog.BlockTime, isPicked, blockLogJson)
 	if err != nil {
@@ -166,19 +189,19 @@ func (s *StateLogService) unhookEvent() {
 	_ = s.ev.Unsubscribe(constants.NoticeLibChange, s.onLibChange)
 }
 
-func (s *StateLogService) onLibChange(blocks []prototype.SignedBlock) {
-	for _ , blk := range blocks {
-		s.log.Println("onLibChange: %v", blk.SignedHeader.Header.GetTimestamp())
+func (s *StateLogService) onLibChange(blocks []common.ISignedBlock) {
+	for _ , block := range blocks {
+		blk := block.(*prototype.SignedBlock)
 		data := blk.Id().Data
 		blockId := hex.EncodeToString(data[:])
 		blockHeight := blk.GetSignedHeader().Number()
-		libLog := iservices.BlockLog{BlockHeight:blockHeight, BlockId:blockId}
-		heap.Push(&s.libHeap, libLog)
+		libLog := &iservices.BlockLog{BlockHeight:blockHeight, BlockId:blockId}
+		s.libHeapProxy.Push(libLog)
 	}
 }
 
 func (s *StateLogService) onStateLogOperation(blockLog *iservices.BlockLog) {
-	heap.Push(&s.logHeap, blockLog)
+	s.logHeapProxy.Push(blockLog)
 }
 
 func (s *StateLogService) stop() {
