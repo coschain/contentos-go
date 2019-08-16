@@ -1,6 +1,9 @@
 package prototype
 
-import "github.com/pkg/errors"
+import (
+	"github.com/coschain/contentos-go/common/constants"
+	"github.com/pkg/errors"
+)
 
 func (t *ConvertVestOperation) GetSigner(auths *map[string]bool) {
 	(*auths)[t.From.Value] = true
@@ -13,7 +16,7 @@ func (t *ConvertVestOperation) Validate() error {
 	if err := t.From.Validate(); err != nil {
 		return errors.WithMessage(err, "From error")
 	}
-	if t.Amount == nil || t.Amount.Value < 1e6 {
+	if t.Amount == nil || t.Amount.Value < constants.COSTokenDecimals {
 		return errors.New("Amount field is required by convert vest operation and the value should greater than 1000000 (1 cos)")
 	}
 	return nil

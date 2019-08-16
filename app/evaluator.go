@@ -838,19 +838,14 @@ func (ev *ConvertVestEvaluator) Apply() {
 	op := ev.op
 	ev.VMInjector().RecordStaminaFee(op.From.Value, constants.CommonOpStamina)
 
+	globalProps := ev.GlobalProp().GetProps()
+
 	accWrap := table.NewSoAccountWrap(ev.Database(), op.From)
 	accWrap.MustExist("account do not exist")
-	//opAssert(op.Amount.Value >= uint64(1e6), "At least 1 VEST should be converted")
-	opAssert(accWrap.GetVest().Value - uint64(constants.MinAccountCreateFee) >= op.Amount.Value, "VEST balance not enough")
-	globalProps := ev.GlobalProp().GetProps()
-	//timestamp := globalProps.Time.UtcSeconds
+
+	opAssert(accWrap.GetVest().Sub( globalProps.AccountCreateFee.ToVest() ).Value >= op.Amount.Value, "VEST balance not enough")
 	currentBlock := globalProps.HeadBlockNumber
 	eachRate := op.Amount.Value / (constants.ConvertWeeks - 1)
-	//accWrap.MdNextPowerdownTime(&prototype.TimePointSec{UtcSeconds: timestamp + constants.POWER_DOWN_INTERVAL})
-	//accWrap.SetNextPowerdownBlockNum(currentBlock + constants.PowerDownBlockInterval)
-	//accWrap.SetEachPowerdownRate(&prototype.Vest{Value: eachRate})
-	//accWrap.SetHasPowerdown(&prototype.Vest{Value: 0})
-	//accWrap.SetToPowerdown(op.Amount)
 
 	accWrap.Modify(func(t *table.SoAccount) {
 		t.NextPowerdownBlockNum = currentBlock + constants.PowerDownBlockInterval
