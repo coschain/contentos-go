@@ -303,7 +303,7 @@ func initStateDb(cmd *cobra.Command, args []string) {
   votecount int unsigned default 0,
   replycount int unsigned default 0,
   reward bigint unsigned default 0,
-  parentid bigint unsigned defualt 0,
+  parentid bigint unsigned default 0,
   UNIQUE INDEX index_pid(postid),
   INDEX index_time(created)
 )ENGINE=InnoDB DEFAULT CHARSET=utf8;`
