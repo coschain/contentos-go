@@ -123,7 +123,12 @@ type ABIStructField struct {
 	Type IContractType
 }
 
-func NewStruct(name string, base *ABIStructType, fields...ABIStructField) *ABIStructType {
+func NewStruct(name string, base *ABIStructType, fields...ABIStructField) (ret *ABIStructType) {
+	defer func() {
+		if e := recover(); e != nil {
+			ret = nil
+		}
+	}()
 	var (
 		locals []int
 		total []*abiStructField

@@ -560,7 +560,7 @@ func (ctx *abiBuildContext) resolveType(name string, flags map[string]int) error
 	s := NewStruct(name, baseStruct, fields...)
 	if s == nil {
 		flags[name] = unresolved
-		return errors.New(fmt.Sprintf("abiBuilder: failed creating struct %s. duplicate field names.", name))
+		return errors.New(fmt.Sprintf("abiBuilder: failed creating struct %s. possible duplicate/invalid field names.", name))
 	}
 	ctx.resolvedTypes[name] = s
 	flags[name] = resolved
