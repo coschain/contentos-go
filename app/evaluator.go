@@ -8,6 +8,7 @@ import (
 	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/common/encoding/vme"
 	"github.com/coschain/contentos-go/iservices"
+	"github.com/coschain/contentos-go/iservices/itype"
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/coschain/contentos-go/vm"
 	"github.com/coschain/contentos-go/vm/context"
@@ -376,7 +377,15 @@ func (ev *PostEvaluator) Apply() {
 	ev.GlobalProp().ModifyProps(func(props *prototype.DynamicProperties) {
 		props.TotalPostCnt++
 	})
-
+	pInfo := &itype.PostInfo{
+		Id:op.Uuid,
+		Tags:op.Tags,
+		Created:ev.GlobalProp().HeadBlockTime(),
+		Author:op.Owner.Value,
+		Content:op.Content,
+		Title:op.Title,
+	}
+	ev.TrxObserver().AddOpState(iservices.Add, "post", op.Owner.Value,pInfo)
 }
 
 func (ev *ReplyEvaluator) checkBeneficiaries(beneficiaries []*prototype.BeneficiaryRouteType) {
@@ -455,6 +464,15 @@ func (ev *ReplyEvaluator) Apply() {
 	//key := fmt.Sprintf("cashout:%d_%d", common.GetBucket(timestamp), op.Uuid)
 	//value := "reply"
 	//opAssertE(ev.Database().Put([]byte(key), []byte(value)), "put reply key into db error")
+
+	rInfo := &itype.ReplyInfo{
+		Id:op.Uuid,
+		Created:ev.GlobalProp().HeadBlockTime(),
+		Author:op.Owner.Value,
+		ParentId:op.ParentUuid,
+		Content:op.Content,
+	}
+	ev.TrxObserver().AddOpState(iservices.Add, "reply", op.Owner.Value,rInfo)
 }
 
 // upvote is true: upvote otherwise downvote
@@ -553,6 +571,14 @@ func (ev *VoteEvaluator) Apply() {
 			t.VoteTime = ev.GlobalProp().HeadBlockTime()
 		})
 	}
+
+	vInfo := &itype.VoteInfo{
+		Voter:op.Voter.Value,
+		PostId:op.Idx,
+		Created:ev.GlobalProp().HeadBlockTime(),
+		VotePower:weightedVp.String(),
+	}
+	ev.TrxObserver().AddOpState(iservices.Add, "vote", op.Voter.Value,vInfo)
 }
 
 func (ev *BpRegisterEvaluator) Apply() {

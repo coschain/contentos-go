@@ -8,6 +8,7 @@ import (
 	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/iservices"
+	"github.com/coschain/contentos-go/iservices/itype"
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -456,8 +457,13 @@ func (e *Economist) postCashout(posts []*table.SoPostWrap, bigBlockRewards *big.
 		post.SetRewards(&prototype.Vest{Value: reward})
 		post.SetDappRewards(&prototype.Vest{Value: beneficiaryReward})
 		if reward > 0 {
+			rInfo := &itype.RewardInfo{
+				Reward:reward,
+				PostId:post.GetPostId(),
+			}
 			e.noticer.Publish(constants.NoticeCashout, author, post.GetPostId(), reward, globalProps.GetHeadBlockNumber())
 			trxObserver.AddOpState(iservices.Add, "cashout", author, reward)
+			trxObserver.AddOpState(iservices.Update, "postReward", author, rInfo)
 		}
 
 		postTiming.End()
@@ -553,7 +559,12 @@ func (e *Economist) replyCashout(replies []*table.SoPostWrap, bigBlockRewards *b
 		reply.SetDappRewards(&prototype.Vest{Value: beneficiaryReward})
 		if reward > 0 {
 			e.noticer.Publish(constants.NoticeCashout, author, reply.GetPostId(), reward, globalProps.GetHeadBlockNumber())
+			rInfo := &itype.RewardInfo{
+				Reward:reward,
+				PostId:reply.GetPostId(),
+			}
 			trxObserver.AddOpState(iservices.Add, "cashout", author, reward)
+			trxObserver.AddOpState(iservices.Update, "postReward", author, rInfo)
 		}
 	}
 	e.log.Infof("cashout: [reply] blockRewards: %d, blockDappRewards: %d, spendPostReward: %d, spendDappReward: %d",
