@@ -369,7 +369,7 @@ func (c *TrxPool) generateBlockNoLock(bpName string, pre *prototype.Sha256, time
 	signBlock.SignedHeader.Header.BlockProducer = &prototype.AccountName{Value: bpName}
 	signBlock.SignedHeader.BlockProducerSignature = &prototype.SignatureType{}
 	if (skip & prototype.Skip_block_signatures) == 0 {
-		_ = signBlock.SignedHeader.Sign(priKey)
+		mustNoError(signBlock.SignedHeader.Sign(priKey), "block signing failed")
 	} else {
 		signBlock.SignedHeader.BlockProducerSignature.Sig = make([]byte, 65)
 	}

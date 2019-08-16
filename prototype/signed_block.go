@@ -125,7 +125,7 @@ func (sbh *SignedBlockHeader) Sign(secKey *PrivateKeyType) error {
 	hash := sbh.Header.Hash()
 	res, err := secp256k1.Sign(hash[:], secKey.Data)
 	if err != nil {
-		errors.New("secp256k1 sign error")
+		return errors.New("secp256k1 sign error: " + err.Error())
 	}
 	sbh.BlockProducerSignature.Sig = append(sbh.BlockProducerSignature.Sig, res...)
 	return nil
