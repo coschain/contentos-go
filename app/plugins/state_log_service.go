@@ -273,7 +273,7 @@ func (s *StateLogService) unhookEvent() {
 
 func (s *StateLogService) onLibChange(block []prototype.SignedBlock) {
 	for _ , item := range block {
-		s.log.Println("onLibChange: %v", item.SignedHeader.Header.GetTimestamp())
+		s.log.Printf("onLibChange: %v", item.SignedHeader.Header.GetTimestamp())
 		// TODO insert log to sql db
 	}
 }
