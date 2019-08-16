@@ -1,11 +1,13 @@
 package prototype
 
-
 func (m *ClaimOperation) GetSigner(auths *map[string]bool) {
 	(*auths)[m.Account.Value] = true
 }
 
 func (m *ClaimOperation) Validate() error {
+	if err := m.Account.Validate(); err != nil{
+		return err
+	}
 	return nil
 }
 
@@ -19,6 +21,9 @@ func (m *ClaimAllOperation) GetSigner(auths *map[string]bool) {
 }
 
 func (m *ClaimAllOperation) Validate() error {
+	if err := m.Account.Validate(); err != nil{
+		return err
+	}
 	return nil
 }
 

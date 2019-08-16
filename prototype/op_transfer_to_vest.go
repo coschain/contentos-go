@@ -23,7 +23,9 @@ func (m *TransferToVestOperation) Validate() error {
 	if m.Amount == nil || m.Amount.Value == 0 {
 		return errors.New("amount cant be 0")
 	}
-
+	if err := AtMost4KChars(m.Memo); err != nil {
+		return errors.WithMessage(err, "invalid memo")
+	}
 	return nil
 }
 

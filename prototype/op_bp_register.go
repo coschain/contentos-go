@@ -21,6 +21,12 @@ func (m *BpRegisterOperation) Validate() error {
 	if m.Props == nil {
 		return ErrNpe
 	}
+	if err := AtMost1KChars(m.Url); err != nil {
+		return errors.WithMessage(err, "invalid url")
+	}
+	if err := AtMost4KChars(m.Desc); err != nil {
+		return errors.WithMessage(err, "invalid description")
+	}
 
 	// TODO chain property valid check
 	return nil

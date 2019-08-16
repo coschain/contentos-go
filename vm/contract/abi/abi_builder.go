@@ -3,6 +3,7 @@ package abi
 import (
 	"errors"
 	"fmt"
+	"github.com/coschain/contentos-go/prototype"
 	"strings"
 )
 
@@ -102,7 +103,7 @@ func (b *abiBuilder) Build() (*abi, error) {
 
 	// version
 	if len(b.version) == 0 {
-		return nil, errors.New("abiBuilder: empty version string.")
+		return nil, errors.New("abiBuilder: empty version string")
 	}
 	abi.version = b.version
 
@@ -139,7 +140,51 @@ func (b *abiBuilder) Build() (*abi, error) {
 	for i, t := range abi.tables {
 		abi.tableByName[t.name] = i
 	}
+
+	// validate names in abi
+	if err := checkAbiNames(abi); err != nil {
+		return nil, err
+	}
 	return abi, nil
+}
+
+func checkAbiNames(abi *abi) error {
+	if abi == nil {
+		return errors.New("abi is nil")
+	}
+	for i := 0; i < abi.MethodsCount(); i++ {
+		if method := abi.MethodByIndex(i); method == nil {
+			return fmt.Errorf("abi method #%d not found", i)
+		} else if err := prototype.ValidContractMethodName(method.Name()); err != nil {
+			return fmt.Errorf("invaid abi method name: %s, %s", method.Name(), err.Error())
+		} else if err := checkStructFieldNames(method.Args()); err != nil {
+			return fmt.Errorf("invaid args type of method %s: %s", method.Name(), err.Error())
+		}
+	}
+	for i := 0; i < abi.TablesCount(); i++ {
+		if tab := abi.TableByIndex(i); tab == nil {
+			return fmt.Errorf("abi table #%d not found", i)
+		} else if err := prototype.ValidContractTableName(tab.Name()); err != nil {
+			return fmt.Errorf("invaid abi table name: %s, %s", tab.Name(), err.Error())
+		} else if err := checkStructFieldNames(tab.Record()); err != nil {
+			return fmt.Errorf("invaid record type of table %s: %s", tab.Name(), err.Error())
+		}
+	}
+	return nil
+}
+
+func checkStructFieldNames(s IContractStruct) error {
+	if s == nil {
+		return errors.New("struct type is nil")
+	}
+	for i := 0; i < s.FieldNum(); i++ {
+		if f := s.Field(i); f == nil {
+			return fmt.Errorf("member #%d not found", i)
+		} else if err := prototype.ValidVarName(f.Name()); err != nil {
+			return fmt.Errorf("invalid member name %s, %s", f.Name(), err.Error())
+		}
+	}
+	return nil
 }
 
 // buildTypedefs() returns final typedefs based on context data.

@@ -19,6 +19,9 @@ func (t *TransferOperation) Validate() error {
 	if t.Amount == nil || !t.Amount.NonZero() {
 		return errors.New("transfer op must has amount value")
 	}
+	if err := AtMost4KChars(t.Memo); err != nil {
+		return errors.WithMessage(err, "invalid memo")
+	}
 	return nil
 }
 

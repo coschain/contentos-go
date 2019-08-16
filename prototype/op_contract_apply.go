@@ -1,6 +1,8 @@
 package prototype
 
-import "errors"
+import (
+	"fmt"
+)
 
 func (m *ContractApplyOperation) GetSigner(auths *map[string]bool) {
 	(*auths)[m.Caller.Value] = true
@@ -13,15 +15,12 @@ func (m *ContractApplyOperation) Validate() error {
 	if err := m.Caller.Validate(); err != nil{
 		return err
 	}
-
-	if len(m.Contract) == 0 {
-		return errors.New("invalid contract name")
+	if err := ValidContractName(m.Contract); err != nil{
+		return fmt.Errorf("invalid contract name: %s", err.Error())
 	}
-
-	if len(m.Method) == 0 {
-		return errors.New("invalid method name")
+	if err := ValidContractMethodName(m.Method); err != nil{
+		return fmt.Errorf("invalid contract method name: %s", err.Error())
 	}
-
 	return nil
 }
 
