@@ -426,9 +426,9 @@ func (m *TrxMgr) BlockReverted(blockNum uint64) {
 // addToWaiting adds given transaction entries to the waiting pool, and returns the actual number added.
 func (m *TrxMgr) addToWaiting(entries...*TrxEntry) (count int) {
 	for _, e := range entries {
+		m.log.Debugf("too many waiting trxs, length: %d, limit: %d", len(m.waiting), sMaxWaitingCount)
 		// check the max waiting count limit
 		if len(m.waiting) > sMaxWaitingCount {
-			m.log.Debugf("too many waiting trxs, length: %d, limit: %d", len(m.waiting), sMaxWaitingCount)
 			_ = e.SetError(errors.New("too many waiting trxs"))
 			m.deliverEntry(e)
 			continue
