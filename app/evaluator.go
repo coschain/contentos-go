@@ -504,15 +504,6 @@ func (ev *VoteEvaluator) Apply() {
 		weightedVp.SetUint64(0)
 	}
 
-	// record this vote
-	voteWrap.Create(func(t *table.SoVote) {
-		t.Voter = &voterId
-		t.PostId = op.Idx
-		t.Upvote = true
-		t.WeightedVp = weightedVp.String()
-		t.VoteTime = ev.GlobalProp().HeadBlockTime()
-	})
-
 	if postWrap.GetCashoutBlockNum() > ev.GlobalProp().GetProps().HeadBlockNumber {
 		lastVp := postWrap.GetWeightedVp()
 		var lvp, tvp big.Int
@@ -533,6 +524,15 @@ func (ev *VoteEvaluator) Apply() {
 		//voterWrap.SetVotePower(currentVp - usedVp)
 		//voterWrap.SetLastVoteTime(ev.GlobalProp().HeadBlockTime())
 
+		// record this vote
+		voteWrap.Create(func(t *table.SoVote) {
+			t.Voter = &voterId
+			t.PostId = op.Idx
+			t.Upvote = true
+			t.WeightedVp = weightedVp.String()
+			t.VoteTime = ev.GlobalProp().HeadBlockTime()
+		})
+
 		// add vote into cashout table
 		voteCashoutBlockHeight := ev.GlobalProp().GetProps().HeadBlockNumber + constants.VoteCashOutDelayBlock
 		voteCashoutWrap := table.NewSoVoteCashoutWrap(ev.Database(), &voteCashoutBlockHeight)
@@ -547,6 +547,15 @@ func (ev *VoteEvaluator) Apply() {
 				tInfo.VoterIds = []*prototype.VoterId{&voterId}
 			})
 		}
+	} else {
+		// record this vote
+		voteWrap.Create(func(t *table.SoVote) {
+			t.Voter = &voterId
+			t.PostId = op.Idx
+			t.Upvote = true
+			t.WeightedVp = "0"
+			t.VoteTime = ev.GlobalProp().HeadBlockTime()
+		})
 	}
 }
 

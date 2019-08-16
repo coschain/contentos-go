@@ -94,12 +94,12 @@ const (
 
 	ConvertWeeks = 13
 
-	BaseRate               = 1e6
+	BaseRate               = uint64(1e6)
 
 	ReportCashout = 1000
 
 	// 10 billion
-	TotalCurrency = 100 * 1e8
+	TotalCurrency = 100 * uint64(1e8)
 
 	BlockApplierVersion = 0x00000001
 
@@ -128,10 +128,10 @@ const (
 	CopyrightInfringement       = 1
 	CopyrightConfirmation       = 2
 
-	MaxTicketsPerTurn = 1e5
+	MaxTicketsPerTurn = uint64(1e5)
 	PerTicketPrice = 1
 	PerTicketPriceStr = "1.000000"
-	PerTicketWeight = 1e7
+	PerTicketWeight = uint64(1e7)
 	InitTopN = 500
 	//InitEpochDuration = 60 * 60 * 24 * 30
 	InitEpochDuration = 600
