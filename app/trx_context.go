@@ -160,6 +160,10 @@ func (p *TrxContext) setUsage() {
 	p.Wrapper.Receipt.CpuUsage = p.GetCpuUse()
 }
 
+func (p *TrxContext) RecordOperationStaminaFee(){
+	p.RecordStaminaFee( p.signer, constants.CommonOpStamina )
+}
+
 func (p *TrxContext) RecordStaminaFee(caller string, spent uint64) {
 //	if !p.control.ctx.Config().ResourceCheck {
 //		return
@@ -213,9 +217,7 @@ func (p *TrxContext) Error(code uint32, msg string) {
 }
 
 func (p *TrxContext) StartNextOp() {
-
 	p.output = &prototype.OperationReceiptWithInfo{VmConsole: ""}
-
 	p.Wrapper.Receipt.OpResults = append(p.Wrapper.Receipt.OpResults, p.output)
 }
 

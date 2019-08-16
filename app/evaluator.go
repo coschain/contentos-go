@@ -229,7 +229,6 @@ func init() {
 
 func (ev *AccountCreateEvaluator) Apply() {
 	op := ev.op
-	ev.VMInjector().RecordStaminaFee(op.Creator.Value, constants.CommonOpStamina)
 	creatorWrap := table.NewSoAccountWrap(ev.Database(), op.Creator)
 
 	creatorWrap.MustExist("creator not exist")
@@ -281,7 +280,6 @@ func (ev *AccountCreateEvaluator) Apply() {
 
 func (ev *AccountUpdateEvaluator) Apply() {
 	op := ev.op
-	ev.VMInjector().RecordStaminaFee(op.Owner.Value, constants.CommonOpStamina)
 
 	updaterWrap := table.NewSoAccountWrap(ev.Database(), op.Owner)
 	updaterWrap.MustExist("update account not exist ")
@@ -291,7 +289,6 @@ func (ev *AccountUpdateEvaluator) Apply() {
 
 func (ev *TransferEvaluator) Apply() {
 	op := ev.op
-	ev.VMInjector().RecordStaminaFee(op.From.Value, constants.CommonOpStamina)
 
 	// @ active_challenged
 	fromWrap := table.NewSoAccountWrap(ev.Database(), op.From)
@@ -334,7 +331,6 @@ func (ev *PostEvaluator) checkBeneficiaries(beneficiaries []*prototype.Beneficia
 
 func (ev *PostEvaluator) Apply() {
 	op := ev.op
-	ev.VMInjector().RecordStaminaFee(op.Owner.Value, constants.CommonOpStamina)
 
 	idWrap := table.NewSoPostWrap(ev.Database(), &op.Uuid)
 	idWrap.MustNotExist("post uuid exist")
@@ -397,7 +393,6 @@ func (ev *ReplyEvaluator) checkBeneficiaries(beneficiaries []*prototype.Benefici
 
 func (ev *ReplyEvaluator) Apply() {
 	op := ev.op
-	ev.VMInjector().RecordStaminaFee(op.Owner.Value, constants.CommonOpStamina)
 
 	cidWrap := table.NewSoPostWrap(ev.Database(), &op.Uuid)
 	pidWrap := table.NewSoPostWrap(ev.Database(), &op.ParentUuid)
@@ -466,7 +461,6 @@ func (ev *ReplyEvaluator) Apply() {
 // no downvote has been supplied by command, so I ignore it
 func (ev *VoteEvaluator) Apply() {
 	op := ev.op
-	ev.VMInjector().RecordStaminaFee(op.Voter.Value, constants.CommonOpStamina)
 
 	voterWrap := table.NewSoAccountWrap(ev.Database(), op.Voter)
 	elapsedSeconds := ev.GlobalProp().HeadBlockTime().UtcSeconds - voterWrap.GetLastVoteTime().UtcSeconds
@@ -563,7 +557,6 @@ func (ev *VoteEvaluator) Apply() {
 
 func (ev *BpRegisterEvaluator) Apply() {
 	op := ev.op
-	ev.VMInjector().RecordStaminaFee(op.Owner.Value, constants.CommonOpStamina)
 
 	accountWrap := table.NewSoAccountWrap(ev.Database(), op.Owner)
 	accountWrap.MustExist("block producer account not exist")
@@ -631,7 +624,6 @@ func (ev *BpRegisterEvaluator) Apply() {
 
 func (ev *BpEnableEvaluator) Apply() {
 	op := ev.op
-	ev.VMInjector().RecordStaminaFee(op.Owner.Value, constants.CommonOpStamina)
 
 	bpWrap := table.NewSoBlockProducerWrap(ev.Database(), op.Owner)
 	bpWrap.MustExist("block producer do not exist")
@@ -655,7 +647,6 @@ func (ev *BpEnableEvaluator) Apply() {
 
 func (ev *BpVoteEvaluator) Apply() {
 	op := ev.op
-	ev.VMInjector().RecordStaminaFee(op.Voter.Value, constants.CommonOpStamina)
 
 	voterAccount := table.NewSoAccountWrap(ev.Database(), op.Voter)
 	voterAccount.MustExist("voter account not exist")
@@ -722,7 +713,6 @@ func (ev *BpVoteEvaluator) Apply() {
 
 func (ev *BpUpdateEvaluator) Apply() {
 	op := ev.op
-	ev.VMInjector().RecordStaminaFee(op.Owner.Value, constants.CommonOpStamina)
 
 	staminaFree := op.Props.StaminaFree
 	opAssert(staminaFree >= constants.MinStaminaFree,
@@ -777,7 +767,6 @@ func (ev *BpUpdateEvaluator) Apply() {
 
 func (ev *FollowEvaluator) Apply() {
 	op := ev.op
-	ev.VMInjector().RecordStaminaFee(op.Account.Value, constants.CommonOpStamina)
 
 	acctWrap := table.NewSoAccountWrap(ev.Database(), op.Account)
 	acctWrap.MustExist("follow account do not exist ")
@@ -790,7 +779,6 @@ func (ev *FollowEvaluator) Apply() {
 
 func (ev *TransferToVestEvaluator) Apply() {
 	op := ev.op
-	ev.VMInjector().RecordStaminaFee(op.From.Value, constants.CommonOpStamina)
 
 	fidWrap := table.NewSoAccountWrap(ev.Database(), op.From)
 	tidWrap := table.NewSoAccountWrap(ev.Database(), op.To)
@@ -847,7 +835,6 @@ func updateBpVoteValue(dba iservices.IDatabaseRW, voter *prototype.AccountName, 
 
 func (ev *ConvertVestEvaluator) Apply() {
 	op := ev.op
-	ev.VMInjector().RecordStaminaFee(op.From.Value, constants.CommonOpStamina)
 
 	globalProps := ev.GlobalProp().GetProps()
 
@@ -918,7 +905,6 @@ func mergeTags(existed []int32, new []prototype.ReportOperationTag) []int32 {
 
 func (ev *ReportEvaluator) Apply() {
 	op := ev.op
-	ev.VMInjector().RecordStaminaFee(op.Reporter.Value, constants.CommonOpStamina)
 	post := table.NewSoPostWrap(ev.Database(), &op.Reported)
 	post.MustExist("the reported post doesn't exist")
 	report := table.NewSoReportListWrap(ev.Database(), &op.Reported)
@@ -970,8 +956,6 @@ func (ev *ContractDeployEvaluator) Apply() {
 	if contractAbi, err = common.Decompress(op.Abi); err != nil {
 		opAssertE(err, "contract abi decompression failed");
 	}
-
-	ev.VMInjector().RecordStaminaFee(op.Owner.Value, constants.CommonOpStamina)
 
 	cid 		:= prototype.ContractId{Owner: op.Owner, Cname: op.Contract}
 	scid 		:= table.NewSoContractWrap(ev.Database(), &cid)
@@ -1167,7 +1151,6 @@ func (ev *InternalContractApplyEvaluator) Apply() {
 
 func (ev *StakeEvaluator) Apply() {
 	op := ev.op
-	ev.VMInjector().RecordStaminaFee(op.From.Value, constants.CommonOpStamina)
 
 	fidWrap := table.NewSoAccountWrap(ev.Database(), op.From)
 	tidWrap := table.NewSoAccountWrap(ev.Database(), op.To)
@@ -1225,7 +1208,6 @@ func (ev *StakeEvaluator) Apply() {
 
 func (ev *UnStakeEvaluator) Apply() {
 	op := ev.op
-	ev.VMInjector().RecordStaminaFee(op.Creditor.Value, constants.CommonOpStamina)
 
 	recordWrap := table.NewSoStakeRecordWrap(ev.Database(), &prototype.StakeRecord{
 		From:   op.Creditor,
@@ -1270,7 +1252,6 @@ func (ev *UnStakeEvaluator) Apply() {
 
 func (ev *AcquireTicketEvaluator) Apply() {
 	op := ev.op
-	ev.VMInjector().RecordStaminaFee(op.Account.Value, constants.CommonOpStamina)
 
 	account := table.NewSoAccountWrap(ev.Database(), op.Account)
 	count := op.Count
@@ -1330,7 +1311,6 @@ func (ev *AcquireTicketEvaluator) Apply() {
 
 func (ev *VoteByTicketEvaluator) Apply() {
 	op := ev.op
-	ev.VMInjector().RecordStaminaFee(op.Account.Value, constants.CommonOpStamina)
 
 	account := table.NewSoAccountWrap(ev.Database(), op.Account)
 	postId := op.Idx

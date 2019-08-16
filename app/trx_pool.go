@@ -502,6 +502,7 @@ func (c *TrxPool) PayGas(db iservices.IDatabaseRW, trxContext *TrxContext) {
 
 func (c *TrxPool) applyOperation(trxCtx *TrxContext, op *prototype.Operation) {
 	eva := c.getEvaluator(trxCtx, op)
+	trxCtx.RecordOperationStaminaFee()
 	eva.Apply()
 }
 
