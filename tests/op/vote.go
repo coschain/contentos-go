@@ -79,8 +79,8 @@ func (tester *VoteTester) voteSelf(t *testing.T, d *Dandelion) {
 	a.NoError(tester.acc0.SendTrxAndProduceBlock(Post(POST1, tester.acc0.Name, "title", "content", []string{"1"}, nil)))
 	a.NoError(tester.acc0.SendTrxAndProduceBlock(Reply(REPLY1, POST1, tester.acc0.Name,  "content", nil)))
 
-	a.Equal( d.TrxReceiptByAccount( tester.acc0.Name, Vote(tester.acc0.Name, POST1) ).Status , prototype.StatusDeductStamina)
-	a.Equal( d.TrxReceiptByAccount( tester.acc0.Name, Vote(tester.acc0.Name, REPLY1) ).Status , prototype.StatusDeductStamina)
+	a.Equal( d.TrxReceiptByAccount( tester.acc0.Name, Vote(tester.acc0.Name, POST1) ).Status , prototype.StatusFailDeductStamina)
+	a.Equal( d.TrxReceiptByAccount( tester.acc0.Name, Vote(tester.acc0.Name, REPLY1) ).Status , prototype.StatusFailDeductStamina)
 }
 
 func (tester *VoteTester) revote(t *testing.T, d *Dandelion) {

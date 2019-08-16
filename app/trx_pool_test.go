@@ -527,7 +527,7 @@ func Test_MixOp(t *testing.T) {
 	}
 
 	invoice2 := c.PushTrx(signedTrx2)
-	if invoice2.Status != prototype.StatusDeductStamina {
+	if invoice2.Status != prototype.StatusFailDeductStamina {
 		t.Error("PushTrx return status error:", invoice2)
 	}
 	fmt.Println(invoice2)
@@ -622,7 +622,7 @@ func Test_Stake_UnStake(t *testing.T) {
 	}
 
 	invoice3 := c.PushTrx(signedTrx3)
-	if invoice3.Status != prototype.StatusDeductStamina {
+	if invoice3.Status != prototype.StatusFailDeductStamina {
 		t.Error("PushTrx return status error:", invoice3.Status)
 	}
 
@@ -1122,7 +1122,7 @@ func Test_Gas(t *testing.T) {
 			t.Error("createSigTrx error:", err)
 		}
 		invoice2 := c.PushTrx(signedTrx2)
-		if invoice2.Status != prototype.StatusSuccess && invoice2.Status != prototype.StatusDeductStamina {
+		if invoice2.Status != prototype.StatusSuccess && invoice2.Status != prototype.StatusFailDeductStamina {
 			t.Error("PushTrx return status error:", invoice2.Status," info:",invoice2.ErrorInfo)
 		}
 	}
@@ -1219,7 +1219,7 @@ func Test_Transfer(t *testing.T) {
 			t.Error("createSigTrx error:", err)
 		}
 		invoice2 := c.PushTrx(signedTrx2)
-		if invoice2.Status != prototype.StatusSuccess && invoice2.Status != prototype.StatusDeductStamina {
+		if invoice2.Status != prototype.StatusSuccess && invoice2.Status != prototype.StatusFailDeductStamina {
 			t.Error("PushTrx return status error:", invoice2.Status," info:",invoice2.ErrorInfo)
 		}
 	}

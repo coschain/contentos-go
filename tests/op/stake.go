@@ -465,7 +465,7 @@ func (tester *StakeTester) applyTrxFail(t *testing.T, d *Dandelion) {
 	notExiAcct :=  "account10"
 	a.False(d.Account(notExiAcct).CheckExist())
 	receipt := newAcct.TrxReceipt(Transfer(acctName, notExiAcct, 10, ""))
-	a.Equal(receipt.Status, prototype.StatusDeductStamina)
+	a.Equal(receipt.Status, prototype.StatusFailDeductStamina)
 	consumeFree := newAcct.GetStaminaFree()
 	consumeStake := newAcct.GetStamina()
 	totalConsume := receipt.CpuUsage + receipt.NetUsage
