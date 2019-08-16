@@ -250,15 +250,14 @@ func e_setCopyright(proc *exec.Process, postIds, postIdsLen, copyrights, copyrig
 	memoSize := w.cosVM.read(proc, memoSizes, memoSizeLen, "setCopyright().memoSizes")
 
 	count := int(postIdsLen / 8)
-	w.CosAssert(postIdsLen == copyrightsLen * 2 && postIdsLen == memoPtrLen * 2 && postIdsLen == memoSizeLen * 2, "setCopyright(): illegal parameters")
+	w.CosAssert(postIdsLen == copyrightsLen && postIdsLen == memoPtrLen && postIdsLen == memoSizeLen, "setCopyright(): illegal parameters")
 
 	for i := 0; i < count; i++ {
-		pidOffset := i * 8
-		offset := i * 4
-		id := binary.LittleEndian.Uint64(postIdValues[pidOffset:])
+		offset := i * 8
+		id := binary.LittleEndian.Uint64(postIdValues[offset:])
 
 		value := binary.LittleEndian.Uint32(valInts[offset:])
-		w.CosAssert(value == constants.CopyrightUnkown || value == constants.CopyrightInfringement ||value == constants.CopyrightConfirmation,
+		w.CosAssert(value >= constants.CopyrightUnkown && value <= constants.CopyrightConfirmation,
 			fmt.Sprintf("setCopyright().copyright[%d]=%d: out of bounds", i, value))
 		memo := string(w.cosVM.read(proc,
 			int32(binary.LittleEndian.Uint32(memoPtr[offset:])),
