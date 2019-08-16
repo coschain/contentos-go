@@ -139,7 +139,7 @@ func (tester *PostTester) normal(t *testing.T, d *Dandelion) {
 	// next block post will be cashout
 	a.NoError(d.ProduceBlocks(BLOCKS))
 	vest0 := d.Account(tester.acc0.Name).GetVest().Value
-	a.NoError(tester.acc0.SendTrx(Vote(tester.acc0.Name, 1)))
+	a.NoError(tester.acc1.SendTrx(Vote(tester.acc1.Name, 1)))
 	a.NoError(d.ProduceBlocks(constants.PostCashOutDelayBlock - BLOCKS - 1))
 	a.Equal(d.Account(tester.acc0.Name).GetVest().Value, vest0)
 
@@ -342,7 +342,7 @@ func (tester *PostTester) zeroGlobalVp(t *testing.T, d *Dandelion) {
 
 	a.NoError(d.ProduceBlocks(BLOCKS))
 	vest0 := d.Account(tester.acc0.Name).GetVest().Value
-	a.NoError(tester.acc0.SendTrx(Vote(tester.acc0.Name, 2)))
+	a.NoError(tester.acc1.SendTrx(Vote(tester.acc1.Name, 2)))
 	a.NoError(d.ProduceBlocks(constants.PostCashOutDelayBlock - BLOCKS - 1))
 
 	postWeight := StringToBigInt(d.Post(2).GetWeightedVp())

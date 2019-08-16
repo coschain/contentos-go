@@ -134,7 +134,7 @@ func (tester *ReplyDappTester) normal3(t *testing.T, d *Dandelion) {
 	acc0vest0 := d.Account(tester.acc0.Name).GetVest().Value
 	acc1vest0 := d.Account(tester.acc1.Name).GetVest().Value
 
-	a.NoError(tester.acc0.SendTrx(Vote(tester.acc0.Name, REPLY)))
+	a.NoError(tester.acc1.SendTrx(Vote(tester.acc1.Name, REPLY)))
 	a.NoError(d.ProduceBlocks(constants.PostCashOutDelayBlock - BLOCKS - 1))
 
 	replyWeight := StringToBigInt(d.Post(REPLY).GetWeightedVp())
@@ -177,7 +177,7 @@ func (tester *ReplyDappTester) normal4(t *testing.T, d *Dandelion) {
 	acc0vest0 := d.Account(tester.acc0.Name).GetVest().Value
 	acc1vest0 := d.Account(tester.acc1.Name).GetVest().Value
 
-	a.NoError(tester.acc0.SendTrx(Vote(tester.acc0.Name, REPLY)))
+	a.NoError(tester.acc1.SendTrx(Vote(tester.acc1.Name, REPLY)))
 	a.NoError(d.ProduceBlocks(constants.PostCashOutDelayBlock - BLOCKS - 1))
 
 	replyWeight := StringToBigInt(d.Post(REPLY).GetWeightedVp())
@@ -225,7 +225,7 @@ func (tester *ReplyDappTester) normal5(t *testing.T, d *Dandelion) {
 	acc1vest0 := d.Account(tester.acc1.Name).GetVest().Value
 	acc2vest0 := d.Account(tester.acc2.Name).GetVest().Value
 
-	a.NoError(tester.acc0.SendTrx(Vote(tester.acc0.Name, REPLY)))
+	a.NoError(tester.acc1.SendTrx(Vote(tester.acc1.Name, REPLY)))
 	a.NoError(d.ProduceBlocks(constants.PostCashOutDelayBlock - BLOCKS - 1))
 
 	replyWeight := StringToBigInt(d.Post(REPLY).GetWeightedVp())
@@ -275,7 +275,7 @@ func (tester *ReplyDappTester) normal6(t *testing.T, d *Dandelion) {
 	acc0vest0 := d.Account(tester.acc0.Name).GetVest().Value
 	acc1vest0 := d.Account(tester.acc1.Name).GetVest().Value
 
-	a.NoError(tester.acc0.SendTrx(Vote(tester.acc0.Name, REPLY)))
+	a.NoError(tester.acc1.SendTrx(Vote(tester.acc1.Name, REPLY)))
 	a.NoError(d.ProduceBlocks(constants.PostCashOutDelayBlock - BLOCKS - 1))
 
 	replyWeight := StringToBigInt(d.Post(REPLY).GetWeightedVp())

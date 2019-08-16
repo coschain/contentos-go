@@ -58,7 +58,7 @@ func (tester *DecayTester) decayPost(t *testing.T, d *Dandelion) {
 
 	a.NoError(tester.acc0.SendTrxAndProduceBlock(Post(POST, tester.acc0.Name, "title", "content", []string{"1"}, nil)))
 	a.NoError(d.ProduceBlocks(BLOCKS))
-	a.NoError(tester.acc0.SendTrx(Vote(tester.acc0.Name, POST)))
+	a.NoError(tester.acc1.SendTrx(Vote(tester.acc1.Name, POST)))
 	a.NoError(d.ProduceBlocks(constants.PostCashOutDelayBlock - BLOCKS - 1))
 
 	oldReplyWeightedVps := d.GlobalProps().ReplyWeightedVps
@@ -86,7 +86,7 @@ func (tester *DecayTester) decayReply(t *testing.T, d *Dandelion) {
 	a.NoError(tester.acc0.SendTrxAndProduceBlock(Post(POST, tester.acc0.Name, "title", "content", []string{"1"}, nil)))
 	a.NoError(tester.acc0.SendTrxAndProduceBlock(Reply(REPLY, POST,  tester.acc0.Name, "content",  nil)))
 	a.NoError(d.ProduceBlocks(BLOCKS))
-	a.NoError(tester.acc0.SendTrx(Vote(tester.acc0.Name, POST)))
+	a.NoError(tester.acc1.SendTrx(Vote(tester.acc1.Name, POST)))
 	a.NoError(d.ProduceBlocks(constants.PostCashOutDelayBlock - BLOCKS - 1))
 
 	oldPostWeightedVps := d.GlobalProps().PostWeightedVps
@@ -112,14 +112,14 @@ func (tester *DecayTester) decayVote(t *testing.T, d *Dandelion) {
 
 	a.NoError(tester.acc0.SendTrxAndProduceBlock(Post(POST, tester.acc0.Name, "title", "content", []string{"1"}, nil)))
 	a.NoError(d.ProduceBlocks(BLOCKS))
-	a.NoError(tester.acc0.SendTrx(Vote(tester.acc0.Name, POST)))
+	a.NoError(tester.acc1.SendTrx(Vote(tester.acc1.Name, POST)))
 	a.NoError(d.ProduceBlocks(constants.VoteCashOutDelayBlock - 1))
 
 	oldPostWeightedVps := d.GlobalProps().PostWeightedVps
 	oldReplyWeightedVps := d.GlobalProps().ReplyWeightedVps
 
 	postWeightedVp := StringToBigInt(d.Post(POST).GetWeightedVp())
-	voteWeightedVp := StringToBigInt(d.Vote(tester.acc0.Name, POST).GetWeightedVp())
+	voteWeightedVp := StringToBigInt(d.Vote(tester.acc1.Name, POST).GetWeightedVp())
 	weightedVp := new(big.Int).Mul(postWeightedVp, voteWeightedVp)
 	decayedVoteWeight := bigDecay(StringToBigInt(d.GlobalProps().GetVoteWeightedVps()))
 	totalVoteWeightedVp := decayedVoteWeight.Add(decayedVoteWeight, weightedVp)
