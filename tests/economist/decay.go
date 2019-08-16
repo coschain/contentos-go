@@ -65,6 +65,8 @@ func (tester *DecayTester) decayPost(t *testing.T, d *Dandelion) {
 	oldVoteWeightedVps := d.GlobalProps().VoteWeightedVps
 
 	postWeight := StringToBigInt(d.Post(1).GetWeightedVp())
+	a.NotEqual(postWeight.Int64(), int64(0))
+
 	bigTotalPostWeight, _ := new(big.Int).SetString(d.GlobalProps().GetPostWeightedVps(), 10)
 	decayedPostWeight := bigDecay(bigTotalPostWeight)
 	exceptNextBlockPostWeightedVps := decayedPostWeight.Add(decayedPostWeight, postWeight)

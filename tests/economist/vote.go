@@ -81,6 +81,8 @@ func (tester *VoteTester) normal2(t *testing.T, d *Dandelion) {
 	vest0 := d.Account(tester.acc1.Name).GetVest().Value
 
 	postWeightedVp := StringToBigInt(d.Post(POST).GetWeightedVp())
+	a.NotEqual(postWeightedVp.Int64(), int64(0))
+
 	voteWeightedVp := StringToBigInt(d.Vote(tester.acc1.Name, POST).GetWeightedVp())
 	weightedVp := new(big.Int).Mul(postWeightedVp, voteWeightedVp)
 	decayedVoteWeight := bigDecay(StringToBigInt(d.GlobalProps().GetVoteWeightedVps()))
@@ -111,6 +113,8 @@ func (tester *VoteTester) normal3(t *testing.T, d *Dandelion) {
 	vest0 := d.Account(tester.acc1.Name).GetVest().Value
 
 	postWeightedVp := StringToBigInt(d.Post(POST).GetWeightedVp())
+	a.NotEqual(postWeightedVp.Int64(), int64(0))
+
 	voteWeightedVp := StringToBigInt(d.Vote(tester.acc1.Name, POST).GetWeightedVp())
 	weightedVp := new(big.Int).Mul(postWeightedVp, voteWeightedVp)
 	decayedVoteWeight := bigDecay(StringToBigInt(d.GlobalProps().GetVoteWeightedVps()))
@@ -142,6 +146,8 @@ func (tester *VoteTester) normal4(t *testing.T, d *Dandelion) {
 	vest2 := d.Account(tester.acc2.Name).GetVest().Value
 
 	postWeightedVp := StringToBigInt(d.Post(POST).GetWeightedVp())
+	a.NotEqual(postWeightedVp.Int64(), int64(0))
+
 	vote1WeightedVp := StringToBigInt(d.Vote(tester.acc1.Name, POST).GetWeightedVp())
 	vote2WeightedVp := StringToBigInt(d.Vote(tester.acc2.Name, POST).GetWeightedVp())
 	weightedVp1 := new(big.Int).Mul(postWeightedVp, vote1WeightedVp)

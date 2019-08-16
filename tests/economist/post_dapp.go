@@ -55,6 +55,8 @@ func (tester *PostDappTester) normal1(t *testing.T, d *Dandelion) {
 	a.NoError(d.ProduceBlocks(constants.PostCashOutDelayBlock - BLOCKS - 1))
 
 	postWeight := StringToBigInt(d.Post(POST).GetWeightedVp())
+	a.NotEqual(postWeight.Int64(), int64(0))
+
 	globalPostReward := new(big.Int).SetUint64(d.GlobalProps().GetPostRewards().Value)
 	globalPostDappReward := new(big.Int).SetUint64(d.GlobalProps().GetPostDappRewards().Value)
 	bigTotalPostWeight, _ := new(big.Int).SetString(d.GlobalProps().GetPostWeightedVps(), 10)
@@ -96,6 +98,8 @@ func (tester *PostDappTester) normal2(t *testing.T, d *Dandelion) {
 	a.NoError(d.ProduceBlocks(constants.PostCashOutDelayBlock - BLOCKS - 1))
 
 	postWeight := StringToBigInt(d.Post(POST).GetWeightedVp())
+	a.NotEqual(postWeight.Int64(), int64(0))
+
 	globalPostReward := new(big.Int).SetUint64(d.GlobalProps().GetPostRewards().Value)
 	globalPostDappReward := new(big.Int).SetUint64(d.GlobalProps().GetPostDappRewards().Value)
 	bigTotalPostWeight, _ := new(big.Int).SetString(d.GlobalProps().GetPostWeightedVps(), 10)
@@ -139,6 +143,8 @@ func (tester *PostDappTester) normal3(t *testing.T, d *Dandelion) {
 	a.NoError(d.ProduceBlocks(constants.PostCashOutDelayBlock - BLOCKS - 1))
 
 	postWeight := StringToBigInt(d.Post(POST).GetWeightedVp())
+	a.NotEqual(postWeight.Int64(), int64(0))
+
 	globalPostReward := new(big.Int).SetUint64(d.GlobalProps().GetPostRewards().Value)
 	globalPostDappReward := new(big.Int).SetUint64(d.GlobalProps().GetPostDappRewards().Value)
 	bigTotalPostWeight, _ := new(big.Int).SetString(d.GlobalProps().GetPostWeightedVps(), 10)
@@ -183,6 +189,8 @@ func (tester *PostDappTester) normal4(t *testing.T, d *Dandelion) {
 	a.NoError(d.ProduceBlocks(constants.PostCashOutDelayBlock - BLOCKS - 1))
 
 	postWeight := StringToBigInt(d.Post(POST).GetWeightedVp())
+	a.NotEqual(postWeight.Int64(), int64(0))
+
 	globalPostReward := new(big.Int).SetUint64(d.GlobalProps().GetPostRewards().Value)
 	globalPostDappReward := new(big.Int).SetUint64(d.GlobalProps().GetPostDappRewards().Value)
 	bigTotalPostWeight, _ := new(big.Int).SetString(d.GlobalProps().GetPostWeightedVps(), 10)
@@ -231,6 +239,8 @@ func (tester *PostDappTester) normal5(t *testing.T, d *Dandelion) {
 	a.NoError(d.ProduceBlocks(constants.PostCashOutDelayBlock - BLOCKS - 1))
 
 	postWeight := StringToBigInt(d.Post(POST).GetWeightedVp())
+	a.NotEqual(postWeight.Int64(), int64(0))
+
 	globalPostReward := new(big.Int).SetUint64(d.GlobalProps().GetPostRewards().Value)
 	globalPostDappReward := new(big.Int).SetUint64(d.GlobalProps().GetPostDappRewards().Value)
 	bigTotalPostWeight, _ := new(big.Int).SetString(d.GlobalProps().GetPostWeightedVps(), 10)
@@ -283,6 +293,8 @@ func (tester *PostDappTester) normal6(t *testing.T, d *Dandelion) {
 	a.NoError(d.ProduceBlocks(constants.PostCashOutDelayBlock - BLOCKS - 1))
 
 	postWeight := StringToBigInt(d.Post(POST).GetWeightedVp())
+	a.NotEqual(postWeight.Int64(), int64(0))
+
 	globalPostReward := new(big.Int).SetUint64(d.GlobalProps().GetPostRewards().Value)
 	globalPostDappReward := new(big.Int).SetUint64(d.GlobalProps().GetPostDappRewards().Value)
 	bigTotalPostWeight, _ := new(big.Int).SetString(d.GlobalProps().GetPostWeightedVps(), 10)
