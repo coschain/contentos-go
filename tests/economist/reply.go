@@ -20,9 +20,7 @@ func (tester *ReplyTester) Test1(t *testing.T, d *Dandelion) {
 	tester.acc1 = d.Account("actor1")
 	tester.acc2 = d.Account("actor2")
 
-	a := assert.New(t)
-	a.NoError(tester.acc2.SendTrxAndProduceBlock(TransferToVest(tester.acc2.Name, tester.acc2.Name, constants.MinBpRegisterVest, "")))
-	a.NoError(tester.acc2.SendTrxAndProduceBlock(BpRegister(tester.acc2.Name, "", "", tester.acc2.GetPubKey(), mintProps)))
+	registerBlockProducer(tester.acc2, t)
 
 	t.Run("normal", d.Test(tester.normal))
 }
@@ -32,9 +30,7 @@ func (tester *ReplyTester) Test2(t *testing.T, d *Dandelion) {
 	tester.acc1 = d.Account("actor1")
 	tester.acc2 = d.Account("actor2")
 
-	a := assert.New(t)
-	a.NoError(tester.acc2.SendTrxAndProduceBlock(TransferToVest(tester.acc2.Name, tester.acc2.Name, constants.MinBpRegisterVest, "")))
-	a.NoError(tester.acc2.SendTrxAndProduceBlock(BpRegister(tester.acc2.Name, "", "", tester.acc2.GetPubKey(), mintProps)))
+	registerBlockProducer(tester.acc2, t)
 
 	t.Run("cashout", d.Test(tester.cashout))
 	t.Run("cashout after other cashout", d.Test(tester.cashoutAfterOtherCashout))
@@ -46,9 +42,7 @@ func (tester *ReplyTester) Test3(t *testing.T, d *Dandelion) {
 	tester.acc1 = d.Account("actor1")
 	tester.acc2 = d.Account("actor2")
 
-	a := assert.New(t)
-	a.NoError(tester.acc2.SendTrxAndProduceBlock(TransferToVest(tester.acc2.Name, tester.acc2.Name, constants.MinBpRegisterVest, "")))
-	a.NoError(tester.acc2.SendTrxAndProduceBlock(BpRegister(tester.acc2.Name, "", "", tester.acc2.GetPubKey(), mintProps)))
+	registerBlockProducer(tester.acc2, t)
 
 	t.Run("huge global vp", d.Test(tester.hugeGlobalVp))
 	t.Run("zero global vp", d.Test(tester.zeroGlobalVp))
@@ -59,9 +53,7 @@ func (tester *ReplyTester) Test4(t *testing.T, d *Dandelion) {
 	tester.acc1 = d.Account("actor1")
 	tester.acc2 = d.Account("actor2")
 
-	a := assert.New(t)
-	a.NoError(tester.acc2.SendTrxAndProduceBlock(TransferToVest(tester.acc2.Name, tester.acc2.Name, constants.MinBpRegisterVest, "")))
-	a.NoError(tester.acc2.SendTrxAndProduceBlock(BpRegister(tester.acc2.Name, "", "", tester.acc2.GetPubKey(), mintProps)))
+	registerBlockProducer(tester.acc2, t)
 
 	t.Run("with ticket", d.Test(tester.withTicket))
 }

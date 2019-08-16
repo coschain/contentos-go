@@ -19,8 +19,8 @@ func (tester *DecayTester) Test(t *testing.T, d *Dandelion) {
 	tester.acc2 = d.Account("actor2")
 
 	a := assert.New(t)
-	a.NoError(tester.acc2.SendTrxAndProduceBlock(TransferToVest(tester.acc2.Name, tester.acc2.Name, constants.MinBpRegisterVest, "")))
-	a.NoError(tester.acc2.SendTrxAndProduceBlock(BpRegister(tester.acc2.Name, "", "", tester.acc2.GetPubKey(), mintProps)))
+
+	registerBlockProducer(tester.acc2, t)
 
 	const VEST = 1000
 

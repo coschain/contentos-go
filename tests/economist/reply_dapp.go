@@ -20,8 +20,7 @@ func (tester *ReplyDappTester) Test(t *testing.T, d *Dandelion) {
 	tester.acc4 = d.Account("actor4")
 
 	a := assert.New(t)
-	a.NoError(tester.acc4.SendTrxAndProduceBlock(TransferToVest(tester.acc4.Name, tester.acc4.Name, constants.MinBpRegisterVest, "")))
-	a.NoError(tester.acc4.SendTrxAndProduceBlock(BpRegister(tester.acc4.Name, "", "", tester.acc4.GetPubKey(), mintProps)))
+	registerBlockProducer(tester.acc4, t)
 
 	const VEST = 1000
 
