@@ -23,6 +23,7 @@ type TrxLog struct {
 type BlockLog struct {
 	BlockHeight uint64
 	BlockId string
+	BlockTime uint64
 	TrxLogs []TrxLog
 	Index int // the index of item in the heap
 }

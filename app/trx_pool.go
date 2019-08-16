@@ -192,6 +192,7 @@ func (c *TrxPool) pushBlockNoLock(blk *prototype.SignedBlock, skip prototype.Ski
 		c.log.Debugf("ICEBERG: BeginBlock %d", blkNum)
 		_ = c.iceberg.BeginBlock(blkNum)
 		c.stateObserver.BeginBlock(blkNum)
+		c.stateObserver.SetBlockTime(blk.Timestamp())
 		c.applyBlock(blk, skip)
 		data := blk.Id().Data
 		c.stateObserver.EndBlock(hex.EncodeToString(data[:]))
@@ -313,6 +314,7 @@ func (c *TrxPool) generateBlockNoLock(bpName string, pre *prototype.Sha256, time
 	c.log.Debugf("ICEBERG: BeginBlock %d", blkNum)
 	_ = c.iceberg.BeginBlock(blkNum)
 	c.stateObserver.BeginBlock(blkNum)
+	c.stateObserver.SetBlockTime(uint64(timestamp))
 
 	timeOut := maxTimeout - time.Since(entryTime)
 	if timeOut < minTimeout {
