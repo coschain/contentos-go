@@ -1,0 +1,27 @@
+{
+  "version":"cosio::abi/1.0",
+  "types":null,
+  "structs":[
+    {
+      "name":"struct1",
+      "base":"",
+      "fields":[
+        {
+          "name":"arg1",
+          "type":"uint32"
+        },
+        {
+          "name":"参数2",
+          "type":"uint32"
+        }
+      ]
+    }
+  ],
+  "actions":[
+    {
+      "name":"Hello",
+      "type":"struct1"
+    }
+  ],
+  "tables":null
+}
