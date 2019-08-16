@@ -4,6 +4,7 @@ import (
 	. "github.com/coschain/contentos-go/dandelion"
 	"github.com/stretchr/testify/assert"
 	"math"
+	"strings"
 	"testing"
 )
 
@@ -21,6 +22,7 @@ func (tester *TransferToVestTester) Test(t *testing.T, d *Dandelion) {
 	t.Run("too mach", d.Test(tester.tooMuch))
 	t.Run("to unknown", d.Test(tester.toUnknown))
 	t.Run("wrong sender", d.Test(tester.wrongSender))
+	t.Run("big memo", d.Test(tester.bigMemo))
 }
 
 func (tester *TransferToVestTester) normalToSelf(t *testing.T, d *Dandelion) {
@@ -112,4 +114,10 @@ func (tester *TransferToVestTester) wrongSender(t *testing.T, d *Dandelion) {
 	a.Equal(balance0, tester.acc0.GetBalance().Value)
 	a.Equal(balance1, tester.acc1.GetBalance().Value)
 	a.Equal(balance2, tester.acc2.GetBalance().Value)
+}
+
+func (tester *TransferToVestTester) bigMemo(t *testing.T, d *Dandelion) {
+	a := assert.New(t)
+	a.Error(tester.acc0.SendTrx(TransferToVest(tester.acc0.Name, tester.acc1.Name, 1, strings.Repeat("A", 4500))))
+	a.NoError(tester.acc0.SendTrx(TransferToVest(tester.acc0.Name, tester.acc1.Name, 1, strings.Repeat("A", 4000))))
 }

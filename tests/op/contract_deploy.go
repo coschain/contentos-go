@@ -6,6 +6,7 @@ import (
 	. "github.com/coschain/contentos-go/dandelion"
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/stretchr/testify/assert"
+	"strings"
 	"testing"
 )
 
@@ -20,6 +21,8 @@ func (tester *ContractDeployTester) Test(t *testing.T, d *Dandelion) {
 	t.Run("hasFloats", d.Test(tester.hasFloats))
 	t.Run("unknownImports", d.Test(tester.unknownImports))
 	t.Run("upgradable", d.Test(tester.upgradable))
+	t.Run("invalidContractName", d.Test(tester.invalidContractName))
+	t.Run("invalidContractUrlAndDesc", d.Test(tester.invalidContractUrlAndDesc))
 }
 
 func (tester *ContractDeployTester) deployForOthers(t *testing.T, d *Dandelion) {
@@ -86,6 +89,26 @@ func (tester *ContractDeployTester) upgradable(t *testing.T, d *Dandelion) {
 	a.Error(tester.deployUncompressed(d, "actor0", "actor0", "hello", code1, abi1, false))
 }
 
+func (tester *ContractDeployTester) invalidContractName(t *testing.T, d *Dandelion) {
+	a := assert.New(t)
+	code, abi, err := ContractCodeAndAbi("native_tester")
+	a.NoError(err)
+	actor0 := d.Account("actor0")
+	a.Error(actor0.SendTrx(ContractDeployUncompressed(actor0.Name, "", abi, code, true, "", "")))
+	a.Error(actor0.SendTrx(ContractDeployUncompressed(actor0.Name, " ", abi, code, true, "", "")))
+	a.Error(actor0.SendTrx(ContractDeployUncompressed(actor0.Name, "$MyContract", abi, code, true, "", "")))
+	a.Error(actor0.SendTrx(ContractDeployUncompressed(actor0.Name, "合约名", abi, code, true, "", "")))
+	a.Error(actor0.SendTrx(ContractDeployUncompressed(actor0.Name, strings.Repeat("A", 65), abi, code, true, "", "")))
+}
+
+func (tester *ContractDeployTester) invalidContractUrlAndDesc(t *testing.T, d *Dandelion) {
+	a := assert.New(t)
+	code, abi, err := ContractCodeAndAbi("native_tester")
+	a.NoError(err)
+	actor0 := d.Account("actor0")
+	a.Error(actor0.SendTrx(ContractDeployUncompressed(actor0.Name, "MyGoodContract", abi, code, true, strings.Repeat("A", 1025), "")))
+	a.Error(actor0.SendTrx(ContractDeployUncompressed(actor0.Name, "MyGoodContract", abi, code, true, "", strings.Repeat("A", 4100))))
+}
 
 //
 // helper methods.
