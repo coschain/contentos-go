@@ -53,7 +53,7 @@ func (tester *TicketBpBonusTester) testMain() {
 	tester.newBlockProducers()
 
 	// repeat for a few times: post -> buy tickets -> vote by tickets
-	for i := 0; i < 10; i++ {
+	for i := 0; i < 100; i++ {
 		tester.postAndVote()
 		// random intervals
 		a.NoError(tester.d.ProduceBlocks(rand.Intn(epoch)))
@@ -125,6 +125,15 @@ func (tester *TicketBpBonusTester) newBlockProducers() {
 	}
 }
 
+func (tester *TicketBpBonusTester) hasFreeTicket(name string) bool {
+	return tester.d.GiftTicket(&prototype.GiftTicketKeyType{
+		Type: 0,
+		From: "contentos",
+		To: name,
+		CreateBlock: tester.d.GlobalProps().GetCurrentEpochStartBlock(),
+	}).CheckExist()
+}
+
 func (tester *TicketBpBonusTester) postAndVote() {
 	a := tester.a
 
@@ -139,10 +148,18 @@ func (tester *TicketBpBonusTester) postAndVote() {
 		nil))
 	a.True(r != nil && r.Status == prototype.StatusSuccess)
 
-	// a random actor buys random number of tickets and vote for the article using all his tickets
+	// a random actor buys random number of tickets and vote for the article using these tickets
 	actor := tester.actors[rand.Intn(TicketBpBonusActors)]
 	ticketCount := uint64(rand.Intn(3) + 1)
-	tester.hasBonus = true
+
+	// if the actor votes using 1 ticket and he has a free ticket, the free ticket will be used.
+	// in which case, block producers bonus should not change.
+	if !tester.hasBonus {
+		if ticketCount > 1 || !tester.hasFreeTicket(actor.Name) {
+			tester.hasBonus = true
+		}
+	}
+
 	r = actor.TrxReceipt(
 		AcquireTicket(actor.Name, ticketCount),
 		VoteByTicket(actor.Name, postId, ticketCount))
