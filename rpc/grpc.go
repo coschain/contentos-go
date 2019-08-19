@@ -1133,10 +1133,10 @@ func (as *APIService) fetchPostInfoResponseById(postId uint64,isNeedLock bool) *
 		var globalRewards uint64
 		var globalWeightedVp string
 		if pWrap.GetParentId() == 0 {
-			globalRewards = props.PostRewards.Value
+			globalRewards = props.PoolPostRewards.Value
 			globalWeightedVp = props.PostWeightedVps
 		} else {
-			globalRewards = props.ReplyRewards.Value
+			globalRewards = props.PoolReplyRewards.Value
 			globalWeightedVp = props.ReplyWeightedVps
 		}
 		res  =	&grpcpb.PostResponse{

@@ -164,8 +164,8 @@ func (tester *PostTester) cashout(t *testing.T, d *Dandelion) {
 
 	postWeight := StringToBigInt(d.Post(1).GetWeightedVp())
 	a.NotEqual( postWeight.Int64(), int64(0) )
-	globalPostReward := new(big.Int).SetUint64(d.GlobalProps().GetPostRewards().Value)
-	globalPostDappReward := new(big.Int).SetUint64(d.GlobalProps().GetPostDappRewards().Value)
+	globalPostReward := new(big.Int).SetUint64(d.GlobalProps().GetPoolPostRewards().Value)
+	globalPostDappReward := new(big.Int).SetUint64(d.GlobalProps().GetPoolPostDappRewards().Value)
 	bigTotalPostWeight, _ := new(big.Int).SetString(d.GlobalProps().GetPostWeightedVps(), 10)
 	decayedPostWeight := bigDecay(bigTotalPostWeight)
 	exceptNextBlockPostWeightedVps := decayedPostWeight.Add(decayedPostWeight, postWeight)
@@ -204,8 +204,8 @@ func (tester *PostTester) cashoutAfterOtherCashout(t *testing.T, d *Dandelion) {
 
 	postWeight := StringToBigInt(d.Post(2).GetWeightedVp())
 	a.NotEqual(postWeight.Int64(), int64(0))
-	globalPostReward := new(big.Int).SetUint64(d.GlobalProps().GetPostRewards().Value)
-	globalPostDappReward := new(big.Int).SetUint64(d.GlobalProps().GetPostDappRewards().Value)
+	globalPostReward := new(big.Int).SetUint64(d.GlobalProps().GetPoolPostRewards().Value)
+	globalPostDappReward := new(big.Int).SetUint64(d.GlobalProps().GetPoolPostDappRewards().Value)
 	bigTotalPostWeight, _ := new(big.Int).SetString(d.GlobalProps().GetPostWeightedVps(), 10)
 	decayedPostWeight := bigDecay(bigTotalPostWeight)
 	exceptNextBlockPostWeightedVps := decayedPostWeight.Add(decayedPostWeight, postWeight)
@@ -252,8 +252,8 @@ func (tester *PostTester) multiCashout(t *testing.T, d *Dandelion) {
 
 	postsWeight := new(big.Int).Add(post3Weight, post4Weight)
 
-	globalPostReward := new(big.Int).SetUint64(d.GlobalProps().GetPostRewards().Value)
-	globalPostDappReward := new(big.Int).SetUint64(d.GlobalProps().GetPostDappRewards().Value)
+	globalPostReward := new(big.Int).SetUint64(d.GlobalProps().GetPoolPostRewards().Value)
+	globalPostDappReward := new(big.Int).SetUint64(d.GlobalProps().GetPoolPostDappRewards().Value)
 	bigTotalPostWeight, _ := new(big.Int).SetString(d.GlobalProps().GetPostWeightedVps(), 10)
 
 	decayedPostWeight := bigDecay(bigTotalPostWeight)
@@ -305,8 +305,8 @@ func (tester *PostTester) hugeGlobalVp(t *testing.T, d *Dandelion) {
 
 	postWeight := StringToBigInt(d.Post(1).GetWeightedVp())
 	a.NotEqual(postWeight.Int64(), int64(0))
-	globalPostReward := new(big.Int).SetUint64(d.GlobalProps().GetPostRewards().Value)
-	globalPostDappReward := new(big.Int).SetUint64(d.GlobalProps().GetPostDappRewards().Value)
+	globalPostReward := new(big.Int).SetUint64(d.GlobalProps().GetPoolPostRewards().Value)
+	globalPostDappReward := new(big.Int).SetUint64(d.GlobalProps().GetPoolPostDappRewards().Value)
 	bigTotalPostWeight, _ := new(big.Int).SetString(d.GlobalProps().GetPostWeightedVps(), 10)
 	decayedPostWeight := bigDecay(bigTotalPostWeight)
 	exceptNextBlockPostWeightedVps := decayedPostWeight.Add(decayedPostWeight, postWeight)
@@ -347,8 +347,8 @@ func (tester *PostTester) zeroGlobalVp(t *testing.T, d *Dandelion) {
 	postWeight := StringToBigInt(d.Post(2).GetWeightedVp())
 	a.NotEqual(postWeight.Int64(), int64(0))
 
-	globalPostReward := new(big.Int).SetUint64(d.GlobalProps().GetPostRewards().Value)
-	globalPostDappReward := new(big.Int).SetUint64(d.GlobalProps().GetPostDappRewards().Value)
+	globalPostReward := new(big.Int).SetUint64(d.GlobalProps().GetPoolPostRewards().Value)
+	globalPostDappReward := new(big.Int).SetUint64(d.GlobalProps().GetPoolPostDappRewards().Value)
 	bigTotalPostWeight, _ := new(big.Int).SetString(d.GlobalProps().GetPostWeightedVps(), 10)
 	decayedPostWeight := bigDecay(bigTotalPostWeight)
 	exceptNextBlockPostWeightedVps := decayedPostWeight.Add(decayedPostWeight, postWeight)
@@ -391,8 +391,8 @@ func (tester *PostTester) withTicket(t *testing.T, d *Dandelion) {
 	a.NotEqual(postWeight.Int64(), int64(0))
 
 	postWeight = new(big.Int).Add(postWeight, new(big.Int).SetUint64(1 * d.GlobalProps().GetPerTicketWeight()))
-	globalPostReward := new(big.Int).SetUint64(d.GlobalProps().GetPostRewards().Value)
-	globalPostDappReward := new(big.Int).SetUint64(d.GlobalProps().GetPostDappRewards().Value)
+	globalPostReward := new(big.Int).SetUint64(d.GlobalProps().GetPoolPostRewards().Value)
+	globalPostDappReward := new(big.Int).SetUint64(d.GlobalProps().GetPoolPostDappRewards().Value)
 	bigTotalPostWeight, _ := new(big.Int).SetString(d.GlobalProps().GetPostWeightedVps(), 10)
 	decayedPostWeight := bigDecay(bigTotalPostWeight)
 	exceptNextBlockPostWeightedVps := decayedPostWeight.Add(decayedPostWeight, postWeight)

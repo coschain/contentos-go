@@ -17,9 +17,7 @@ import (
 	"github.com/go-interpreter/wagon/exec"
 	"math"
 	"math/big"
-	"sort"
 	"strconv"
-	"time"
 )
 
 func mustSuccess(b bool, val string) {
@@ -202,9 +200,9 @@ func init() {
 	RegisterEvaluator((*prototype.ContractApplyOperation)(nil), func(delegate ApplyDelegate, op prototype.BaseOperation) BaseEvaluator {
 		return &ContractApplyEvaluator {BaseDelegate: BaseDelegate{delegate:delegate}, op: op.(*prototype.ContractApplyOperation)}
 	})
-	RegisterEvaluator((*prototype.ReportOperation)(nil), func(delegate ApplyDelegate, op prototype.BaseOperation) BaseEvaluator {
-		return &ReportEvaluator {BaseDelegate: BaseDelegate{delegate:delegate}, op: op.(*prototype.ReportOperation)}
-	})
+	//RegisterEvaluator((*prototype.ReportOperation)(nil), func(delegate ApplyDelegate, op prototype.BaseOperation) BaseEvaluator {
+	//	return &ReportEvaluator {BaseDelegate: BaseDelegate{delegate:delegate}, op: op.(*prototype.ReportOperation)}
+	//})
 	RegisterEvaluator((*prototype.ConvertVestOperation)(nil), func(delegate ApplyDelegate, op prototype.BaseOperation) BaseEvaluator {
 		return &ConvertVestEvaluator {BaseDelegate: BaseDelegate{delegate:delegate}, op: op.(*prototype.ConvertVestOperation)}
 	})
@@ -830,31 +828,20 @@ func (ev *TransferToVestEvaluator) Apply() {
 	ev.GlobalProp().TransferToVest(op.Amount)
 }
 
-func updateBpVoteValue(dba iservices.IDatabaseRW, voter *prototype.AccountName, oldVest, newVest *prototype.Vest) (t1, t2 time.Duration){
-	getBpNameStart := common.EasyTimer()
-	uniqueVoterQueryWrap := table.UniBlockProducerVoteVoterNameWrap{Dba:dba}
+func updateBpVoteValue(dba iservices.IDatabaseRW, voter *prototype.AccountName, oldVest, newVest *prototype.Vest){
+	uniqueVoterQueryWrap := table.NewUniBlockProducerVoteVoterNameWrap(dba)
 	bpId := uniqueVoterQueryWrap.UniQueryVoterName(voter)
 	if bpId == nil {
-		t1 = getBpNameStart.Elapsed()
+		// if user didn't vote for one bp, just return
 		return
 	}
 	bpName := bpId.GetBlockProducerId().BlockProducer
-	t1 = getBpNameStart.Elapsed()
-
-
-	startTime := common.EasyTimer()
 	bpWrap := table.NewSoBlockProducerWrap(dba, bpName)
-	if bpWrap != nil && bpWrap.CheckExist() {
-		bpVoteVestCnt := bpWrap.GetBpVest().VoteVest
-		bpActive := bpWrap.GetBpVest().Active
-		bpVoteVestCnt.Sub(oldVest)
-		bpVoteVestCnt.Add(newVest)
-
-		newBpVest := &prototype.BpVestId{Active:bpActive, VoteVest:bpVoteVestCnt}
-		bpWrap.SetBpVest(newBpVest)
+	if bpWrap.CheckExist() {
+		bpWrap.Modify(func(tInfo *table.SoBlockProducer) {
+			tInfo.BpVest.VoteVest.Sub(oldVest).Add(newVest)
+		})
 	}
-	t2 = startTime.Elapsed()
-
 	return
 }
 
@@ -876,95 +863,6 @@ func (ev *ConvertVestEvaluator) Apply() {
 		t.HasPowerdown = &prototype.Vest{Value: 0}
 		t.ToPowerdown = op.Amount
 	})
-}
-
-type byTag []int32
-
-func (c byTag) Len() int {
-	return len(c)
-}
-func (c byTag) Swap(i, j int) {
-	c[i], c[j] = c[j], c[i]
-}
-func (c byTag) Less(i, j int) bool {
-	return c[i] < c[j]
-}
-
-func mergeTags(existed []int32, new []prototype.ReportOperationTag) []int32 {
-	len1 := len(existed)
-	len2 := len(new)
-	tmp := make([]int32, 0, len2)
-	for i := 0; i < len2; i++ {
-		tmp[i] = int32(new[i])
-	}
-	sort.Sort(byTag(existed))
-	sort.Sort(byTag(tmp))
-
-	res := make([]int32, 0, len1+len2)
-	i := 0
-	j := 0
-	for {
-		if i == len1 || j == len2 {
-			break
-		}
-		if existed[i] <= tmp[j] {
-			res = append(res, existed[i])
-			if existed[i] == tmp[j] {
-				j++
-			}
-			i++
-		} else if existed[i] > tmp[j] {
-			res = append(res, tmp[j])
-			j++
-		}
-	}
-	if i < len1 {
-		res = append(res, existed[i:]...)
-	}
-	if j < len2 {
-		res = append(res, tmp[i:]...)
-	}
-
-	return res
-}
-
-func (ev *ReportEvaluator) Apply() {
-	op := ev.op
-	post := table.NewSoPostWrap(ev.Database(), &op.Reported)
-	post.MustExist("the reported post doesn't exist")
-	report := table.NewSoReportListWrap(ev.Database(), &op.Reported)
-	if op.IsArbitration {
-		report.MustExist("cannot arbitrate a non-existed post")
-		if op.IsApproved {
-			post.RemovePost()
-			report.RemoveReportList()
-			return
-		}
-
-		report.SetIsArbitrated(true)
-	} else {
-		if report.CheckExist() {
-			if report.GetIsArbitrated() {
-				opAssert(false, "cannot report a legal post")
-			}
-			report.SetReportedTimes(report.GetReportedTimes() + 1)
-			existedTags := report.GetTags()
-			newTags := op.ReportTag
-			report.SetTags(mergeTags(existedTags, newTags))
-			return
-		}
-
-		report.Create(func(tInfo *table.SoReportList) {
-			tInfo.Uuid = op.Reported
-			tInfo.ReportedTimes = 1
-			tags := make([]int32, len(op.ReportTag))
-			for i := range op.ReportTag {
-				tags[i] = int32(op.ReportTag[i])
-			}
-			tInfo.Tags = tags
-			tInfo.IsArbitrated = false
-		})
-	}
 }
 
 func (ev *ContractDeployEvaluator) Apply() {

@@ -33,10 +33,10 @@ func (tester *MintTester) normal(t *testing.T, d *Dandelion) {
 	annualBudget := annual_mint.CalculateBudget(ith)
 	blockCurrency := annual_mint.CalculatePerBlockBudget(annualBudget)
 
-	postRewards := d.GlobalProps().GetPostRewards().Value
-	replyRewards := d.GlobalProps().GetReplyRewards().Value
-	replyDappRewards := d.GlobalProps().GetReplyDappRewards().Value
-	postDappRewards := d.GlobalProps().GetPostDappRewards().Value
+	postRewards := d.GlobalProps().GetPoolPostRewards().Value
+	replyRewards := d.GlobalProps().GetPoolReplyRewards().Value
+	replyDappRewards := d.GlobalProps().GetPoolReplyDappRewards().Value
+	postDappRewards := d.GlobalProps().GetPoolPostDappRewards().Value
 	bpVest := d.Account(tester.acc2.Name).GetVest().Value
 
 	const BLOCKS = 1000
@@ -46,10 +46,10 @@ func (tester *MintTester) normal(t *testing.T, d *Dandelion) {
 	dappReward := blockCurrency * constants.RewardRateDapp / constants.PERCENT
 	bpReward := blockCurrency - creatorReward - dappReward
 
-	a.Equal(d.GlobalProps().GetPostRewards().Value - postRewards, creatorReward * constants.RewardRateAuthor / constants.PERCENT * BLOCKS)
-	a.Equal(d.GlobalProps().GetReplyRewards().Value - replyRewards, creatorReward * constants.RewardRateReply / constants.PERCENT * BLOCKS)
-	a.Equal(d.GlobalProps().GetReplyDappRewards().Value - replyDappRewards, dappReward * constants.RewardRateReply / constants.PERCENT * BLOCKS)
-	a.Equal(d.GlobalProps().GetPostDappRewards().Value - postDappRewards, (dappReward - dappReward * constants.RewardRateReply / constants.PERCENT) * BLOCKS)
+	a.Equal(d.GlobalProps().GetPoolPostRewards().Value - postRewards, creatorReward * constants.RewardRateAuthor / constants.PERCENT * BLOCKS)
+	a.Equal(d.GlobalProps().GetPoolReplyRewards().Value - replyRewards, creatorReward * constants.RewardRateReply / constants.PERCENT * BLOCKS)
+	a.Equal(d.GlobalProps().GetPoolReplyDappRewards().Value - replyDappRewards, dappReward * constants.RewardRateReply / constants.PERCENT * BLOCKS)
+	a.Equal(d.GlobalProps().GetPoolPostDappRewards().Value - postDappRewards, (dappReward - dappReward * constants.RewardRateReply / constants.PERCENT) * BLOCKS)
 	a.Equal(d.Account(tester.acc2.Name).GetVest().Value - bpVest, bpReward * BLOCKS)
 }
 

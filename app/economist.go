@@ -143,11 +143,11 @@ func (e *Economist) Mint(trxObserver iservices.ITrxObserver) {
 	trxObserver.AddOpState(iservices.Add, "mint", globalProps.CurrentBlockProducer.Value, bpReward)
 
 	e.dgp.ModifyProps(func(props *prototype.DynamicProperties) {
-		props.PostRewards.Add(&prototype.Vest{Value: postReward})
-		props.ReplyRewards.Add(&prototype.Vest{Value: replyReward})
-		props.PostDappRewards.Add(&prototype.Vest{Value: postDappRewards})
-		props.ReplyDappRewards.Add(&prototype.Vest{Value: replyDappRewards})
-		props.VoterRewards.Add(&prototype.Vest{Value: voterReward})
+		props.PoolPostRewards.Add(&prototype.Vest{Value: postReward})
+		props.PoolReplyRewards.Add(&prototype.Vest{Value: replyReward})
+		props.PoolPostDappRewards.Add(&prototype.Vest{Value: postDappRewards})
+		props.PoolReplyDappRewards.Add(&prototype.Vest{Value: replyDappRewards})
+		props.PoolVoterRewards.Add(&prototype.Vest{Value: voterReward})
 		props.AnnualMinted.Add(&prototype.Vest{Value: blockCurrent})
 		props.TotalVest.Add(&prototype.Vest{Value: blockCurrent})
 	})
@@ -273,9 +273,9 @@ func (e *Economist) Do(trxObserver iservices.ITrxObserver) {
 			rewards = new(big.Int).SetUint64(0)
 			dappRewards = new(big.Int).SetUint64(0)
 		}else {
-			bigGlobalPostRewards := new(big.Int).SetUint64(globalProps.PostRewards.Value)
+			bigGlobalPostRewards := new(big.Int).SetUint64(globalProps.PoolPostRewards.Value)
 			rewards = ProportionAlgorithm(&postVpAccumulator, &postWeightedVps, bigGlobalPostRewards)
-			bigGlobalPostDappRewards := new(big.Int).SetUint64(globalProps.PostDappRewards.Value)
+			bigGlobalPostDappRewards := new(big.Int).SetUint64(globalProps.PoolPostDappRewards.Value)
 			dappRewards = ProportionAlgorithm(&postVpAccumulator, &postWeightedVps, bigGlobalPostDappRewards)
 		}
 
@@ -293,9 +293,9 @@ func (e *Economist) Do(trxObserver iservices.ITrxObserver) {
 			rewards = new(big.Int).SetUint64(0)
 			dappRewards = new(big.Int).SetUint64(0)
 		}else {
-			bigGlobalReplyRewards := new(big.Int).SetUint64(globalProps.ReplyRewards.Value)
+			bigGlobalReplyRewards := new(big.Int).SetUint64(globalProps.PoolReplyRewards.Value)
 			rewards = ProportionAlgorithm(&replyVpAccumulator, &replyWeightedVps, bigGlobalReplyRewards)
-			bigGlobalReplyDappRewards := new(big.Int).SetUint64(globalProps.ReplyDappRewards.Value)
+			bigGlobalReplyDappRewards := new(big.Int).SetUint64(globalProps.PoolReplyDappRewards.Value)
 			dappRewards = ProportionAlgorithm(&replyVpAccumulator, &replyWeightedVps, bigGlobalReplyDappRewards)
 		}
 
@@ -311,7 +311,7 @@ func (e *Economist) Do(trxObserver iservices.ITrxObserver) {
 
 
 	globalVoteWeightedVps := StringToBigInt(globalProps.GetVoteWeightedVps())
-	globalVoteRewards := globalProps.GetVoterRewards()
+	globalVoteRewards := globalProps.GetPoolVoterRewards()
 
 	voteCashoutWrap := table.NewSoVoteCashoutWrap(e.db, &end)
 	if !voteCashoutWrap.CheckExist() {
@@ -449,9 +449,7 @@ func (e *Economist) postCashout(posts []*table.SoPostWrap, bigBlockRewards *big.
 			vestRewards.Add(authorWrap.GetVest())
 			authorWrap.SetVest(vestRewards)
 
-			t := common.EasyTimer()
-			t1, t2 := updateBpVoteValue(e.db, &prototype.AccountName{Value: author}, oldVest, vestRewards)
-			e.log.Debugf("post cashout updateBpVoteValue: %v, query: %v, update: %v", t, t1, t2)
+			updateBpVoteValue(e.db, &prototype.AccountName{Value: author}, oldVest, vestRewards)
 		}
 		post.SetCashoutBlockNum(math.MaxUint64)
 		post.SetRewards(&prototype.Vest{Value: reward})
@@ -472,8 +470,8 @@ func (e *Economist) postCashout(posts []*table.SoPostWrap, bigBlockRewards *big.
 	e.dgp.ModifyProps(func(props *prototype.DynamicProperties) {
 		//props.PostRewards.Value -= spentPostReward
 		//props.PostDappRewards.Value -= spentDappReward
-		props.PostRewards.Sub(&prototype.Vest{Value: spentPostReward})
-		props.PostDappRewards.Sub(&prototype.Vest{Value: spentDappReward})
+		props.PoolPostRewards.Sub(&prototype.Vest{Value: spentPostReward})
+		props.PoolPostDappRewards.Sub(&prototype.Vest{Value: spentDappReward})
 	})
 }
 
@@ -550,9 +548,7 @@ func (e *Economist) replyCashout(replies []*table.SoPostWrap, bigBlockRewards *b
 			vestRewards := &prototype.Vest{Value: reward}
 			vestRewards.Add(authorWrap.GetVest())
 			authorWrap.SetVest(vestRewards)
-			t := common.EasyTimer()
-			t1, t2 := updateBpVoteValue(e.db, &prototype.AccountName{Value: author}, oldVest, vestRewards)
-			e.log.Debugf("reply cashout updateBpVoteValue: %v, query: %v, update: %v", t, t1, t2)
+			updateBpVoteValue(e.db, &prototype.AccountName{Value: author}, oldVest, vestRewards)
 		}
 		reply.SetCashoutBlockNum(math.MaxUint64)
 		reply.SetRewards(&prototype.Vest{Value: reward})
@@ -570,8 +566,8 @@ func (e *Economist) replyCashout(replies []*table.SoPostWrap, bigBlockRewards *b
 	e.log.Infof("cashout: [reply] blockRewards: %d, blockDappRewards: %d, spendPostReward: %d, spendDappReward: %d",
 		bigBlockRewards.Uint64(), bigBlockDappRewards.Uint64(), spentReplyReward, spentDappReward)
 	e.dgp.ModifyProps(func(props *prototype.DynamicProperties) {
-		props.ReplyRewards.Sub(&prototype.Vest{Value: spentReplyReward})
-		props.ReplyDappRewards.Sub(&prototype.Vest{Value: spentDappReward})
+		props.PoolReplyRewards.Sub(&prototype.Vest{Value: spentReplyReward})
+		props.PoolReplyDappRewards.Sub(&prototype.Vest{Value: spentDappReward})
 	})
 }
 
