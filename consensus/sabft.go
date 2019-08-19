@@ -1035,18 +1035,20 @@ func (sabft *SABFT) commit(commitRecords *message.Commit) error {
 		sabft.log.Errorf("[SABFT] internal error when committing %v, err: %v", blockID, err)
 		return ErrInternal
 	}
+	commitCount := 0
 	for i := range blks {
 		if err = sabft.blog.Append(blks[i]); err != nil {
 			sabft.log.Errorf("[SABFT] internal error when committing %v, err: %v", blockID, err)
 			return ErrInternal
 		}
+		commitCount++
 		if blks[i] == blk {
 			sabft.log.Debugf("[SABFT] committed from block #%d to #%d", blks[0].Id().BlockNum(), blk.Id().BlockNum())
 			break
 		}
 	}
 
-	sabft.noticer.Publish(constants.NoticeLibChange, blks)
+	sabft.noticer.Publish(constants.NoticeLibChange, blks[:commitCount])
 	sabft.ctrl.Commit(blockNum)
 	sabft.ForkDB.Commit(blockID)
 	sabft.lastCommitted.Store(commitRecords)
