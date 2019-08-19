@@ -15,7 +15,6 @@ import (
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/sirupsen/logrus"
 	"sync"
-	"time"
 )
 
 type BlockLogHeap []*iservices.BlockLog
@@ -28,132 +27,52 @@ func (logHeap BlockLogHeap) Less(i, j int) bool {
 
 func (logHeap BlockLogHeap) Swap(i, j int) {
 	logHeap[i], logHeap[j] = logHeap[j], logHeap[i]
-	logHeap[i].Index = i
-	logHeap[j].Index = j
 }
 
 func (logHeap *BlockLogHeap) Push(x interface{}) {
-	n := len(*logHeap)
-	item := x.(*iservices.BlockLog)
-	item.Index = n
-	*logHeap = append(*logHeap, item)
+	*logHeap = append(*logHeap, x.(*iservices.BlockLog))
 }
 
 func (logHeap *BlockLogHeap) Pop() interface{} {
 	old := *logHeap
 	n := len(old)
 	item := old[n-1]
-	item.Index = -1 // for safety
 	*logHeap = old[0 : n-1]
 	return item
-}
-
-type HeapProxy struct {
-	Mu sync.RWMutex
-	Heap *BlockLogHeap
-}
-
-func (proxy *HeapProxy) Push(blockLog interface{}) {
-	proxy.Mu.Lock()
-	defer proxy.Mu.Unlock()
-	heap.Push(proxy.Heap, blockLog)
-}
-
-func (proxy *HeapProxy) Pop() interface{} {
-	proxy.Mu.Lock()
-	defer proxy.Mu.Unlock()
-	return heap.Pop(proxy.Heap)
-}
-
-func (proxy *HeapProxy) Len() int {
-	proxy.Mu.RLock()
-	defer proxy.Mu.RUnlock()
-	return proxy.Heap.Len()
 }
 
 var StateLogServiceName = "statelogservice"
 
 type StateLogService struct {
+	sync.Mutex								// lock for block logs
 	node.Service
-	config *service_configs.DatabaseConfig
-	ev  EventBus.Bus
-	ctx *node.ServiceContext
-	quit chan bool
-	log *logrus.Logger
-	// for block log
-	logHeapProxy *HeapProxy
-	// for receiving last irreversible blocks when onLibChange
-	libHeapProxy *HeapProxy
-	db *sql.DB
-	ticker *time.Ticker
+	ctx *node.ServiceContext				// not used
+	config *service_configs.DatabaseConfig	// for sql dsn config
+	ev  EventBus.Bus						// for events (un)subscription
+	logger *logrus.Logger					// logger
+	blockLogs BlockLogHeap					// block logs
+	db *sql.DB								// the sql database
 }
 
 // service constructor
 func NewStateLogService(ctx *node.ServiceContext, config *service_configs.DatabaseConfig, log *logrus.Logger) (*StateLogService, error) {
-	return &StateLogService{ctx:ctx, config:config, log:log}, nil
+	return &StateLogService{ctx:ctx, config:config, logger:log}, nil
 }
 
 func (s *StateLogService) Start(node *node.Node) error {
-	s.quit = make(chan bool)
 	// dns: data source name
 	dsn := fmt.Sprintf("%s:%s@/%s", s.config.User, s.config.Password, s.config.Db)
 	db, err := sql.Open(s.config.Driver, dsn)
 	if err != nil {
-		s.log.Errorf("start statelog service failed. Database can't be connected")
+		s.logger.Errorf("start statelog service failed. Database can't be connected")
 		return err
 	}
 	s.db = db
-
 	s.ev = node.EvBus
-
-	logHeap := BlockLogHeap{}
-	heap.Init(&logHeap)
-	s.logHeapProxy = &HeapProxy{Heap: &logHeap}
-
-	libHeap := BlockLogHeap{}
-	heap.Init(&libHeap)
-	s.libHeapProxy = &HeapProxy{Heap: &libHeap}
+	heap.Init(&s.blockLogs)
 
 	s.hookEvent()
 	return nil
-}
-
-func (s *StateLogService) pollLIBHeap() error {
-	for s.libHeapProxy.Len() > 0 {
-		log := s.libHeapProxy.Pop()
-		libLog := log.(*iservices.BlockLog)
-		blockHeight := libLog.BlockHeight
-		blockId := libLog.BlockId
-		s.handleLib(blockHeight , blockId)
-	}
-	return nil
-}
-
-func (s *StateLogService) handleLib(lib uint64, blockId string) {
-	s.log.Debugf("[statelog] heap length: %d\n", s.logHeapProxy.Len())
-	for s.logHeapProxy.Len() > 0 {
-		log := s.logHeapProxy.Pop()
-		blockLog := log.(*iservices.BlockLog)
-		s.log.Debugf("[statelog] blocklog: blockHeight:%d, blockId: %s, lib blockHeight:%d, lib blockId:%s \n",
-			blockLog.BlockHeight, blockLog.BlockId, lib, blockId)
-		// if the block log from heap > lib, re-push it else pop it
-		if blockLog.BlockHeight > lib {
-			//heap.Push(&s.logHeap, blockLog)
-			s.logHeapProxy.Push(blockLog)
-			break
-		}
-		// really ??
-		if blockLog.BlockHeight < lib {
-			s.pushLog(blockLog, false)
-		}
-		if blockLog.BlockHeight == lib {
-			if blockLog.BlockId == blockId {
-				s.pushLog(blockLog, true)
-			} else {
-				s.pushLog(blockLog, false)
-			}
-		}
-	}
 }
 
 func (s *StateLogService) pushLog(blockLog *iservices.BlockLog, isPicked bool) {
@@ -161,7 +80,7 @@ func (s *StateLogService) pushLog(blockLog *iservices.BlockLog, isPicked bool) {
 	_, err := s.db.Exec("INSERT IGNORE INTO `statelog` (`block_id`, `block_height`, `block_time`, `pick`, `block_log`) " +
 		"VALUES (?, ?, ?, ?, ?)", blockLog.BlockId, blockLog.BlockHeight, blockLog.BlockTime, isPicked, blockLogJson)
 	if err != nil {
-		s.log.Error(err)
+		s.logger.Error(err)
 	}
 }
 
@@ -176,21 +95,42 @@ func (s *StateLogService) unhookEvent() {
 }
 
 func (s *StateLogService) onLibChange(blocks []common.ISignedBlock) {
-	for _ , block := range blocks {
-		blk := block.(*prototype.SignedBlock)
-		data := blk.Id().Data
-		blockId := hex.EncodeToString(data[:])
-		blockHeight := blk.GetSignedHeader().Number()
-		libLog := &iservices.BlockLog{BlockHeight:blockHeight, BlockId:blockId}
-		s.libHeapProxy.Push(libLog)
+	if len(blocks) == 0 {
+		return
 	}
-	if err := s.pollLIBHeap(); err != nil {
-		s.log.Error(err)
+	// get ids & numbers of committed blocks
+	commitBlockIds := make(map[string]bool)
+	commitBlock := uint64(0)
+	for _ , block := range blocks {
+		blkId := (block.(*prototype.SignedBlock)).Id()
+		blkNum := blkId.BlockNum()
+		commitBlockIds[hex.EncodeToString(blkId.Data[:])] = true
+		if commitBlock < blkNum {
+			commitBlock = blkNum
+		}
+	}
+	// get block logs that can be dumped to database
+	s.Lock()
+	logs := make([]*iservices.BlockLog, 0, s.blockLogs.Len())
+	for s.blockLogs.Len() > 0 {
+		blockLog := s.blockLogs.Pop().(*iservices.BlockLog)
+		if blockLog.BlockHeight > commitBlock {
+			s.blockLogs.Push(blockLog)
+			break
+		}
+		logs = append(logs, blockLog)
+	}
+	s.Unlock()
+	// dump blocks to database
+	for _, blockLog := range logs {
+		s.pushLog(blockLog, commitBlockIds[blockLog.BlockId])
 	}
 }
 
 func (s *StateLogService) onStateLogOperation(blockLog *iservices.BlockLog) {
-	s.logHeapProxy.Push(blockLog)
+	s.Lock()
+	s.blockLogs.Push(blockLog)
+	s.Unlock()
 }
 
 
