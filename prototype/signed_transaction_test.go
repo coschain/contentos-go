@@ -31,7 +31,7 @@ func makeFixKeyMap() map[string]string {
 func TestFixGenKey(t *testing.T) {
 	fixKeys := makeFixKeyMap()
 	for k, v := range fixKeys {
-		res1, err := GenerateNewKeyFromBytes([]byte(k))
+		res1, err := FixBytesToPrivateKey([]byte(k))
 
 		if err != nil {
 			t.Fatal(err)
@@ -41,7 +41,7 @@ func TestFixGenKey(t *testing.T) {
 			t.Fatal("key Error")
 		}
 
-		res2, err := GenerateNewKeyFromBytes([]byte(k))
+		res2, err := FixBytesToPrivateKey([]byte(k))
 
 		if err != nil {
 			t.Fatal(err)

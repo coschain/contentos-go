@@ -8,6 +8,7 @@ import (
 	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/common/encoding/vme"
 	"github.com/coschain/contentos-go/iservices"
+	"github.com/coschain/contentos-go/iservices/itype"
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/coschain/contentos-go/vm"
 	"github.com/coschain/contentos-go/vm/context"
@@ -229,7 +230,6 @@ func init() {
 
 func (ev *AccountCreateEvaluator) Apply() {
 	op := ev.op
-	ev.VMInjector().RecordStaminaFee(op.Creator.Value, constants.CommonOpStamina)
 	creatorWrap := table.NewSoAccountWrap(ev.Database(), op.Creator)
 
 	creatorWrap.MustExist("creator not exist")
@@ -281,7 +281,6 @@ func (ev *AccountCreateEvaluator) Apply() {
 
 func (ev *AccountUpdateEvaluator) Apply() {
 	op := ev.op
-	ev.VMInjector().RecordStaminaFee(op.Owner.Value, constants.CommonOpStamina)
 
 	updaterWrap := table.NewSoAccountWrap(ev.Database(), op.Owner)
 	updaterWrap.MustExist("update account not exist ")
@@ -291,7 +290,6 @@ func (ev *AccountUpdateEvaluator) Apply() {
 
 func (ev *TransferEvaluator) Apply() {
 	op := ev.op
-	ev.VMInjector().RecordStaminaFee(op.From.Value, constants.CommonOpStamina)
 
 	// @ active_challenged
 	fromWrap := table.NewSoAccountWrap(ev.Database(), op.From)
@@ -334,7 +332,6 @@ func (ev *PostEvaluator) checkBeneficiaries(beneficiaries []*prototype.Beneficia
 
 func (ev *PostEvaluator) Apply() {
 	op := ev.op
-	ev.VMInjector().RecordStaminaFee(op.Owner.Value, constants.CommonOpStamina)
 
 	idWrap := table.NewSoPostWrap(ev.Database(), &op.Uuid)
 	idWrap.MustNotExist("post uuid exist")
@@ -380,7 +377,15 @@ func (ev *PostEvaluator) Apply() {
 	ev.GlobalProp().ModifyProps(func(props *prototype.DynamicProperties) {
 		props.TotalPostCnt++
 	})
-
+	pInfo := &itype.PostInfo{
+		Id:op.Uuid,
+		Tags:op.Tags,
+		Created:ev.GlobalProp().HeadBlockTime(),
+		Author:op.Owner.Value,
+		Content:op.Content,
+		Title:op.Title,
+	}
+	ev.TrxObserver().AddOpState(iservices.Add, "post", op.Owner.Value,pInfo)
 }
 
 func (ev *ReplyEvaluator) checkBeneficiaries(beneficiaries []*prototype.BeneficiaryRouteType) {
@@ -397,7 +402,6 @@ func (ev *ReplyEvaluator) checkBeneficiaries(beneficiaries []*prototype.Benefici
 
 func (ev *ReplyEvaluator) Apply() {
 	op := ev.op
-	ev.VMInjector().RecordStaminaFee(op.Owner.Value, constants.CommonOpStamina)
 
 	cidWrap := table.NewSoPostWrap(ev.Database(), &op.Uuid)
 	pidWrap := table.NewSoPostWrap(ev.Database(), &op.ParentUuid)
@@ -460,13 +464,21 @@ func (ev *ReplyEvaluator) Apply() {
 	//key := fmt.Sprintf("cashout:%d_%d", common.GetBucket(timestamp), op.Uuid)
 	//value := "reply"
 	//opAssertE(ev.Database().Put([]byte(key), []byte(value)), "put reply key into db error")
+
+	rInfo := &itype.ReplyInfo{
+		Id:op.Uuid,
+		Created:ev.GlobalProp().HeadBlockTime(),
+		Author:op.Owner.Value,
+		ParentId:op.ParentUuid,
+		Content:op.Content,
+	}
+	ev.TrxObserver().AddOpState(iservices.Add, "reply", op.Owner.Value,rInfo)
 }
 
 // upvote is true: upvote otherwise downvote
 // no downvote has been supplied by command, so I ignore it
 func (ev *VoteEvaluator) Apply() {
 	op := ev.op
-	ev.VMInjector().RecordStaminaFee(op.Voter.Value, constants.CommonOpStamina)
 
 	voterWrap := table.NewSoAccountWrap(ev.Database(), op.Voter)
 	elapsedSeconds := ev.GlobalProp().HeadBlockTime().UtcSeconds - voterWrap.GetLastVoteTime().UtcSeconds
@@ -475,6 +487,8 @@ func (ev *VoteEvaluator) Apply() {
 	voterId := prototype.VoterId{Voter: op.Voter, PostId: op.Idx}
 	voteWrap := table.NewSoVoteWrap(ev.Database(), &voterId)
 	postWrap := table.NewSoPostWrap(ev.Database(), &op.Idx)
+
+	opAssert( postWrap.GetAuthor().Value != op.Voter.Value, "cant vote self")
 
 	postWrap.MustExist("post invalid")
 	voteWrap.MustNotExist("vote info exist")
@@ -487,12 +501,10 @@ func (ev *VoteEvaluator) Apply() {
 	} else {
 		currentVp = votePower
 	}
-	//usedVp := (currentVp + constants.VoteLimitDuringRegenerate - 1) / constants.VoteLimitDuringRegenerate
+
 	var usedVp uint32
 	usedVp = uint32(constants.FullVP / constants.VPMarks)
-	if currentVp < usedVp {
-		usedVp = 0
-	}
+	opAssert( currentVp >= usedVp, "vote power not enough")
 
 	vest := voterWrap.GetVest().Value
 	weightedVp := new(big.Int).SetUint64(vest)
@@ -503,6 +515,35 @@ func (ev *VoteEvaluator) Apply() {
 	if voterWrap.GetReputation() == constants.MinReputation {
 		weightedVp.SetUint64(0)
 	}
+	cashoutDone := postWrap.GetCashoutBlockNum() == math.MaxUint64
+
+	// if post cashouted, set vp to 0
+	if cashoutDone {
+		weightedVp.SetUint64(0)
+	}
+
+	lastVp := postWrap.GetWeightedVp()
+	var lvp, tvp big.Int
+	//wvp.SetUint64(weightedVp)
+	lvp.SetString(lastVp, 10)
+	tvp.Add(weightedVp, &lvp)
+
+	postWrap.Modify(func(tInfo *table.SoPost) {
+		if !cashoutDone {
+			tInfo.WeightedVp = tvp.String()
+		}
+		tInfo.VoteCnt++
+	})
+
+	// only weightedVp actually be added into post, the vote power be declined.
+	voterWrap.Modify(func(tInfo *table.SoAccount) {
+		if !cashoutDone {
+			tInfo.VotePower = currentVp - usedVp
+		}
+		tInfo.LastVoteTime = ev.GlobalProp().HeadBlockTime()
+	})
+	//voterWrap.SetVotePower(currentVp - usedVp)
+	//voterWrap.SetLastVoteTime(ev.GlobalProp().HeadBlockTime())
 
 	// record this vote
 	voteWrap.Create(func(t *table.SoVote) {
@@ -513,26 +554,7 @@ func (ev *VoteEvaluator) Apply() {
 		t.VoteTime = ev.GlobalProp().HeadBlockTime()
 	})
 
-	if postWrap.GetCashoutBlockNum() > ev.GlobalProp().GetProps().HeadBlockNumber {
-		lastVp := postWrap.GetWeightedVp()
-		var lvp, tvp big.Int
-		//wvp.SetUint64(weightedVp)
-		lvp.SetString(lastVp, 10)
-		tvp.Add(weightedVp, &lvp)
-
-		postWrap.Modify(func(tInfo *table.SoPost) {
-			tInfo.WeightedVp = tvp.String()
-			tInfo.VoteCnt++
-		})
-
-		// only weightedVp actually be added into post, the vote power be declined.
-		voterWrap.Modify(func(tInfo *table.SoAccount) {
-			tInfo.VotePower = currentVp - usedVp
-			tInfo.LastVoteTime = ev.GlobalProp().HeadBlockTime()
-		})
-		//voterWrap.SetVotePower(currentVp - usedVp)
-		//voterWrap.SetLastVoteTime(ev.GlobalProp().HeadBlockTime())
-
+	if !cashoutDone {
 		// add vote into cashout table
 		voteCashoutBlockHeight := ev.GlobalProp().GetProps().HeadBlockNumber + constants.VoteCashOutDelayBlock
 		voteCashoutWrap := table.NewSoVoteCashoutWrap(ev.Database(), &voteCashoutBlockHeight)
@@ -548,11 +570,18 @@ func (ev *VoteEvaluator) Apply() {
 			})
 		}
 	}
+
+	vInfo := &itype.VoteInfo{
+		Voter:op.Voter.Value,
+		PostId:op.Idx,
+		Created:ev.GlobalProp().HeadBlockTime(),
+		VotePower:weightedVp.String(),
+	}
+	ev.TrxObserver().AddOpState(iservices.Add, "vote", op.Voter.Value,vInfo)
 }
 
 func (ev *BpRegisterEvaluator) Apply() {
 	op := ev.op
-	ev.VMInjector().RecordStaminaFee(op.Owner.Value, constants.CommonOpStamina)
 
 	accountWrap := table.NewSoAccountWrap(ev.Database(), op.Owner)
 	accountWrap.MustExist("block producer account not exist")
@@ -620,7 +649,6 @@ func (ev *BpRegisterEvaluator) Apply() {
 
 func (ev *BpEnableEvaluator) Apply() {
 	op := ev.op
-	ev.VMInjector().RecordStaminaFee(op.Owner.Value, constants.CommonOpStamina)
 
 	bpWrap := table.NewSoBlockProducerWrap(ev.Database(), op.Owner)
 	bpWrap.MustExist("block producer do not exist")
@@ -644,7 +672,6 @@ func (ev *BpEnableEvaluator) Apply() {
 
 func (ev *BpVoteEvaluator) Apply() {
 	op := ev.op
-	ev.VMInjector().RecordStaminaFee(op.Voter.Value, constants.CommonOpStamina)
 
 	voterAccount := table.NewSoAccountWrap(ev.Database(), op.Voter)
 	voterAccount.MustExist("voter account not exist")
@@ -711,7 +738,6 @@ func (ev *BpVoteEvaluator) Apply() {
 
 func (ev *BpUpdateEvaluator) Apply() {
 	op := ev.op
-	ev.VMInjector().RecordStaminaFee(op.Owner.Value, constants.CommonOpStamina)
 
 	staminaFree := op.Props.StaminaFree
 	opAssert(staminaFree >= constants.MinStaminaFree,
@@ -766,7 +792,6 @@ func (ev *BpUpdateEvaluator) Apply() {
 
 func (ev *FollowEvaluator) Apply() {
 	op := ev.op
-	ev.VMInjector().RecordStaminaFee(op.Account.Value, constants.CommonOpStamina)
 
 	acctWrap := table.NewSoAccountWrap(ev.Database(), op.Account)
 	acctWrap.MustExist("follow account do not exist ")
@@ -779,7 +804,6 @@ func (ev *FollowEvaluator) Apply() {
 
 func (ev *TransferToVestEvaluator) Apply() {
 	op := ev.op
-	ev.VMInjector().RecordStaminaFee(op.From.Value, constants.CommonOpStamina)
 
 	fidWrap := table.NewSoAccountWrap(ev.Database(), op.From)
 	tidWrap := table.NewSoAccountWrap(ev.Database(), op.To)
@@ -836,21 +860,15 @@ func updateBpVoteValue(dba iservices.IDatabaseRW, voter *prototype.AccountName, 
 
 func (ev *ConvertVestEvaluator) Apply() {
 	op := ev.op
-	ev.VMInjector().RecordStaminaFee(op.From.Value, constants.CommonOpStamina)
+
+	globalProps := ev.GlobalProp().GetProps()
 
 	accWrap := table.NewSoAccountWrap(ev.Database(), op.From)
 	accWrap.MustExist("account do not exist")
-	//opAssert(op.Amount.Value >= uint64(1e6), "At least 1 VEST should be converted")
-	opAssert(accWrap.GetVest().Value - uint64(constants.MinAccountCreateFee) >= op.Amount.Value, "VEST balance not enough")
-	globalProps := ev.GlobalProp().GetProps()
-	//timestamp := globalProps.Time.UtcSeconds
+
+	opAssert(accWrap.GetVest().Sub( globalProps.AccountCreateFee.ToVest() ).Value >= op.Amount.Value, "VEST balance not enough")
 	currentBlock := globalProps.HeadBlockNumber
 	eachRate := op.Amount.Value / (constants.ConvertWeeks - 1)
-	//accWrap.MdNextPowerdownTime(&prototype.TimePointSec{UtcSeconds: timestamp + constants.POWER_DOWN_INTERVAL})
-	//accWrap.SetNextPowerdownBlockNum(currentBlock + constants.PowerDownBlockInterval)
-	//accWrap.SetEachPowerdownRate(&prototype.Vest{Value: eachRate})
-	//accWrap.SetHasPowerdown(&prototype.Vest{Value: 0})
-	//accWrap.SetToPowerdown(op.Amount)
 
 	accWrap.Modify(func(t *table.SoAccount) {
 		t.NextPowerdownBlockNum = currentBlock + constants.PowerDownBlockInterval
@@ -912,7 +930,6 @@ func mergeTags(existed []int32, new []prototype.ReportOperationTag) []int32 {
 
 func (ev *ReportEvaluator) Apply() {
 	op := ev.op
-	ev.VMInjector().RecordStaminaFee(op.Reporter.Value, constants.CommonOpStamina)
 	post := table.NewSoPostWrap(ev.Database(), &op.Reported)
 	post.MustExist("the reported post doesn't exist")
 	report := table.NewSoReportListWrap(ev.Database(), &op.Reported)
@@ -964,8 +981,6 @@ func (ev *ContractDeployEvaluator) Apply() {
 	if contractAbi, err = common.Decompress(op.Abi); err != nil {
 		opAssertE(err, "contract abi decompression failed");
 	}
-
-	ev.VMInjector().RecordStaminaFee(op.Owner.Value, constants.CommonOpStamina)
 
 	cid 		:= prototype.ContractId{Owner: op.Owner, Cname: op.Contract}
 	scid 		:= table.NewSoContractWrap(ev.Database(), &cid)
@@ -1161,7 +1176,6 @@ func (ev *InternalContractApplyEvaluator) Apply() {
 
 func (ev *StakeEvaluator) Apply() {
 	op := ev.op
-	ev.VMInjector().RecordStaminaFee(op.From.Value, constants.CommonOpStamina)
 
 	fidWrap := table.NewSoAccountWrap(ev.Database(), op.From)
 	tidWrap := table.NewSoAccountWrap(ev.Database(), op.To)
@@ -1219,7 +1233,6 @@ func (ev *StakeEvaluator) Apply() {
 
 func (ev *UnStakeEvaluator) Apply() {
 	op := ev.op
-	ev.VMInjector().RecordStaminaFee(op.Creditor.Value, constants.CommonOpStamina)
 
 	recordWrap := table.NewSoStakeRecordWrap(ev.Database(), &prototype.StakeRecord{
 		From:   op.Creditor,
@@ -1264,7 +1277,6 @@ func (ev *UnStakeEvaluator) Apply() {
 
 func (ev *AcquireTicketEvaluator) Apply() {
 	op := ev.op
-	ev.VMInjector().RecordStaminaFee(op.Account.Value, constants.CommonOpStamina)
 
 	account := table.NewSoAccountWrap(ev.Database(), op.Account)
 	count := op.Count
@@ -1324,7 +1336,6 @@ func (ev *AcquireTicketEvaluator) Apply() {
 
 func (ev *VoteByTicketEvaluator) Apply() {
 	op := ev.op
-	ev.VMInjector().RecordStaminaFee(op.Account.Value, constants.CommonOpStamina)
 
 	account := table.NewSoAccountWrap(ev.Database(), op.Account)
 	postId := op.Idx

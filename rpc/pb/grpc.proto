@@ -353,12 +353,14 @@ message GetNodeRunningVersionResponse {
 message BroadcastTrxRequest {
     prototype.signed_transaction transaction = 1;
     bool only_deliver = 2;
+    bool finality = 3;
 }
 
 message BroadcastTrxResponse {
     prototype.transaction_receipt_with_info    invoice = 1;
     uint32                          status  = 2;
     string                          msg     = 3;
+    bool                            finality = 4;
 }
 
 message NonParamsRequest {

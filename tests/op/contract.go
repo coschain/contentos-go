@@ -35,9 +35,9 @@ func (tester *ContractTester) basic(t *testing.T, d *Dandelion) {
 	a.Nil(d.Account("actor1").TrxReceipt(ContractApply("actor0", "actor1", "native_tester", "is_contract_called_by_user", "[true]", 0)))
 	a.Nil(d.Account("actor1").TrxReceipt(ContractApply("xxxxxxx", "actor1", "native_tester", "is_contract_called_by_user", "[true]", 0)))
 
-	NoApply(t, d, "actor1: xxxxxxxx.native_tester.is_contract_called_by_user true")
-	NoApply(t, d, "actor1: actor1.xxxxxxxx.is_contract_called_by_user true")
-	NoApply(t, d, "actor1: actor1.native_tester.xxxxxxxx true")
+	ApplyError(t, d, "actor1: xxxxxxxx.native_tester.is_contract_called_by_user true")
+	ApplyError(t, d, "actor1: actor1.xxxxxxxx.is_contract_called_by_user true")
+	ApplyError(t, d, "actor1: actor1.native_tester.xxxxxxxx true")
 }
 
 func (tester *ContractTester) sha256(t *testing.T, d *Dandelion) {
@@ -156,12 +156,12 @@ func (tester *ContractTester) transferBetweenUserAndContract(t *testing.T, d *Da
 	contractBalance += 123
 
 	// user->contract: too much
-	NoApply(t, d, fmt.Sprintf("actor0: %d actor1.native_tester.get_contract_sender_value %d", userBalance + 1, userBalance + 1))
-	NoApply(t, d, fmt.Sprintf("actor0: %d actor1.native_tester.get_contract_sender_value %d", userBalance + 100, userBalance + 100))
-	NoApply(t, d, fmt.Sprintf("actor0: %d actor1.native_tester.get_contract_sender_value %d", uint64(math.MaxUint64), uint64(math.MaxUint64)))
+	ApplyError(t, d, fmt.Sprintf("actor0: %d actor1.native_tester.get_contract_sender_value %d", userBalance + 1, userBalance + 1))
+	ApplyError(t, d, fmt.Sprintf("actor0: %d actor1.native_tester.get_contract_sender_value %d", userBalance + 100, userBalance + 100))
+	ApplyError(t, d, fmt.Sprintf("actor0: %d actor1.native_tester.get_contract_sender_value %d", uint64(math.MaxUint64), uint64(math.MaxUint64)))
 
 	// user->unknown contract
-	NoApply(t, d, fmt.Sprintf("actor0: %d initminer.native_tester.get_contract_sender_value %d", 1, 1))
+	ApplyError(t, d, fmt.Sprintf("actor0: %d initminer.native_tester.get_contract_sender_value %d", 1, 1))
 	NoApply(t, d, fmt.Sprintf("actor0: %d xxx.native_tester.get_contract_sender_value %d", 1, 1))
 
 	// contract->unknown user

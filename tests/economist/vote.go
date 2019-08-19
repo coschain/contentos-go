@@ -34,8 +34,7 @@ func (tester *VoteTester) Test(t *testing.T, d *Dandelion) {
 	tester.acc4 = d.Account("actor4")
 
 	a := assert.New(t)
-	a.NoError(tester.acc4.SendTrxAndProduceBlock(TransferToVest(tester.acc4.Name, tester.acc4.Name, constants.MinBpRegisterVest, "")))
-	a.NoError(tester.acc4.SendTrxAndProduceBlock(BpRegister(tester.acc4.Name, "", "", tester.acc4.GetPubKey(), mintProps)))
+	registerBlockProducer(tester.acc4, t)
 
 	const VEST = 1000
 
@@ -54,9 +53,9 @@ func (tester *VoteTester) normal1(t *testing.T, d *Dandelion) {
 	const BLOCKS = 100
 	const POST = 1
 
-	a.NoError(tester.acc0.SendTrxAndProduceBlock(Post(POST, tester.acc0.Name, "title", "content", []string{"1"}, nil)))
 	a.NoError(d.ProduceBlocks(BLOCKS))
-	a.NoError(tester.acc0.SendTrx(Vote(tester.acc0.Name, POST)))
+	a.NoError(tester.acc0.SendTrxAndProduceBlock(Post(POST, tester.acc0.Name, "title", "content", []string{"1"}, nil)))
+	a.NoError(tester.acc1.SendTrx(Vote(tester.acc1.Name, POST)))
 	a.NoError(d.ProduceBlocks(constants.VoteCashOutDelayBlock - 1))
 	vest0 := d.Account(tester.acc0.Name).GetVest().Value
 	// to cashout
@@ -74,14 +73,16 @@ func (tester *VoteTester) normal2(t *testing.T, d *Dandelion) {
 	const BLOCKS = 100
 	const POST = 2
 
-	a.NoError(tester.acc0.SendTrxAndProduceBlock(Post(POST, tester.acc0.Name, "title", "content", []string{"1"}, nil)))
 	a.NoError(d.ProduceBlocks(BLOCKS))
-	a.NoError(tester.acc0.SendTrx(Vote(tester.acc0.Name, POST)))
+	a.NoError(tester.acc0.SendTrxAndProduceBlock(Post(POST, tester.acc0.Name, "title", "content", []string{"1"}, nil)))
+	a.NoError(tester.acc1.SendTrx(Vote(tester.acc1.Name, POST)))
 	a.NoError(d.ProduceBlocks(constants.VoteCashOutDelayBlock - 1))
-	vest0 := d.Account(tester.acc0.Name).GetVest().Value
+	vest0 := d.Account(tester.acc1.Name).GetVest().Value
 
 	postWeightedVp := StringToBigInt(d.Post(POST).GetWeightedVp())
-	voteWeightedVp := StringToBigInt(d.Vote(tester.acc0.Name, POST).GetWeightedVp())
+	a.NotEqual(postWeightedVp.Int64(), int64(0))
+
+	voteWeightedVp := StringToBigInt(d.Vote(tester.acc1.Name, POST).GetWeightedVp())
 	weightedVp := new(big.Int).Mul(postWeightedVp, voteWeightedVp)
 	decayedVoteWeight := bigDecay(StringToBigInt(d.GlobalProps().GetVoteWeightedVps()))
 	totalVoteRewards := new(big.Int).SetUint64(d.GlobalProps().GetVoterRewards().Value)
@@ -92,7 +93,7 @@ func (tester *VoteTester) normal2(t *testing.T, d *Dandelion) {
 
 	// to cashout
 	a.NoError(d.ProduceBlocks(1))
-	vest1 := d.Account(tester.acc0.Name).GetVest().Value
+	vest1 := d.Account(tester.acc1.Name).GetVest().Value
 	a.Equal(d.GlobalProps().GetVoteWeightedVps(), totalVoteWeightedVp.String())
 	a.Equal(vest1 - vest0, exceptVoteReward.Uint64())
 }
@@ -105,12 +106,14 @@ func (tester *VoteTester) normal3(t *testing.T, d *Dandelion) {
 
 	a.NoError(tester.acc0.SendTrxAndProduceBlock(Post(POST, tester.acc0.Name, "title", "content", []string{"1"}, nil)))
 	a.NoError(d.ProduceBlocks(BLOCKS))
-	a.NoError(tester.acc0.SendTrxAndProduceBlock(Vote(tester.acc0.Name, POST)))
+	a.NoError(tester.acc2.SendTrxAndProduceBlock(Vote(tester.acc2.Name, POST)))
 	a.NoError(tester.acc1.SendTrx(Vote(tester.acc1.Name, POST)))
 	a.NoError(d.ProduceBlocks(constants.VoteCashOutDelayBlock - 1))
 	vest0 := d.Account(tester.acc1.Name).GetVest().Value
 
 	postWeightedVp := StringToBigInt(d.Post(POST).GetWeightedVp())
+	a.NotEqual(postWeightedVp.Int64(), int64(0))
+
 	voteWeightedVp := StringToBigInt(d.Vote(tester.acc1.Name, POST).GetWeightedVp())
 	weightedVp := new(big.Int).Mul(postWeightedVp, voteWeightedVp)
 	decayedVoteWeight := bigDecay(StringToBigInt(d.GlobalProps().GetVoteWeightedVps()))
@@ -135,34 +138,36 @@ func (tester *VoteTester) normal4(t *testing.T, d *Dandelion) {
 
 	a.NoError(tester.acc0.SendTrxAndProduceBlock(Post(POST, tester.acc0.Name, "title", "content", []string{"1"}, nil)))
 	a.NoError(d.ProduceBlocks(BLOCKS))
-	a.NoError(tester.acc0.SendTrx(Vote(tester.acc0.Name, POST)))
 	a.NoError(tester.acc1.SendTrx(Vote(tester.acc1.Name, POST)))
+	a.NoError(tester.acc2.SendTrx(Vote(tester.acc2.Name, POST)))
 	a.NoError(d.ProduceBlocks(constants.VoteCashOutDelayBlock - 1))
-	vest0 := d.Account(tester.acc0.Name).GetVest().Value
 	vest1 := d.Account(tester.acc1.Name).GetVest().Value
+	vest2 := d.Account(tester.acc2.Name).GetVest().Value
 
 	postWeightedVp := StringToBigInt(d.Post(POST).GetWeightedVp())
-	vote0WeightedVp := StringToBigInt(d.Vote(tester.acc0.Name, POST).GetWeightedVp())
+	a.NotEqual(postWeightedVp.Int64(), int64(0))
+
 	vote1WeightedVp := StringToBigInt(d.Vote(tester.acc1.Name, POST).GetWeightedVp())
-	weightedVp0 := new(big.Int).Mul(postWeightedVp, vote0WeightedVp)
+	vote2WeightedVp := StringToBigInt(d.Vote(tester.acc2.Name, POST).GetWeightedVp())
 	weightedVp1 := new(big.Int).Mul(postWeightedVp, vote1WeightedVp)
-	weightedVp := new(big.Int).Add(weightedVp0, weightedVp1)
+	weightedVp2 := new(big.Int).Mul(postWeightedVp, vote2WeightedVp)
+	weightedVp := new(big.Int).Add(weightedVp1, weightedVp2)
 	decayedVoteWeight := bigDecay(StringToBigInt(d.GlobalProps().GetVoteWeightedVps()))
 	totalVoteRewards := new(big.Int).SetUint64(d.GlobalProps().GetVoterRewards().Value)
 	totalVoteRewards.Add(totalVoteRewards, new(big.Int).SetUint64(perBlockVoteReward(d)))
 	totalVoteWeightedVp := decayedVoteWeight.Add(decayedVoteWeight, weightedVp)
 	pr1 := new(big.Int).Mul(weightedVp, totalVoteRewards)
 	exceptVoteReward := new(big.Int).Div(pr1, totalVoteWeightedVp)
-	ratio0 := new(big.Int).Mul(weightedVp0, exceptVoteReward)
-	reward0 := new(big.Int).Div(ratio0, weightedVp)
 	ratio1 := new(big.Int).Mul(weightedVp1, exceptVoteReward)
 	reward1 := new(big.Int).Div(ratio1, weightedVp)
+	ratio2 := new(big.Int).Mul(weightedVp2, exceptVoteReward)
+	reward2 := new(big.Int).Div(ratio2, weightedVp)
 
 	// to cashout
 	a.NoError(d.ProduceBlocks(1))
-	vest0n := d.Account(tester.acc0.Name).GetVest().Value
 	vest1n := d.Account(tester.acc1.Name).GetVest().Value
+	vest2n := d.Account(tester.acc2.Name).GetVest().Value
 	a.Equal(d.GlobalProps().GetVoteWeightedVps(), totalVoteWeightedVp.String())
-	a.Equal(vest0n - vest0, reward0.Uint64())
 	a.Equal(vest1n - vest1, reward1.Uint64())
+	a.Equal(vest2n - vest2, reward2.Uint64())
 }

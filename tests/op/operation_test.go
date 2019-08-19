@@ -2,6 +2,7 @@ package op
 
 import (
 	"fmt"
+	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/dandelion"
 	"testing"
 )
@@ -49,6 +50,6 @@ func TestContractGasUsage(t *testing.T) {
 		2046711939: 3627,
 	}
 	for seed, cpu := range expected {
-		t.Run(fmt.Sprintf("contract_gas_%d", seed), NewContractGasTest(seed, cpu))
+		t.Run(fmt.Sprintf("contract_gas_%d", seed), NewContractGasTest(seed, cpu + constants.CommonOpStamina / constants.CpuConsumePointDen))
 	}
 }

@@ -418,7 +418,7 @@ func (d *DPoS) PushTransaction(trx common.ISignedTransaction, wait bool, broadca
 		if wait {
 			waitChan <- ret
 		}
-		if ret.IsSuccess() {
+		if ret.IsExecuted() {
 			//	if broadcast {
 			d.log.Debug("DPoS Broadcast trx.")
 			d.p2p.Broadcast(trx.(*prototype.SignedTransaction))

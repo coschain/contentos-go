@@ -265,9 +265,13 @@ func initStateDb(cmd *cobra.Command, args []string) {
 
 	createStateLog := `create table statelog
 (
+  id bigint AUTO_INCREMENT PRIMARY KEY,
+  block_id varchar(64) not null,
   block_height int unsigned,
+  block_time int unsigned,
+  pick bool,
   block_log json,
-  UNIQUE KEY statelog_block_height (block_height)
+  UNIQUE KEY statelog_block_id (block_id)
 );`
 
 	createStateAccount := `create table stateaccount

@@ -10,6 +10,7 @@ import (
 type StateObserver struct {
 	blockNum uint64
 	blockId string
+	blockTime uint64
 	trxLogs []iservices.TrxLog
 	noticer EventBus.Bus
 	log *logrus.Logger
@@ -23,13 +24,18 @@ func (s *StateObserver) BeginBlock(blockNum uint64) {
 	s.blockNum = blockNum
 }
 
+func (s *StateObserver) SetBlockTime(blockTime uint64) {
+	s.blockTime = blockTime
+}
+
 func (s *StateObserver) NewTrxObserver() *TrxLogger{
 	return &TrxLogger{observer: s}
 }
 
 func (s *StateObserver) EndBlock(blockId string) {
 	if len(blockId) > 0 {
-		s.noticer.Publish(constants.NoticeState, &iservices.BlockLog{BlockHeight: s.blockNum, BlockId: blockId, TrxLogs: s.trxLogs})
+		s.noticer.Publish(constants.NoticeState, &iservices.BlockLog{
+			BlockHeight: s.blockNum, BlockId: blockId, BlockTime: s.blockTime, TrxLogs: s.trxLogs})
 		s.trxLogs = nil
 	}
 }

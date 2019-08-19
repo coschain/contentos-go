@@ -81,7 +81,7 @@ func GenerateSignedTxAndValidate4(dgp *prototype.DynamicProperties, expiration u
 func GenerateUUID(content string) uint64 {
 	crc32q := crc32.MakeTable(0xD5828281)
 	randContent := content + string(rand.Intn(1e5))
-	return uint64(time.Now().Unix()*1e9) + uint64(crc32.Checksum([]byte(randContent), crc32q))
+	return uint64(time.Now().Unix())*uint64(1e9) + uint64(crc32.Checksum([]byte(randContent), crc32q))
 }
 
 func GetPassphrase(reader PasswordReader) (string, error) {

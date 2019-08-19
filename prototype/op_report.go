@@ -13,7 +13,7 @@ func (m *ReportOperation) Validate() error {
 	}
 
 	if err := m.Reporter.Validate(); err != nil {
-		return errors.WithMessage(err, "Owner error")
+		return errors.WithMessage(err, "reporter error")
 	}
 
 	if m.Reported == 0 {

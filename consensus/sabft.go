@@ -1,6 +1,7 @@
 package consensus
 
 import (
+	"github.com/asaskevich/EventBus"
 	"io/ioutil"
 	"strings"
 	"sync"
@@ -42,6 +43,7 @@ type SABFT struct {
 	bftStarted    uint32
 	commitCh      chan message.Commit
 	cp            *BFTCheckPoint
+	noticer 	  EventBus.Bus
 
 	producers      []*Producer
 	readyToProduce bool
@@ -269,6 +271,7 @@ func (sabft *SABFT) Start(node *node.Node) error {
 	if err != nil {
 		panic(err)
 	}
+	sabft.noticer = node.EvBus
 	sabft.p2p = p2p.(iservices.IP2P)
 	cfg := sabft.ctx.Config()
 	sabft.blog.Open(cfg.ResolvePath("blog"))
@@ -1043,6 +1046,7 @@ func (sabft *SABFT) commit(commitRecords *message.Commit) error {
 		}
 	}
 
+	sabft.noticer.Publish(constants.NoticeLibChange, blks)
 	sabft.ctrl.Commit(blockNum)
 	sabft.ForkDB.Commit(blockID)
 	sabft.lastCommitted.Store(commitRecords)

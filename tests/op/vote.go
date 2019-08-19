@@ -4,6 +4,7 @@ import (
 	"github.com/coschain/contentos-go/common/constants"
 	. "github.com/coschain/contentos-go/dandelion"
 	"github.com/coschain/contentos-go/prototype"
+	"github.com/coschain/contentos-go/tests/economist"
 	"github.com/stretchr/testify/assert"
 	"strconv"
 	"testing"
@@ -29,13 +30,19 @@ func (tester *VoteTester) TestNormal(t *testing.T, d *Dandelion) {
 	tester.acc1 = d.Account("actor1")
 	tester.acc2 = d.Account("actor2")
 
+	economist.RegisterBlockProducer( tester.acc2, t)
+
 	t.Run("normal", d.Test(tester.normal))
+	t.Run("normal", d.Test(tester.voteSelf))
 }
 
 func (tester *VoteTester) TestRevote(t *testing.T, d *Dandelion) {
+
 	tester.acc0 = d.Account("actor0")
 	tester.acc1 = d.Account("actor1")
 	tester.acc2 = d.Account("actor2")
+
+	economist.RegisterBlockProducer( tester.acc2, t)
 
 	t.Run("revote", d.Test(tester.revote))
 	t.Run("vote to ghost post", d.Test(tester.voteToGhostPost))
@@ -46,6 +53,10 @@ func (tester *VoteTester) TestZeroPower(t *testing.T, d *Dandelion) {
 	tester.acc1 = d.Account("actor1")
 	tester.acc2 = d.Account("actor2")
 
+	stakeSelf(tester.acc0, t)
+	stakeSelf(tester.acc1, t)
+	stakeSelf(tester.acc2, t)
+
 	t.Run("fullpower", d.Test(tester.zeroPower))
 }
 
@@ -53,6 +64,8 @@ func (tester *VoteTester) TestVoteAfterCashout(t *testing.T, d *Dandelion) {
 	tester.acc0 = d.Account("actor0")
 	tester.acc1 = d.Account("actor1")
 	tester.acc2 = d.Account("actor2")
+
+	economist.RegisterBlockProducer( tester.acc2, t)
 
 	t.Run("voteaftercashout", d.Test(tester.voteAfterPostCashout))
 }
@@ -63,17 +76,29 @@ func (tester *VoteTester) normal(t *testing.T, d *Dandelion) {
 	const POST2 = 2
 	a.NoError(tester.acc0.SendTrxAndProduceBlock(Post(POST1, tester.acc0.Name, "title", "content", []string{"1"}, nil)))
 	a.NoError(tester.acc0.SendTrxAndProduceBlock(Post(POST2, tester.acc0.Name, "title", "content", []string{"1"}, nil)))
-	a.NoError(tester.acc0.SendTrxAndProduceBlock(Vote(tester.acc0.Name, POST1)))
+	a.NoError(tester.acc1.SendTrxAndProduceBlock(Vote(tester.acc1.Name, POST1)))
 	usedVp := uint32(constants.FullVP / constants.VPMarks)
-	a.Equal(strconv.FormatUint(uint64(usedVp) * ISqrt(tester.acc0.GetVest().Value), 10), d.Post(POST1).GetWeightedVp())
-	a.NoError(tester.acc0.SendTrxAndProduceBlock(Vote(tester.acc0.Name, POST2)))
-	a.Equal(strconv.FormatUint(uint64(usedVp) * ISqrt(tester.acc0.GetVest().Value), 10), d.Post(POST2).GetWeightedVp())
+	a.Equal(strconv.FormatUint(uint64(usedVp) * ISqrt(tester.acc1.GetVest().Value), 10), d.Post(POST1).GetWeightedVp())
+	a.NoError(tester.acc1.SendTrxAndProduceBlock(Vote(tester.acc1.Name, POST2)))
+	a.Equal(strconv.FormatUint(uint64(usedVp) * ISqrt(tester.acc1.GetVest().Value), 10), d.Post(POST2).GetWeightedVp())
+}
+
+
+func (tester *VoteTester) voteSelf(t *testing.T, d *Dandelion) {
+	a := assert.New(t)
+	const POST1 = 11
+	const REPLY1 = 12
+	a.NoError(tester.acc0.SendTrxAndProduceBlock(Post(POST1, tester.acc0.Name, "title", "content", []string{"1"}, nil)))
+	a.NoError(tester.acc0.SendTrxAndProduceBlock(Reply(REPLY1, POST1, tester.acc0.Name,  "content", nil)))
+
+	a.Equal( d.TrxReceiptByAccount( tester.acc0.Name, Vote(tester.acc0.Name, POST1) ).Status , prototype.StatusFailDeductStamina)
+	a.Equal( d.TrxReceiptByAccount( tester.acc0.Name, Vote(tester.acc0.Name, REPLY1) ).Status , prototype.StatusFailDeductStamina)
 }
 
 func (tester *VoteTester) revote(t *testing.T, d *Dandelion) {
 	a := assert.New(t)
 	const POST = 1
-	a.NoError(tester.acc0.SendTrxAndProduceBlock(Post(1, tester.acc0.Name, "title", "content", []string{"1"}, nil)))
+	a.NoError(tester.acc1.SendTrxAndProduceBlock(Post(1, tester.acc1.Name, "title", "content", []string{"1"}, nil)))
 	a.NoError(tester.acc0.SendTrxAndProduceBlock(Vote(tester.acc0.Name, 1)))
 	usedVp := uint32(constants.FullVP / constants.VPMarks)
 	a.Equal(strconv.FormatUint(uint64(usedVp) * ISqrt(tester.acc0.GetVest().Value), 10), d.Post(POST).GetWeightedVp())
@@ -94,13 +119,12 @@ func (tester *VoteTester) zeroPower(t *testing.T, d *Dandelion)  {
 	a := assert.New(t)
 	// waiting vote power recover
 	i := 1
-	for i < 40 {
+	for i < constants.VPMarks + 1 {
 		a.NoError(tester.acc0.SendTrxAndProduceBlock(Post(uint64(i), tester.acc0.Name, "title", "content", []string{"1"}, nil)))
 		a.NoError(tester.acc1.SendTrxAndProduceBlock(Vote(tester.acc1.Name, uint64(i))))
 		i ++
 	}
-	a.Equal("0", d.Post(35).GetWeightedVp())
-	a.Equal(uint32(1000 - 33 * 30), d.Account(tester.acc1.Name).GetVotePower())
+	a.Equal(uint32(constants.FullVP - (constants.FullVP / constants.VPMarks) * constants.VPMarks), d.Account(tester.acc1.Name).GetVotePower())
 }
 
 func (tester *VoteTester) voteAfterPostCashout(t *testing.T, d *Dandelion)  {
@@ -108,12 +132,16 @@ func (tester *VoteTester) voteAfterPostCashout(t *testing.T, d *Dandelion)  {
 	a.NoError(tester.acc0.SendTrxAndProduceBlock(Post(uint64(1), tester.acc0.Name, "title", "content", []string{"1"}, nil)))
 	a.NoError(tester.acc1.SendTrxAndProduceBlock(Vote(tester.acc1.Name, uint64(1))))
 	a.NoError(d.ProduceBlocks(constants.PostCashOutDelayBlock))
+
 	// waiting vote power recover
 	oldVp := d.Post(1).GetWeightedVp()
-	accountVP := d.Account(tester.acc1.Name).GetVotePower()
-	BLOCKS := int(constants.PostCashOutDelayBlock)
-	a.NoError(d.ProduceBlocks(BLOCKS))
-	a.NoError(tester.acc1.SendTrxAndProduceBlock(Vote(tester.acc1.Name, 1)))
+
+	accountVP := d.Account(tester.acc2.Name).GetVotePower()
+	oldVoterCnt := d.Post(1).GetVoteCnt()
+
+	a.NoError(tester.acc2.SendTrxAndProduceBlock(Vote(tester.acc2.Name, 1)))
 	a.Equal(oldVp, d.Post(1).GetWeightedVp())
-	a.Equal(accountVP, d.Account(tester.acc1.Name).GetVotePower())
+	a.Equal(accountVP, d.Account(tester.acc2.Name).GetVotePower())
+	a.Equal( d.GlobalProps().Time.UtcSeconds - 1, d.Account(tester.acc2.Name).GetLastVoteTime().UtcSeconds )
+	a.Equal( oldVoterCnt + 1, d.Post(1).GetVoteCnt() )
 }

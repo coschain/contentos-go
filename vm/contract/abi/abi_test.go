@@ -204,3 +204,21 @@ func TestInvalidAbis(t *testing.T) {
 	// duplicated typedef's: allowed but only the last one is taken
 	a.NoError(unmarshalTestAbi("typedef_dup.abi"))
 }
+
+func TestInvalidNames(t *testing.T) {
+	a := assert.New(t)
+
+	// method name & args
+	a.Error(unmarshalTestAbi("invalid_name_method_too_long.abi"))
+	a.Error(unmarshalTestAbi("invalid_name_method_too_short.abi"))
+	a.Error(unmarshalTestAbi("invalid_name_method_charset.abi"))
+	a.Error(unmarshalTestAbi("invalid_name_method_bad_varname.abi"))
+	a.Error(unmarshalTestAbi("invalid_name_method_args.abi"))
+
+	// table name & record member names
+	a.Error(unmarshalTestAbi("invalid_name_table_too_long.abi"))
+	a.Error(unmarshalTestAbi("invalid_name_table_too_short.abi"))
+	a.Error(unmarshalTestAbi("invalid_name_table_charset.abi"))
+	a.Error(unmarshalTestAbi("invalid_name_table_bad_varname.abi"))
+	a.Error(unmarshalTestAbi("invalid_name_table_record_member.abi"))
+}

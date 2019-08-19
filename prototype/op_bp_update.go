@@ -1,11 +1,19 @@
 package prototype
 
+import "github.com/pkg/errors"
+
 func (m *BpUpdateOperation) GetSigner(auths *map[string]bool) {
 	(*auths)[m.Owner.Value] = true
 }
 
 func (m *BpUpdateOperation) Validate() error {
-	// TODO
+	if m == nil {
+		return ErrNpe
+	}
+	if err := m.Owner.Validate(); err != nil {
+		return errors.WithMessage(err, "Owner error")
+	}
+	// TODO: chain_properties check
 	return nil
 }
 

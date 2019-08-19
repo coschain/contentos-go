@@ -1,0 +1,29 @@
+{
+  "version":"cosio::abi/1.0",
+  "types":null,
+  "structs":[
+    {
+      "name":"struct1",
+      "base":"",
+      "fields":[
+        {
+          "name":"name",
+          "type":"std::string"
+        },
+        {
+          "name":"$_count",
+          "type":"uint32"
+        }
+      ]
+    }
+  ],
+  "actions":null,
+  "tables":[
+    {
+      "name":"MyTable",
+      "type":"struct1",
+      "primary":"name",
+      "secondary":[]
+    }
+  ]
+}

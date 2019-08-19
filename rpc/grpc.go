@@ -422,7 +422,12 @@ func (as *APIService) BroadcastTrx(ctx context.Context, req *grpcpb.BroadcastTrx
 	}
 
 	if !req.OnlyDeliver {
-		return &grpcpb.BroadcastTrxResponse{Invoice: prototype.FetchTrxApplyResult(as.eBus, 30*time.Second, trx)}, nil
+		if !req.Finality {
+			return &grpcpb.BroadcastTrxResponse{Invoice: prototype.FetchTrxApplyResult(as.eBus, constants.RpcTimeoutSeconds * time.Second, trx)}, nil
+		} else {
+			receipt, finality := prototype.FetchTrxFinalResult(as.eBus, constants.RpcTimeoutSeconds * time.Second, trx)
+			return &grpcpb.BroadcastTrxResponse{Invoice: receipt, Finality: finality}, nil
+		}
 	} else {
 		return &grpcpb.BroadcastTrxResponse{Invoice: nil, Status: prototype.StatusSuccess}, nil
 	}

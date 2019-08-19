@@ -46,7 +46,7 @@ func rTransfer(cmd *cobra.Command, args []string) {
 	keys := make([]*prototype.PrivateKeyType, accCount)
 	for i := range keys {
 		accName := fmt.Sprintf("%s%d", prefix, i)
-		keys[i], _ = prototype.GenerateNewKeyFromBytes([]byte(accName))
+		keys[i], _ = prototype.FixBytesToPrivateKey([]byte(accName))
 	}
 
 	wg := &sync.WaitGroup{}

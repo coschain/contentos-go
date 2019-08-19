@@ -20,9 +20,7 @@ func (tester *PostTester) Test1(t *testing.T, d *Dandelion) {
 	tester.acc1 = d.Account("actor1")
 	tester.acc2 = d.Account("actor2")
 
-	a := assert.New(t)
-	a.NoError(tester.acc2.SendTrxAndProduceBlock(TransferToVest(tester.acc2.Name, tester.acc2.Name, constants.MinBpRegisterVest, "")))
-	a.NoError(tester.acc2.SendTrxAndProduceBlock(BpRegister(tester.acc2.Name, "", "", tester.acc2.GetPubKey(), mintProps)))
+	registerBlockProducer(tester.acc2, t)
 
 	t.Run("normal", d.Test(tester.normal))
 }
@@ -32,9 +30,7 @@ func (tester *PostTester) Test2(t *testing.T, d *Dandelion) {
 	tester.acc1 = d.Account("actor1")
 	tester.acc2 = d.Account("actor2")
 
-	a := assert.New(t)
-	a.NoError(tester.acc2.SendTrxAndProduceBlock(TransferToVest(tester.acc2.Name, tester.acc2.Name, constants.MinBpRegisterVest, "")))
-	a.NoError(tester.acc2.SendTrxAndProduceBlock(BpRegister(tester.acc2.Name, "", "", tester.acc2.GetPubKey(), mintProps)))
+	registerBlockProducer(tester.acc2, t)
 
 	t.Run("cashout", d.Test(tester.cashout))
 	t.Run("cashout after other cashout", d.Test(tester.cashoutAfterOtherCashout))
@@ -46,9 +42,7 @@ func (tester *PostTester) Test3(t *testing.T, d *Dandelion) {
 	tester.acc1 = d.Account("actor1")
 	tester.acc2 = d.Account("actor2")
 
-	a := assert.New(t)
-	a.NoError(tester.acc2.SendTrxAndProduceBlock(TransferToVest(tester.acc2.Name, tester.acc2.Name, constants.MinBpRegisterVest, "")))
-	a.NoError(tester.acc2.SendTrxAndProduceBlock(BpRegister(tester.acc2.Name, "", "", tester.acc2.GetPubKey(), mintProps)))
+	registerBlockProducer(tester.acc2, t)
 
 	t.Run("huge global vp", d.Test(tester.hugeGlobalVp))
 	t.Run("zero global vp", d.Test(tester.zeroGlobalVp))
@@ -59,9 +53,7 @@ func (tester *PostTester) Test4(t *testing.T, d *Dandelion) {
 	tester.acc1 = d.Account("actor1")
 	tester.acc2 = d.Account("actor2")
 
-	a := assert.New(t)
-	a.NoError(tester.acc2.SendTrxAndProduceBlock(TransferToVest(tester.acc2.Name, tester.acc2.Name, constants.MinBpRegisterVest, "")))
-	a.NoError(tester.acc2.SendTrxAndProduceBlock(BpRegister(tester.acc2.Name, "", "", tester.acc2.GetPubKey(), mintProps)))
+	registerBlockProducer(tester.acc2, t)
 
 	t.Run("with ticket", d.Test(tester.withTicket))
 }
@@ -139,7 +131,7 @@ func (tester *PostTester) normal(t *testing.T, d *Dandelion) {
 	// next block post will be cashout
 	a.NoError(d.ProduceBlocks(BLOCKS))
 	vest0 := d.Account(tester.acc0.Name).GetVest().Value
-	a.NoError(tester.acc0.SendTrx(Vote(tester.acc0.Name, 1)))
+	a.NoError(tester.acc1.SendTrx(Vote(tester.acc1.Name, 1)))
 	a.NoError(d.ProduceBlocks(constants.PostCashOutDelayBlock - BLOCKS - 1))
 	a.Equal(d.Account(tester.acc0.Name).GetVest().Value, vest0)
 
@@ -167,10 +159,11 @@ func (tester *PostTester) cashout(t *testing.T, d *Dandelion) {
 
 	a.NoError(d.ProduceBlocks(BLOCKS))
 	vest0 := d.Account(tester.acc0.Name).GetVest().Value
-	a.NoError(tester.acc0.SendTrx(Vote(tester.acc0.Name, 1)))
+	a.NoError(tester.acc1.SendTrx(Vote(tester.acc1.Name, 1)))
 	a.NoError(d.ProduceBlocks(constants.PostCashOutDelayBlock - BLOCKS - 1))
 
 	postWeight := StringToBigInt(d.Post(1).GetWeightedVp())
+	a.NotEqual( postWeight.Int64(), int64(0) )
 	globalPostReward := new(big.Int).SetUint64(d.GlobalProps().GetPostRewards().Value)
 	globalPostDappReward := new(big.Int).SetUint64(d.GlobalProps().GetPostDappRewards().Value)
 	bigTotalPostWeight, _ := new(big.Int).SetString(d.GlobalProps().GetPostWeightedVps(), 10)
@@ -210,6 +203,7 @@ func (tester *PostTester) cashoutAfterOtherCashout(t *testing.T, d *Dandelion) {
 	a.NoError(d.ProduceBlocks(constants.PostCashOutDelayBlock - BLOCKS - 1))
 
 	postWeight := StringToBigInt(d.Post(2).GetWeightedVp())
+	a.NotEqual(postWeight.Int64(), int64(0))
 	globalPostReward := new(big.Int).SetUint64(d.GlobalProps().GetPostRewards().Value)
 	globalPostDappReward := new(big.Int).SetUint64(d.GlobalProps().GetPostDappRewards().Value)
 	bigTotalPostWeight, _ := new(big.Int).SetString(d.GlobalProps().GetPostWeightedVps(), 10)
@@ -252,6 +246,10 @@ func (tester *PostTester) multiCashout(t *testing.T, d *Dandelion) {
 	// the mul result less than uint64.MAX
 	post3Weight :=  StringToBigInt(d.Post(3).GetWeightedVp())
 	post4Weight :=  StringToBigInt(d.Post(4).GetWeightedVp())
+
+	a.NotEqual(post3Weight.Int64(), int64(0))
+	a.NotEqual(post4Weight.Int64(), int64(0))
+
 	postsWeight := new(big.Int).Add(post3Weight, post4Weight)
 
 	globalPostReward := new(big.Int).SetUint64(d.GlobalProps().GetPostRewards().Value)
@@ -302,10 +300,11 @@ func (tester *PostTester) hugeGlobalVp(t *testing.T, d *Dandelion) {
 
 	a.NoError(d.ProduceBlocks(BLOCKS))
 	vest0 := d.Account(tester.acc0.Name).GetVest().Value
-	a.NoError(tester.acc0.SendTrx(Vote(tester.acc0.Name, 1)))
+	a.NoError(tester.acc1.SendTrx(Vote(tester.acc1.Name, 1)))
 	a.NoError(d.ProduceBlocks(constants.PostCashOutDelayBlock - BLOCKS - 1))
 
 	postWeight := StringToBigInt(d.Post(1).GetWeightedVp())
+	a.NotEqual(postWeight.Int64(), int64(0))
 	globalPostReward := new(big.Int).SetUint64(d.GlobalProps().GetPostRewards().Value)
 	globalPostDappReward := new(big.Int).SetUint64(d.GlobalProps().GetPostDappRewards().Value)
 	bigTotalPostWeight, _ := new(big.Int).SetString(d.GlobalProps().GetPostWeightedVps(), 10)
@@ -342,10 +341,12 @@ func (tester *PostTester) zeroGlobalVp(t *testing.T, d *Dandelion) {
 
 	a.NoError(d.ProduceBlocks(BLOCKS))
 	vest0 := d.Account(tester.acc0.Name).GetVest().Value
-	a.NoError(tester.acc0.SendTrx(Vote(tester.acc0.Name, 2)))
+	a.NoError(tester.acc1.SendTrx(Vote(tester.acc1.Name, 2)))
 	a.NoError(d.ProduceBlocks(constants.PostCashOutDelayBlock - BLOCKS - 1))
 
 	postWeight := StringToBigInt(d.Post(2).GetWeightedVp())
+	a.NotEqual(postWeight.Int64(), int64(0))
+
 	globalPostReward := new(big.Int).SetUint64(d.GlobalProps().GetPostRewards().Value)
 	globalPostDappReward := new(big.Int).SetUint64(d.GlobalProps().GetPostDappRewards().Value)
 	bigTotalPostWeight, _ := new(big.Int).SetString(d.GlobalProps().GetPostWeightedVps(), 10)
@@ -383,10 +384,12 @@ func (tester *PostTester) withTicket(t *testing.T, d *Dandelion) {
 
 	a.NoError(d.ProduceBlocks(BLOCKS))
 	vest0 := d.Account(tester.acc0.Name).GetVest().Value
-	a.NoError(tester.acc0.SendTrx(Vote(tester.acc0.Name, 1)))
+	a.NoError(tester.acc1.SendTrx(Vote(tester.acc1.Name, 1)))
 	a.NoError(d.ProduceBlocks(constants.PostCashOutDelayBlock - BLOCKS - 1))
 
 	postWeight := StringToBigInt(d.Post(1).GetWeightedVp())
+	a.NotEqual(postWeight.Int64(), int64(0))
+
 	postWeight = new(big.Int).Add(postWeight, new(big.Int).SetUint64(1 * d.GlobalProps().GetPerTicketWeight()))
 	globalPostReward := new(big.Int).SetUint64(d.GlobalProps().GetPostRewards().Value)
 	globalPostDappReward := new(big.Int).SetUint64(d.GlobalProps().GetPostDappRewards().Value)

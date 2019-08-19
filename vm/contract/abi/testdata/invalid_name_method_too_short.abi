@@ -1,0 +1,18 @@
+{
+  "version":"cosio::abi/1.0",
+  "types":null,
+  "structs":[
+    {
+      "name":"struct1",
+      "base":"",
+      "fields":null
+    }
+  ],
+  "actions":[
+    {
+      "name":"",
+      "type":"struct1"
+    }
+  ],
+  "tables":null
+}

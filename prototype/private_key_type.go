@@ -48,7 +48,11 @@ func PrivateKeyFromWIF(encoded string) (*PrivateKeyType, error) {
 	return PrivateKeyFromBytes(buf[:len(buf)-4]), nil
 }
 
-func GenerateNewKeyFromBytes(buff []byte) (*PrivateKeyType, error) {
+
+// DANGER !!!!!!!!!!!!!!!!!
+// this function only for test case
+// If used improperly, the private key will be exhausted
+func FixBytesToPrivateKey(buff []byte) (*PrivateKeyType, error) {
 
 	cBuff1 := sha256.Sum256(buff)
 

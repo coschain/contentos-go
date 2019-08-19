@@ -217,7 +217,7 @@ func (tester *CopyrightTester) mdSuccess(t *testing.T, d *Dandelion) {
 		a.True(d.Contract(constants.COSSysAccount, crCrtName).CheckExist())
 
 		// vote to the article
-		a.NoError( VoteToPost(tester.acc4, pId) )
+		a.NoError( VoteToPost(tester.acc3, pId) )
 
 		cr := pWrap.GetCopyright()
 		newCr := tester.getNewCopyrightStatus(cr)
@@ -253,7 +253,7 @@ func (tester *CopyrightTester) replyInfringement(t *testing.T, d *Dandelion) {
 		a.True(d.Contract(constants.COSSysAccount, crCrtName).CheckExist())
 
 		// vote to the reply
-		a.NoError( VoteToPost(tester.acc6, rId) )
+		a.NoError( VoteToPost(tester.acc5, rId) )
 
 		cr := rWrap.GetCopyright()
 		newCr := tester.getNewCopyrightStatus(cr)

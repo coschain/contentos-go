@@ -29,9 +29,13 @@ var tpsExpected uint64
 var bpUpdateTpsExpected uint64
 var bpUpdateCreateAccountFee string
 var bpEpochDuration uint64
+var bpUpdateEpochDuration uint64
 var bpTopN uint32
+var bpUpdateTopN uint32
 var bpPerTicketPrice string
+var bpUpdatePerTicketPrice string
 var bpPerTicketWeight uint64
+var bpUpdatePerTicketWeight uint64
 
 var BpCmd = func() *cobra.Command {
 	cmd := &cobra.Command{
@@ -88,18 +92,10 @@ var BpCmd = func() *cobra.Command {
 	updateCmd.Flags().Uint64VarP(&bpUpdateStaminaFree, "stamina_free", "s", bpUpdateInvalidUint64, `bp update alice --stamina_free 1`)
 	updateCmd.Flags().Uint64VarP(&bpUpdateTpsExpected, "tps", "t", bpUpdateInvalidUint64, `bp update alice --tps 1`)
 	updateCmd.Flags().StringVarP(&bpUpdateCreateAccountFee, "fee", "f", bpUpdateInvalidString, `bp update alice --fee 1`)
-	updateCmd.Flags().Uint64VarP(&bpEpochDuration, "epoch_duration", "", bpUpdateInvalidUint64, `bp update alice --epoch_duration 1000000`)
-	updateCmd.Flags().Uint32VarP(&bpTopN, "top_n", "", bpUpdateInvalidUint32, `bp update alice --top_n 1000`)
-	updateCmd.Flags().StringVarP(&bpPerTicketPrice, "ticket_price", "", bpUpdateInvalidString, `bp update alice --ticket_price 5.000000`)
-	updateCmd.Flags().Uint64VarP(&bpPerTicketWeight, "ticket_weight", "", bpUpdateInvalidUint64, `bp update alice --ticket_weight 10000000`)
-
-	//updateCmd.Flags().Uint64VarP(&bpUpdateStaminaFree, "stamina_free", "s", constants.DefaultStaminaFree, `bp update alice --stamina_free 1`)
-	//updateCmd.Flags().Uint64VarP(&bpUpdateTpsExpected, "tps", "t", constants.DefaultTPSExpected, `bp update alice --tps 1`)
-	//updateCmd.Flags().StringVarP(&bpUpdateCreateAccountFee, "fee", "f", utils.MinimumCos, `bp update alice --fee 1`)
-	//updateCmd.Flags().Uint64VarP(&bpEpochDuration, "epoch_duration", "", constants.InitEpochDuration, `bp update alice --epoch_duration 1000000`)
-	//updateCmd.Flags().Uint32VarP(&bpTopN, "top_n", "", constants.InitTopN, `bp update alice --top_n 1000`)
-	//updateCmd.Flags().StringVarP(&bpPerTicketPrice, "ticket_price", "", constants.PerTicketPriceStr, `bp update alice --ticket_price 5.000000`)
-	//updateCmd.Flags().Uint64VarP(&bpPerTicketWeight, "ticket_weight", "", constants.PerTicketWeight, `bp update alice --ticket_weight 10000000`)
+	updateCmd.Flags().Uint64VarP(&bpUpdateEpochDuration, "epoch_duration", "", bpUpdateInvalidUint64, `bp update alice --epoch_duration 1000000`)
+	updateCmd.Flags().Uint32VarP(&bpUpdateTopN, "top_n", "", bpUpdateInvalidUint32, `bp update alice --top_n 1000`)
+	updateCmd.Flags().StringVarP(&bpUpdatePerTicketPrice, "ticket_price", "", bpUpdateInvalidString, `bp update alice --ticket_price 5.000000`)
+	updateCmd.Flags().Uint64VarP(&bpUpdatePerTicketWeight, "ticket_weight", "", bpUpdateInvalidUint64, `bp update alice --ticket_weight 10000000`)
 
 	cmd.AddCommand(registerCmd)
 	cmd.AddCommand(enableCmd)
@@ -288,20 +284,13 @@ func voteBp(cmd *cobra.Command, args []string) {
 
 func updateBp(cmd *cobra.Command, args []string) {
 	defer func() {
-		//bpUpdateStaminaFree      = constants.DefaultStaminaFree
-		//bpUpdateTpsExpected      = constants.DefaultTPSExpected
-		//bpUpdateCreateAccountFee = utils.MinimumCos
-		//bpEpochDuration = constants.InitEpochDuration
-		//bpTopN = constants.InitTopN
-		//bpPerTicketPrice = constants.PerTicketPriceStr
-		//bpPerTicketWeight = constants.PerTicketWeight
 		bpUpdateStaminaFree      = bpUpdateInvalidUint64
 		bpUpdateTpsExpected      = bpUpdateInvalidUint64
 		bpUpdateCreateAccountFee = bpUpdateInvalidString
-		bpEpochDuration          = bpUpdateInvalidUint64
-		bpTopN                   = bpUpdateInvalidUint32
-		bpPerTicketPrice         = bpUpdateInvalidString
-		bpPerTicketWeight        = bpUpdateInvalidUint64
+		bpUpdateEpochDuration    = bpUpdateInvalidUint64
+		bpUpdateTopN             = bpUpdateInvalidUint32
+		bpUpdatePerTicketPrice   = bpUpdateInvalidString
+		bpUpdatePerTicketWeight  = bpUpdateInvalidUint64
 		utils.EstimateStamina    = false
 	}()
 	c := cmd.Context["rpcclient"]
@@ -324,6 +313,7 @@ func updateBp(cmd *cobra.Command, args []string) {
 
 	bpUpdate_op := &prototype.BpUpdateOperation{
 		Owner:                 &prototype.AccountName{Value: name},
+		Props:                 &prototype.ChainProperties{},
 	}
 
 	err = checkAndUpdateOpParam(bpUpdate_op, bpInfoOnChain)
@@ -376,22 +366,22 @@ func checkAndUpdateOpParam(op *prototype.BpUpdateOperation, infoOnChain *grpcpb.
 		op.Props.TpsExpected = bpUpdateTpsExpected
 	}
 
-	if bpEpochDuration == bpUpdateInvalidUint64 {
+	if bpUpdateEpochDuration == bpUpdateInvalidUint64 {
 		op.Props.EpochDuration = infoOnChain.TicketFlushInterval
 	} else {
-		op.Props.EpochDuration = bpEpochDuration
+		op.Props.EpochDuration = bpUpdateEpochDuration
 	}
 
-	if bpTopN == bpUpdateInvalidUint32 {
+	if bpUpdateTopN == bpUpdateInvalidUint32 {
 		op.Props.TopNAcquireFreeToken = infoOnChain.TopNAcquireFreeToken
 	} else {
-		op.Props.TopNAcquireFreeToken = bpTopN
+		op.Props.TopNAcquireFreeToken = bpUpdateTopN
 	}
 
-	if bpPerTicketWeight == bpUpdateInvalidUint64 {
+	if bpUpdatePerTicketWeight == bpUpdateInvalidUint64 {
 		op.Props.PerTicketWeight = infoOnChain.PerTicketWeight
 	} else {
-		op.Props.PerTicketWeight = bpPerTicketWeight
+		op.Props.PerTicketWeight = bpUpdatePerTicketWeight
 	}
 
 	if bpUpdateCreateAccountFee == bpUpdateInvalidString {
@@ -405,10 +395,10 @@ func checkAndUpdateOpParam(op *prototype.BpUpdateOperation, infoOnChain *grpcpb.
 		op.Props.AccountCreationFee = prototype.NewCoin(fee)
 	}
 
-	if bpPerTicketPrice == bpUpdateInvalidString {
+	if bpUpdatePerTicketPrice == bpUpdateInvalidString {
 		op.Props.PerTicketPrice = infoOnChain.PerTicketPrice
 	} else {
-		ticketPrice, err := utils.ParseCos(bpPerTicketPrice)
+		ticketPrice, err := utils.ParseCos(bpUpdatePerTicketPrice)
 		if err != nil {
 			fmt.Println(err)
 			return err

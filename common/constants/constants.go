@@ -17,9 +17,14 @@ const (
 	NoticeTrxPost      = "trxpost"
 	NoticeTrxApplied   = "trxapplyresult"
 	NoticeBlockApplied = "blockapply"
+	NoticeBlockApplyFailed  = "block_apply_failed"
+	NoticeBlockGenerationFailed  = "block_gen_failed"
+	NoticeBlockCommit  = "blockcommit"
+	NoticeBlockRevert  = "blockrevert"
 	NoticeAddTrx       = "addTrx"
 	NoticeCashout      = "rewardCashout"
 	NoticeState        = "blockstate"
+	NoticeLibChange    = "LibChange"
 
 	GenesisTime = 0
 
@@ -27,14 +32,15 @@ const (
 
 	MaxBlockSize           = 1024 * 1024 * 2
 	MaxBlockSizeTolerance  = MaxBlockSize
-	MaxUncommittedBlockNum = 100
+	MaxUncommittedBlockNum = 500
 	MinBlockSize           = 115
 	MaxMarginStep = 10
 
 	InitminerPubKey  = "COS5JVLLcTPhq4Unr194JzWPDNSYGoMcam8yxnsjgRVo3Nb7ioyFW"
 	InitminerPrivKey = "4DjYx2KAGh1NP3dai7MZTLUBMMhMBPmwouKE8jhVSESywccpVZ"
 
-	RpcPageSizeLimit = 100
+	RpcTimeoutSeconds = 30
+	RpcPageSizeLimit  = 100
 
 	MaxBlockProducerCount = 21
 
@@ -69,14 +75,11 @@ const (
 
 	PERCENT = 10000
 
-	VoteLimitDuringRegenerate = 30
-
-
 	TrxMaxExpirationTime = 60
 
 	// from total minted
-	RewardRateCreator = 7500
-	RewardRateBP     = 1500
+	RewardRateCreator = 5000
+	RewardRateBP     = 4000
 	RewardRateDapp   = 1000
 
 	// from Creator
@@ -88,12 +91,12 @@ const (
 
 	ConvertWeeks = 13
 
-	BaseRate               = 1e6
+	BaseRate               = uint64(1e6)
 
 	ReportCashout = 1000
 
 	// 10 billion
-	TotalCurrency = 100 * 1e8
+	TotalCurrency = 100 * uint64(1e8)
 
 	BlockApplierVersion = 0x00000001
 
@@ -122,10 +125,10 @@ const (
 	CopyrightInfringement       = 1
 	CopyrightConfirmation       = 2
 
-	MaxTicketsPerTurn = 1e5
+	MaxTicketsPerTurn = uint64(1e5)
 	PerTicketPrice = 1
 	PerTicketPriceStr = "1.000000"
-	PerTicketWeight = 1e7
+	PerTicketWeight = uint64(1e7)
 	InitTopN = 500
 	//InitEpochDuration = 60 * 60 * 24 * 30
 	InitEpochDuration = 600
