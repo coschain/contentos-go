@@ -363,7 +363,7 @@ func (c *TrxPool) generateBlockNoLock(bpName string, pre *prototype.Sha256, time
 	timing.SetPartial(time.Duration(applyTime))
 	timing.Mark()
 
-	signBlock.SignedHeader.Header.Previous = pre
+	signBlock.SignedHeader.Header.Previous = &prototype.Sha256{ Hash: prevBlockId.Data[:]}
 	signBlock.SignedHeader.Header.PrevApplyHash = c.iceberg.LatestBlockApplyHash()
 	signBlock.SignedHeader.Header.Timestamp = &prototype.TimePointSec{UtcSeconds: timestamp}
 	id := signBlock.CalculateMerkleRoot()
