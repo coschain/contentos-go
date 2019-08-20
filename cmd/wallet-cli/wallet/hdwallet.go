@@ -12,8 +12,7 @@ import (
 	"strings"
 )
 
-// from go-ethereum
-var DefaultRootDerivationPath = DerivationPath{0x80000000 + 44, 0x80000000 + 60, 0x80000000 + 0, 0}
+var DefaultRootDerivationPath = DerivationPath{0x80000000 + 44, 0x80000000 + 3077, 0x80000000 + 0, 0, 0}
 
 type DerivationPath []uint32
 
@@ -46,6 +45,7 @@ func ParseDerivationPath(path string) (DerivationPath, error) {
 
 		// Handle hardened paths
 		if strings.HasSuffix(component, "'") {
+			// 2 ^ 31
 			value = 0x80000000
 			component = strings.TrimSpace(strings.TrimSuffix(component, "'"))
 		}
