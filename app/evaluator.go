@@ -378,7 +378,7 @@ func (ev *PostEvaluator) Apply() {
 	pInfo := &itype.PostInfo{
 		Id:op.Uuid,
 		Tags:op.Tags,
-		Created:ev.GlobalProp().HeadBlockTime(),
+		Created:ev.GlobalProp().HeadBlockTime().UtcSeconds,
 		Author:op.Owner.Value,
 		Content:op.Content,
 		Title:op.Title,
@@ -465,7 +465,7 @@ func (ev *ReplyEvaluator) Apply() {
 
 	rInfo := &itype.ReplyInfo{
 		Id:op.Uuid,
-		Created:ev.GlobalProp().HeadBlockTime(),
+		Created:ev.GlobalProp().HeadBlockTime().UtcSeconds,
 		Author:op.Owner.Value,
 		ParentId:op.ParentUuid,
 		Content:op.Content,
@@ -572,7 +572,7 @@ func (ev *VoteEvaluator) Apply() {
 	vInfo := &itype.VoteInfo{
 		Voter:op.Voter.Value,
 		PostId:op.Idx,
-		Created:ev.GlobalProp().HeadBlockTime(),
+		Created:ev.GlobalProp().HeadBlockTime().UtcSeconds,
 		VotePower:weightedVp.String(),
 	}
 	ev.TrxObserver().AddOpState(iservices.Add, "vote", op.Voter.Value,vInfo)
