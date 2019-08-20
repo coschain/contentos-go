@@ -1,7 +1,5 @@
 package itype
 
-import "github.com/coschain/contentos-go/prototype"
-
 type Row struct {
 	Date string
 	Dapp string
@@ -14,7 +12,7 @@ type Row struct {
 
 type PostInfo struct {
 	Id uint64 `json:"id"`
-	Created *prototype.TimePointSec `json:"created"`
+	Created uint32 `json:"created"`
 	Author string `json:"author"`
 	Content string `json:"content"`
 	Title string `json:"title"`
@@ -23,7 +21,7 @@ type PostInfo struct {
 
 type ReplyInfo struct {
 	Id uint64 `json:"id"`
-	Created *prototype.TimePointSec `json:"created"`
+	Created uint32 `json:"created"`
 	Author string `json:"author"`
 	ParentId uint64 `json:"parentid"`
 	Content string `json:"content"`
@@ -32,7 +30,7 @@ type ReplyInfo struct {
 type VoteInfo struct {
 	Voter string `json:"voter"`
 	PostId uint64 `json:"postid"`
-	Created *prototype.TimePointSec `json:"created"`
+	Created uint32 `json:"created"`
 	VotePower string `json:"votepower"`
 }
 
