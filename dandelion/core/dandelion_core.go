@@ -120,6 +120,14 @@ func (d *DandelionCore) Stop() error {
 	return d.node.Stop()
 }
 
+func (d *DandelionCore) Node() *node.Node {
+	return d.node
+}
+
+func (d *DandelionCore) NodeConfig() *node.Config {
+	return &d.cfg
+}
+
 func (d *DandelionCore) Database() iservices.IDatabaseService {
 	if s, err := d.node.Service(iservices.DbServerName); err != nil {
 		return nil
@@ -176,6 +184,7 @@ func (d *DandelionCore) produceBlock() (block *prototype.SignedBlock, err error)
 	d.TrxPool().Commit(num)
 	copy(d.prevHash.Hash, blockId.Data[:])
 	d.timeStamp += constants.BlockInterval
+	d.node.EvBus.Publish(constants.NoticeLibChange, []common.ISignedBlock{block})
 	return
 }
 
