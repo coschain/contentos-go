@@ -632,6 +632,7 @@ func (p *MsgHandler) IdMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ..
 		}
 	case msgTypes.IdMsg_request_sigblk_by_id:
 		//log.Infof("receive a msg from:    v%    data:   %v\n", data.Addr, *msgdata)
+		log.Info("receive request sigblk msg")
 		if !remotePeer.LockBusy() {
 			return
 		} else {
@@ -675,6 +676,7 @@ func (p *MsgHandler) IdMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ..
 		var reqmsg msgTypes.TransferMsg
 		reqdata := new(msgTypes.IdMsg)
 		reqdata.Msgtype = msgTypes.IdMsg_request_sigblk_by_id
+		log.Info("receive id length: ", len(msgdata.Value) )
 		for _, id := range msgdata.Value {
 			length := len(id)
 			if length > prototype.Size {
@@ -703,6 +705,7 @@ func (p *MsgHandler) IdMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ..
 			log.Info("[p2p] no block need to request")
 			return
 		}
+		log.Info("request block length: ", len(reqdata.Value))
 		reqmsg.Msg = &msgTypes.TransferMsg_Msg2{Msg2: reqdata}
 		err := p2p.Send(remotePeer, &reqmsg, false)
 		if err != nil {
@@ -775,6 +778,7 @@ func (p *MsgHandler) ReqIdHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ..
 	remotePeer := p2p.GetPeer(data.Id)
 
 	log := p2p.GetLog()
+	log.Info("[p2p] receive a ReqIdMsg")
 
 	if remotePeer == nil {
 		log.Error("[p2p] remotePeer invalid in ReqIdHandle")
@@ -807,6 +811,7 @@ func (p *MsgHandler) ReqIdHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ..
 
 	start := remote_head_blk_id.BlockNum()
 	end := current_head_blk_id.BlockNum()
+	log.Info("remote head block number: ", start, " local head block number: ", end)
 
 	if start >= end {
 		log.Debug("[p2p] no need to get ids, remote head block num: ", start, " current head block num: ", end)
@@ -854,6 +859,8 @@ func (p *MsgHandler) ReqIdHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ..
 		reqdata.Value[i] = make([]byte, prototype.Size)
 		reqdata.Value[i] = ids[i].Data[:]
 	}
+
+	log.Info("id length: ", len(reqdata.Value))
 
 	reqmsg.Msg = &msgTypes.TransferMsg_Msg2{Msg2: reqdata}
 	err = p2p.Send(remotePeer, &reqmsg, false)

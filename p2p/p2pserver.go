@@ -437,7 +437,7 @@ func (this *P2PServer) TriggerSync(current_head_blk_id coomn.BlockID) {
 	reqdata.HeadBlockId = current_head_blk_id.Data[:]
 	reqmsg.Msg = &msgtypes.TransferMsg_Msg4{Msg4:reqdata}
 	currentHeadNum := current_head_blk_id.BlockNum()
-	//this.log.Info("enter TriggerSync func")
+	this.log.Info("enter TriggerSync func, head block number: ", currentHeadNum)
 	np := this.Network.GetNp()
 	np.RLock()
 	defer np.RUnlock()
@@ -446,6 +446,7 @@ func (this *P2PServer) TriggerSync(current_head_blk_id coomn.BlockID) {
 		//this.log.Info("[p2p] cons call TriggerSync func, head id :  ", reqmsg.HeadBlockId)
 		num := p.GetLastSeenBlkNum()
 		if currentHeadNum < num {
+			this.log.Info("send trigger sync message")
 			go p.Send(reqmsg, false, this.Network.GetMagic())
 			return
 		}
