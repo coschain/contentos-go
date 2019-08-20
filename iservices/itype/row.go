@@ -13,30 +13,30 @@ type Row struct {
 }
 
 type PostInfo struct {
-	Id uint64
-	Created *prototype.TimePointSec
-	Author string
-	Content string
-	Title string
-	Tags []string
+	Id uint64 `json:"id"`
+	Created *prototype.TimePointSec `json:"created"`
+	Author string `json:"author"`
+	Content string `json:"content"`
+	Title string `json:"title"`
+	Tags []string `json:"tags"`
 }
 
 type ReplyInfo struct {
-	Id uint64
-	Created *prototype.TimePointSec
-	Author string
-	ParentId uint64
-	Content string
+	Id uint64 `json:"id"`
+	Created *prototype.TimePointSec `json:"created"`
+	Author string `json:"author"`
+	ParentId uint64 `json:"parentid"`
+	Content string `json:"content"`
 }
 
 type VoteInfo struct {
-	Voter string
-	PostId uint64
-	Created *prototype.TimePointSec
-	VotePower string
+	Voter string `json:"voter"`
+	PostId uint64 `json:"postid"`
+	Created *prototype.TimePointSec `json:"created"`
+	VotePower string `json:"votepower"`
 }
 
 type RewardInfo struct {
-	Reward uint64
-	PostId uint64
+	Reward uint64 `json:"reward"`
+	PostId uint64 `json:"postid"`
 }
