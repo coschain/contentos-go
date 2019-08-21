@@ -83,7 +83,7 @@ func (n *Node) Start() error {
 
 	n.MainLoop = eventloop.NewEventLoop()
 	n.EvBus = EventBus.New()
-
+	n.serviceNames = n.serviceNames[:0]
 	services := make(map[string]Service)
 
 	for _, namedConstructor := range n.serviceFuncs {
