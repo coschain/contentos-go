@@ -85,7 +85,7 @@ func (as *APIService) QueryTableContent(ctx context.Context, req *grpcpb.GetTabl
 	return res, nil
 }
 
-func (as *APIService) GetAccountNameByPubKey(ctx context.Context, req *grpcpb.GetAccountNameByPubKeyRequest ) (*grpcpb.AccountResponse, error) {
+func (as *APIService) GetAccountByPubKey(ctx context.Context, req *grpcpb.GetAccountByPubKeyRequest ) (*grpcpb.AccountResponse, error) {
 	as.db.RLock()
 	defer as.db.RUnlock()
 

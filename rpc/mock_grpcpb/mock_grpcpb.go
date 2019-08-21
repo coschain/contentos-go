@@ -795,24 +795,24 @@ func (mr *MockApiServiceClientMockRecorder) GetBlockProducerByName(ctx, in inter
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBlockProducerByName", reflect.TypeOf((*MockApiServiceClient)(nil).GetBlockProducerByName), varargs...)
 }
 
-// GetAccountNameByPubKey mocks base method
-func (m *MockApiServiceClient) GetAccountNameByPubKey(ctx context.Context, in *pb.GetAccountNameByPubKeyRequest, opts ...grpc.CallOption) (*pb.AccountResponse, error) {
+// GetAccountByPubKey mocks base method
+func (m *MockApiServiceClient) GetAccountByPubKey(ctx context.Context, in *pb.GetAccountByPubKeyRequest, opts ...grpc.CallOption) (*pb.AccountResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
 	for _, a := range opts {
 		varargs = append(varargs, a)
 	}
-	ret := m.ctrl.Call(m, "GetAccountNameByPubKey", varargs...)
+	ret := m.ctrl.Call(m, "GetAccountByPubKey", varargs...)
 	ret0, _ := ret[0].(*pb.AccountResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetAccountNameByPubKey indicates an expected call of GetAccountNameByPubKey
-func (mr *MockApiServiceClientMockRecorder) GetAccountNameByPubKey(ctx, in interface{}, opts ...interface{}) *gomock.Call {
+// GetAccountByPubKey indicates an expected call of GetAccountByPubKey
+func (mr *MockApiServiceClientMockRecorder) GetAccountByPubKey(ctx, in interface{}, opts ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	varargs := append([]interface{}{ctx, in}, opts...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAccountNameByPubKey", reflect.TypeOf((*MockApiServiceClient)(nil).GetAccountNameByPubKey), varargs...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAccountByPubKey", reflect.TypeOf((*MockApiServiceClient)(nil).GetAccountByPubKey), varargs...)
 }
 
 // MockApiServiceServer is a mock of ApiServiceServer interface
@@ -1408,17 +1408,17 @@ func (mr *MockApiServiceServerMockRecorder) GetBlockProducerByName(arg0, arg1 in
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBlockProducerByName", reflect.TypeOf((*MockApiServiceServer)(nil).GetBlockProducerByName), arg0, arg1)
 }
 
-// GetAccountNameByPubKey mocks base method
-func (m *MockApiServiceServer) GetAccountNameByPubKey(arg0 context.Context, arg1 *pb.GetAccountNameByPubKeyRequest) (*pb.AccountResponse, error) {
+// GetAccountByPubKey mocks base method
+func (m *MockApiServiceServer) GetAccountByPubKey(arg0 context.Context, arg1 *pb.GetAccountByPubKeyRequest) (*pb.AccountResponse, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetAccountNameByPubKey", arg0, arg1)
+	ret := m.ctrl.Call(m, "GetAccountByPubKey", arg0, arg1)
 	ret0, _ := ret[0].(*pb.AccountResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
-// GetAccountNameByPubKey indicates an expected call of GetAccountNameByPubKey
-func (mr *MockApiServiceServerMockRecorder) GetAccountNameByPubKey(arg0, arg1 interface{}) *gomock.Call {
+// GetAccountByPubKey indicates an expected call of GetAccountByPubKey
+func (mr *MockApiServiceServerMockRecorder) GetAccountByPubKey(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAccountNameByPubKey", reflect.TypeOf((*MockApiServiceServer)(nil).GetAccountNameByPubKey), arg0, arg1)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAccountByPubKey", reflect.TypeOf((*MockApiServiceServer)(nil).GetAccountByPubKey), arg0, arg1)
 }
