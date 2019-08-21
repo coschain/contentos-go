@@ -74,12 +74,16 @@ func (ew emptyWriter) Write(p []byte) (int, error) {
 }
 func startNodes(cmd *cobra.Command, args []string) {
 	// _ is cfg as below process has't used
+
 	_, _ = cmd, args
 	cnt, err := strconv.Atoi(args[0])
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
+	startNodes2(cnt, 0)
+}
+func startNodes2(cnt int, runSecond int32) {
 
 	nodes := make([]*node.Node, 0, cnt)
 	sks := make([]string, 0, cnt)
@@ -105,6 +109,12 @@ func startNodes(cmd *cobra.Command, args []string) {
 
 	stopCh := make(chan struct{})
 	go func() {
+		if runSecond != 0{
+			time.Sleep(time.Duration( uint64(runSecond) * uint64(time.Second) ) )
+			close(stopCh)
+			return
+		}
+
 		SIGSTOP := syscall.Signal(0x13) //for windows compile
 		sigc := make(chan os.Signal, 1)
 		signal.Notify(sigc, syscall.SIGHUP, syscall.SIGQUIT, syscall.SIGTERM, syscall.SIGINT, SIGSTOP, syscall.SIGUSR1, syscall.SIGUSR2)
