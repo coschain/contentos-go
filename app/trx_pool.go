@@ -65,19 +65,6 @@ func (c *TrxPool) SetShuffle(s common.ShuffleFunc) {
 	c.shuffle = s
 }
 
-// for easy test
-func (c *TrxPool) SetDB(db iservices.IDatabaseService) {
-	c.db = db
-}
-
-func (c *TrxPool) SetBus(bus EventBus.Bus) {
-	c.noticer = bus
-}
-
-func (c *TrxPool) SetLog(log *logrus.Logger) {
-	c.log = log
-}
-
 // service constructor
 func NewController(ctx *node.ServiceContext, lg *logrus.Logger) (*TrxPool, error) {
 	if lg == nil {
@@ -127,14 +114,6 @@ func (c *TrxPool) Stop() error {
 
 func (c *TrxPool) PushTrxToPending(trx *prototype.SignedTransaction) (err error) {
 	return c.tm.AddTrx(trx, nil)
-}
-
-func (c *TrxPool) PushTrx(trx *prototype.SignedTransaction) (invoice *prototype.TransactionReceiptWithInfo) {
-	rc := make(chan *prototype.TransactionReceiptWithInfo)
-	_ = c.tm.AddTrx(trx, func(result *prototype.TransactionWrapperWithInfo) {
-		rc <- result.Receipt
-	})
-	return <-rc
 }
 
 func (c *TrxPool) EstimateStamina(trx *prototype.SignedTransaction) (invoice *prototype.TransactionReceiptWithInfo) {
@@ -210,15 +189,6 @@ func (c *TrxPool) pushBlockNoLock(blk *prototype.SignedBlock, skip prototype.Ski
 	return err
 }
 
-func emptyHeader(signHeader *prototype.SignedBlockHeader) {
-	signHeader.Header = new(prototype.BlockHeader)
-	signHeader.Header.Previous = &prototype.Sha256{}
-	signHeader.Header.Timestamp = &prototype.TimePointSec{}
-	signHeader.Header.BlockProducer = &prototype.AccountName{}
-	signHeader.Header.TransactionMerkleRoot = &prototype.Sha256{}
-	signHeader.BlockProducerSignature = &prototype.SignatureType{}
-}
-
 func (c *TrxPool) GenerateAndApplyBlock(bpName string, pre *prototype.Sha256, timestamp uint32,
 	priKey *prototype.PrivateKeyType, skip prototype.SkipFlag) (*prototype.SignedBlock, error) {
 
@@ -254,16 +224,6 @@ func (c *TrxPool) GenerateAndApplyBlock(bpName string, pre *prototype.Sha256, ti
 	} else {
 		return nil, blockOrError.(error)
 	}
-}
-
-func (c *TrxPool) GenerateBlock(bpName string, pre *prototype.Sha256, timestamp uint32,
-	priKey *prototype.PrivateKeyType, skip prototype.SkipFlag) (b *prototype.SignedBlock, e error) {
-
-	entryTime := common.EasyTimer()
-	c.db.Lock()
-	defer c.db.Unlock()
-
-	return c.generateBlockNoLock(bpName, pre, timestamp, priKey, skip, entryTime.Time())
 }
 
 func (c *TrxPool) generateBlockNoLock(bpName string, pre *prototype.Sha256, timestamp uint32,
@@ -759,39 +719,6 @@ func (c *TrxPool) initGenesis() {
 	})
 }
 
-func (c *TrxPool) TransferToVest(value *prototype.Coin) {
-	c.modifyGlobalDynamicData(func(dgpo *prototype.DynamicProperties) {
-		dgpo.TotalCos.Sub(value)
-		dgpo.TotalVest.Add(value.ToVest())
-	})
-}
-
-func (c *TrxPool) TransferFromVest(value *prototype.Vest) {
-	c.modifyGlobalDynamicData(func(dgpo *prototype.DynamicProperties) {
-		dgpo.TotalCos.Add(value.ToCoin())
-		dgpo.TotalVest.Sub(value)
-	})
-}
-
-func (c *TrxPool) TransferToStakeVest(value *prototype.Coin) {
-	c.modifyGlobalDynamicData(func(dgpo *prototype.DynamicProperties) {
-		dgpo.StakeVest.Add(value.ToVest())
-	})
-}
-
-func (c *TrxPool) TransferFromStakeVest(value *prototype.Vest) {
-	c.modifyGlobalDynamicData(func(dgpo *prototype.DynamicProperties) {
-		dgpo.StakeVest.Sub(value)
-	})
-}
-
-func (c *TrxPool) UpdateTicketIncomeAndNum(income *prototype.Vest, count uint64) {
-	c.modifyGlobalDynamicData(func(props *prototype.DynamicProperties) {
-		props.TicketsIncome = income
-		props.ChargedTicketsNum = count
-	})
-}
-
 func (c *TrxPool) validateBlockHeader(blk *prototype.SignedBlock) {
 	headID := c.headBlockID()
 	if !bytes.Equal(headID.Hash, blk.SignedHeader.Header.Previous.Hash) {
@@ -841,10 +768,10 @@ func (c *TrxPool) headBlockNum() uint64 {
 	return c.GetProps().HeadBlockNumber
 }
 
-func (c *TrxPool) updateGlobalDataToDB(dgpo *prototype.DynamicProperties) {
-	dgpWrap := table.NewSoGlobalWrap(c.db, &SingleId)
-	dgpWrap.SetProps(dgpo)
-}
+//func (c *TrxPool) updateGlobalDataToDB(dgpo *prototype.DynamicProperties) {
+//	dgpWrap := table.NewSoGlobalWrap(c.db, &SingleId)
+//	dgpWrap.SetProps(dgpo)
+//}
 
 func (c *TrxPool) modifyGlobalDynamicData(f func(props *prototype.DynamicProperties)) {
 	dgpWrap := table.NewSoGlobalWrap(c.db, &SingleId)
@@ -992,16 +919,16 @@ func (c *TrxPool) createBlockSummary(blk *prototype.SignedBlock) {
 	blockSummaryWrap.SetBlockId(blockID)
 }
 
-func (c *TrxPool) GetSigningPubKey(bpName string) *prototype.PublicKeyType {
-	ac := &prototype.AccountName{
-		Value: bpName,
-	}
-	bpWrap := table.NewSoBlockProducerWrap(c.db, ac)
-	if !bpWrap.CheckExist() {
-		return nil
-	}
-	return bpWrap.GetSigningKey()
-}
+//func (c *TrxPool) GetSigningPubKey(bpName string) *prototype.PublicKeyType {
+//	ac := &prototype.AccountName{
+//		Value: bpName,
+//	}
+//	bpWrap := table.NewSoBlockProducerWrap(c.db, ac)
+//	if !bpWrap.CheckExist() {
+//		return nil
+//	}
+//	return bpWrap.GetSigningKey()
+//}
 
 func (c *TrxPool) GetBlockProducerTopN(n uint32) ([]string, []*prototype.PublicKeyType) {
 	var names            []string

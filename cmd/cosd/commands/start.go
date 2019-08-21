@@ -146,16 +146,7 @@ func RegisterService(app *node.Node, cfg node.Config) {
 	plugins.NewPluginMgt(pluginList).Register(app, &cfg)
 
 	_ = app.Register(iservices.ConsensusServerName, func(ctx *node.ServiceContext) (node.Service, error) {
-		var s node.Service
-		switch ctx.Config().Consensus.Type {
-		case "DPoS":
-			s = consensus.NewDPoS(ctx, app.Log)
-		case "SABFT":
-			s = consensus.NewSABFT(ctx, app.Log)
-		default:
-			s = consensus.NewDPoS(ctx, app.Log)
-		}
-		return s, nil
+		return consensus.NewSABFT(ctx, app.Log), nil
 	})
 
 	_ = app.Register(iservices.RpcServerName, func(ctx *node.ServiceContext) (node.Service, error) {

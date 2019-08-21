@@ -66,9 +66,7 @@ func addConf(confdir string, cfg node.Config, index int) {
 		os.Exit(1)
 	}
 }
-
 func initConf(cmd *cobra.Command, args []string) {
-
 	var nodeCount int = 4
 	if len(args) > 0 {
 		cnt, err := strconv.Atoi(args[0])
@@ -79,6 +77,10 @@ func initConf(cmd *cobra.Command, args []string) {
 		nodeCount = cnt
 	}
 
+	initConfByCount(nodeCount)
+}
+
+func initConfByCount(nodeCount int) {
 	seedCount := nodeCount
 	if seedCount > maxSeedNodeCount {
 		seedCount = maxSeedNodeCount
