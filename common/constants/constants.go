@@ -139,6 +139,7 @@ const (
 	InitPostWeightedVps = "2000000000"
 	InitReplyWeightedVps = "2000000000"
 	InitVoteWeightedVps = "2000000000"
+	InitDappWeightedVps = "2000000000"
 
 	FullVP = 1000
 	VPMarks = 30

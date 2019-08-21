@@ -38,16 +38,16 @@ func (tester *DecayTester) normal(t *testing.T, d *Dandelion) {
 
 	const BLOCK = 100
 	a.NoError(d.ProduceBlocks(BLOCK))
-	postWeightedVps := d.GlobalProps().PostWeightedVps
-	replyWeightedVps := d.GlobalProps().ReplyWeightedVps
-	voteWeightedVps := d.GlobalProps().VoteWeightedVps
+	postWeightedVps := d.GlobalProps().WeightedVpsPost
+	replyWeightedVps := d.GlobalProps().WeightedVpsReply
+	voteWeightedVps := d.GlobalProps().WeightedVpsVote
 
 	a.NoError(d.ProduceBlocks(1))
 
 	// only vote weighted
-	a.Equal(d.GlobalProps().PostWeightedVps, bigDecay(StringToBigInt(postWeightedVps)).String())
-	a.Equal(d.GlobalProps().ReplyWeightedVps, bigDecay(StringToBigInt(replyWeightedVps)).String())
-	a.Equal(d.GlobalProps().VoteWeightedVps, bigDecay(StringToBigInt(voteWeightedVps)).String())
+	a.Equal(d.GlobalProps().WeightedVpsPost, bigDecay(StringToBigInt(postWeightedVps)).String())
+	a.Equal(d.GlobalProps().WeightedVpsReply, bigDecay(StringToBigInt(replyWeightedVps)).String())
+	a.Equal(d.GlobalProps().WeightedVpsVote, bigDecay(StringToBigInt(voteWeightedVps)).String())
 }
 
 func (tester *DecayTester) decayPost(t *testing.T, d *Dandelion) {
@@ -61,21 +61,21 @@ func (tester *DecayTester) decayPost(t *testing.T, d *Dandelion) {
 	a.NoError(tester.acc1.SendTrx(Vote(tester.acc1.Name, POST)))
 	a.NoError(d.ProduceBlocks(constants.PostCashOutDelayBlock - BLOCKS - 1))
 
-	oldReplyWeightedVps := d.GlobalProps().ReplyWeightedVps
-	oldVoteWeightedVps := d.GlobalProps().VoteWeightedVps
+	oldReplyWeightedVps := d.GlobalProps().WeightedVpsReply
+	oldVoteWeightedVps := d.GlobalProps().WeightedVpsVote
 
 	postWeight := StringToBigInt(d.Post(1).GetWeightedVp())
 	a.NotEqual(postWeight.Int64(), int64(0))
 
-	bigTotalPostWeight, _ := new(big.Int).SetString(d.GlobalProps().GetPostWeightedVps(), 10)
+	bigTotalPostWeight, _ := new(big.Int).SetString(d.GlobalProps().GetWeightedVpsPost(), 10)
 	decayedPostWeight := bigDecay(bigTotalPostWeight)
 	exceptNextBlockPostWeightedVps := decayedPostWeight.Add(decayedPostWeight, postWeight)
 
 	a.NoError(d.ProduceBlocks(1))
 
-	a.Equal(d.GlobalProps().PostWeightedVps, exceptNextBlockPostWeightedVps.String())
-	a.Equal(d.GlobalProps().ReplyWeightedVps, bigDecay(StringToBigInt(oldReplyWeightedVps)).String())
-	a.Equal(d.GlobalProps().VoteWeightedVps,  bigDecay(StringToBigInt(oldVoteWeightedVps)).String())
+	a.Equal(d.GlobalProps().WeightedVpsPost, exceptNextBlockPostWeightedVps.String())
+	a.Equal(d.GlobalProps().WeightedVpsReply, bigDecay(StringToBigInt(oldReplyWeightedVps)).String())
+	a.Equal(d.GlobalProps().WeightedVpsVote,  bigDecay(StringToBigInt(oldVoteWeightedVps)).String())
 }
 
 func (tester *DecayTester) decayReply(t *testing.T, d *Dandelion) {
@@ -91,19 +91,19 @@ func (tester *DecayTester) decayReply(t *testing.T, d *Dandelion) {
 	a.NoError(tester.acc1.SendTrx(Vote(tester.acc1.Name, POST)))
 	a.NoError(d.ProduceBlocks(constants.PostCashOutDelayBlock - BLOCKS - 1))
 
-	oldPostWeightedVps := d.GlobalProps().PostWeightedVps
-	oldVoteWeightedVps := d.GlobalProps().VoteWeightedVps
+	oldPostWeightedVps := d.GlobalProps().WeightedVpsPost
+	oldVoteWeightedVps := d.GlobalProps().WeightedVpsVote
 
 	replyWeight := StringToBigInt(d.Post(REPLY).GetWeightedVp())
-	bigTotalReplyWeight, _ := new(big.Int).SetString(d.GlobalProps().GetReplyWeightedVps(), 10)
+	bigTotalReplyWeight, _ := new(big.Int).SetString(d.GlobalProps().GetWeightedVpsReply(), 10)
 	decayedReplyWeight := bigDecay(bigTotalReplyWeight)
 	exceptNextBlockReplyWeightedVps := decayedReplyWeight.Add(decayedReplyWeight, replyWeight)
 
 	a.NoError(d.ProduceBlocks(1))
 
-	a.Equal(d.GlobalProps().PostWeightedVps, bigDecay(StringToBigInt(oldPostWeightedVps)).String())
-	a.Equal(d.GlobalProps().ReplyWeightedVps, exceptNextBlockReplyWeightedVps.String())
-	a.Equal(d.GlobalProps().VoteWeightedVps,  bigDecay(StringToBigInt(oldVoteWeightedVps)).String())
+	a.Equal(d.GlobalProps().WeightedVpsPost, bigDecay(StringToBigInt(oldPostWeightedVps)).String())
+	a.Equal(d.GlobalProps().WeightedVpsReply, exceptNextBlockReplyWeightedVps.String())
+	a.Equal(d.GlobalProps().WeightedVpsVote,  bigDecay(StringToBigInt(oldVoteWeightedVps)).String())
 }
 
 func (tester *DecayTester) decayVote(t *testing.T, d *Dandelion) {
@@ -117,19 +117,19 @@ func (tester *DecayTester) decayVote(t *testing.T, d *Dandelion) {
 	a.NoError(tester.acc1.SendTrx(Vote(tester.acc1.Name, POST)))
 	a.NoError(d.ProduceBlocks(constants.VoteCashOutDelayBlock - 1))
 
-	oldPostWeightedVps := d.GlobalProps().PostWeightedVps
-	oldReplyWeightedVps := d.GlobalProps().ReplyWeightedVps
+	oldPostWeightedVps := d.GlobalProps().WeightedVpsPost
+	oldReplyWeightedVps := d.GlobalProps().WeightedVpsReply
 
 	postWeightedVp := StringToBigInt(d.Post(POST).GetWeightedVp())
 	voteWeightedVp := StringToBigInt(d.Vote(tester.acc1.Name, POST).GetWeightedVp())
 	weightedVp := new(big.Int).Mul(postWeightedVp, voteWeightedVp)
-	decayedVoteWeight := bigDecay(StringToBigInt(d.GlobalProps().GetVoteWeightedVps()))
+	decayedVoteWeight := bigDecay(StringToBigInt(d.GlobalProps().GetWeightedVpsVote()))
 	totalVoteWeightedVp := decayedVoteWeight.Add(decayedVoteWeight, weightedVp)
 
 	a.NoError(d.ProduceBlocks(1))
 
-	a.Equal(d.GlobalProps().PostWeightedVps, bigDecay(StringToBigInt(oldPostWeightedVps)).String())
-	a.Equal(d.GlobalProps().ReplyWeightedVps, bigDecay(StringToBigInt(oldReplyWeightedVps)).String())
-	a.Equal(d.GlobalProps().VoteWeightedVps, totalVoteWeightedVp.String())
+	a.Equal(d.GlobalProps().WeightedVpsPost, bigDecay(StringToBigInt(oldPostWeightedVps)).String())
+	a.Equal(d.GlobalProps().WeightedVpsReply, bigDecay(StringToBigInt(oldReplyWeightedVps)).String())
+	a.Equal(d.GlobalProps().WeightedVpsVote, totalVoteWeightedVp.String())
 }
 
