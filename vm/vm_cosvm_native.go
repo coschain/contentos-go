@@ -1,7 +1,6 @@
 package vm
 
 import (
-	"crypto/sha256"
 	"fmt"
 	"github.com/coschain/contentos-go/app/table"
 	"github.com/coschain/contentos-go/common/constants"
@@ -46,9 +45,9 @@ func NewCosVMNative(vm *CosVM) *CosVMNative {
 	}
 }
 
-func (w *CosVMNative) Sha256(in []byte) [32]byte {
-	return sha256.Sum256(in)
-}
+//func (w *CosVMNative) Sha256(in []byte) [32]byte {
+//	return sha256.Sum256(in)
+//}
 
 func (w *CosVMNative) CurrentBlockNumber() uint64 {
 	return w.cosVM.props.HeadBlockNumber
