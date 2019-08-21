@@ -126,6 +126,12 @@ func (s *SoBlockProducerWrap) create(f func(tInfo *SoBlockProducer)) error {
 	}
 
 	s.mKeyFlag = 1
+
+	// call watchers
+	if BlockProducerHasAnyWatcher {
+		ReportTableRecordInsert(s.mainKey, val)
+	}
+
 	return nil
 }
 
@@ -171,7 +177,7 @@ func (s *SoBlockProducerWrap) modify(f func(tInfo *SoBlockProducer)) error {
 		return errors.New("primary key does not support modification")
 	}
 
-	fieldSli, err := s.getModifiedFields(oriTable, curTable)
+	fieldSli, hasWatcher, err := s.getModifiedFields(oriTable, curTable)
 	if err != nil {
 		return err
 	}
@@ -208,6 +214,11 @@ func (s *SoBlockProducerWrap) modify(f func(tInfo *SoBlockProducer)) error {
 	err = s.handleFieldMd(FieldMdHandleTypeInsert, curTable, fieldSli)
 	if err != nil {
 		return err
+	}
+
+	// call watchers
+	if hasWatcher {
+		ReportTableRecordUpdate(s.mainKey, oriTable, curTable)
 	}
 
 	return nil
@@ -342,296 +353,303 @@ func (s *SoBlockProducerWrap) SetVoterCount(p uint64, errArgs ...interface{}) *S
 	return s
 }
 
-func (s *SoBlockProducerWrap) checkSortAndUniFieldValidity(curTable *SoBlockProducer, fieldSli []string) error {
-	if curTable != nil && fieldSli != nil && len(fieldSli) > 0 {
-		for _, fName := range fieldSli {
-			if len(fName) > 0 {
+func (s *SoBlockProducerWrap) checkSortAndUniFieldValidity(curTable *SoBlockProducer, fields map[string]bool) error {
+	if curTable != nil && fields != nil && len(fields) > 0 {
 
-				if fName == "BpVest" && curTable.BpVest == nil {
-					return errors.New("sort field BpVest can't be modified to nil")
-				}
-
-			}
+		if fields["BpVest"] && curTable.BpVest == nil {
+			return errors.New("sort field BpVest can't be modified to nil")
 		}
+
 	}
 	return nil
 }
 
 //Get all the modified fields in the table
-func (s *SoBlockProducerWrap) getModifiedFields(oriTable *SoBlockProducer, curTable *SoBlockProducer) ([]string, error) {
+func (s *SoBlockProducerWrap) getModifiedFields(oriTable *SoBlockProducer, curTable *SoBlockProducer) (map[string]bool, bool, error) {
 	if oriTable == nil {
-		return nil, errors.New("table info is nil, can't get modified fields")
+		return nil, false, errors.New("table info is nil, can't get modified fields")
 	}
-	var list []string
+	hasWatcher := false
+	fields := make(map[string]bool)
 
 	if !reflect.DeepEqual(oriTable.AccountCreateFee, curTable.AccountCreateFee) {
-		list = append(list, "AccountCreateFee")
+		fields["AccountCreateFee"] = true
+		hasWatcher = hasWatcher || BlockProducerHasAccountCreateFeeWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.BpVest, curTable.BpVest) {
-		list = append(list, "BpVest")
+		fields["BpVest"] = true
+		hasWatcher = hasWatcher || BlockProducerHasBpVestWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.CreatedTime, curTable.CreatedTime) {
-		list = append(list, "CreatedTime")
+		fields["CreatedTime"] = true
+		hasWatcher = hasWatcher || BlockProducerHasCreatedTimeWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.EpochDuration, curTable.EpochDuration) {
-		list = append(list, "EpochDuration")
+		fields["EpochDuration"] = true
+		hasWatcher = hasWatcher || BlockProducerHasEpochDurationWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.PerTicketPrice, curTable.PerTicketPrice) {
-		list = append(list, "PerTicketPrice")
+		fields["PerTicketPrice"] = true
+		hasWatcher = hasWatcher || BlockProducerHasPerTicketPriceWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.PerTicketWeight, curTable.PerTicketWeight) {
-		list = append(list, "PerTicketWeight")
+		fields["PerTicketWeight"] = true
+		hasWatcher = hasWatcher || BlockProducerHasPerTicketWeightWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.ProposedStaminaFree, curTable.ProposedStaminaFree) {
-		list = append(list, "ProposedStaminaFree")
+		fields["ProposedStaminaFree"] = true
+		hasWatcher = hasWatcher || BlockProducerHasProposedStaminaFreeWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.SigningKey, curTable.SigningKey) {
-		list = append(list, "SigningKey")
+		fields["SigningKey"] = true
+		hasWatcher = hasWatcher || BlockProducerHasSigningKeyWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.TopNAcquireFreeToken, curTable.TopNAcquireFreeToken) {
-		list = append(list, "TopNAcquireFreeToken")
+		fields["TopNAcquireFreeToken"] = true
+		hasWatcher = hasWatcher || BlockProducerHasTopNAcquireFreeTokenWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.TpsExpected, curTable.TpsExpected) {
-		list = append(list, "TpsExpected")
+		fields["TpsExpected"] = true
+		hasWatcher = hasWatcher || BlockProducerHasTpsExpectedWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.Url, curTable.Url) {
-		list = append(list, "Url")
+		fields["Url"] = true
+		hasWatcher = hasWatcher || BlockProducerHasUrlWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.VoterCount, curTable.VoterCount) {
-		list = append(list, "VoterCount")
+		fields["VoterCount"] = true
+		hasWatcher = hasWatcher || BlockProducerHasVoterCountWatcher
 	}
 
-	return list, nil
+	hasWatcher = hasWatcher || BlockProducerHasWholeWatcher
+	return fields, hasWatcher, nil
 }
 
-func (s *SoBlockProducerWrap) handleFieldMd(t FieldMdHandleType, so *SoBlockProducer, fSli []string) error {
+func (s *SoBlockProducerWrap) handleFieldMd(t FieldMdHandleType, so *SoBlockProducer, fields map[string]bool) error {
 	if so == nil {
 		return errors.New("fail to modify empty table")
 	}
 
 	//there is no field need to modify
-	if fSli == nil || len(fSli) < 1 {
+	if fields == nil || len(fields) < 1 {
 		return nil
 	}
 
 	errStr := ""
-	for _, fName := range fSli {
 
-		if fName == "AccountCreateFee" {
-			res := true
-			if t == FieldMdHandleTypeCheck {
-				res = s.mdFieldAccountCreateFee(so.AccountCreateFee, true, false, false, so)
-				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
-			} else if t == FieldMdHandleTypeDel {
-				res = s.mdFieldAccountCreateFee(so.AccountCreateFee, false, true, false, so)
-				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
-			} else if t == FieldMdHandleTypeInsert {
-				res = s.mdFieldAccountCreateFee(so.AccountCreateFee, false, false, true, so)
-				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
-			}
-			if !res {
-				return errors.New(errStr)
-			}
+	if fields["AccountCreateFee"] {
+		res := true
+		if t == FieldMdHandleTypeCheck {
+			res = s.mdFieldAccountCreateFee(so.AccountCreateFee, true, false, false, so)
+			errStr = fmt.Sprintf("fail to modify exist value of %v", "AccountCreateFee")
+		} else if t == FieldMdHandleTypeDel {
+			res = s.mdFieldAccountCreateFee(so.AccountCreateFee, false, true, false, so)
+			errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", "AccountCreateFee")
+		} else if t == FieldMdHandleTypeInsert {
+			res = s.mdFieldAccountCreateFee(so.AccountCreateFee, false, false, true, so)
+			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "AccountCreateFee")
 		}
-
-		if fName == "BpVest" {
-			res := true
-			if t == FieldMdHandleTypeCheck {
-				res = s.mdFieldBpVest(so.BpVest, true, false, false, so)
-				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
-			} else if t == FieldMdHandleTypeDel {
-				res = s.mdFieldBpVest(so.BpVest, false, true, false, so)
-				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
-			} else if t == FieldMdHandleTypeInsert {
-				res = s.mdFieldBpVest(so.BpVest, false, false, true, so)
-				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
-			}
-			if !res {
-				return errors.New(errStr)
-			}
+		if !res {
+			return errors.New(errStr)
 		}
+	}
 
-		if fName == "CreatedTime" {
-			res := true
-			if t == FieldMdHandleTypeCheck {
-				res = s.mdFieldCreatedTime(so.CreatedTime, true, false, false, so)
-				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
-			} else if t == FieldMdHandleTypeDel {
-				res = s.mdFieldCreatedTime(so.CreatedTime, false, true, false, so)
-				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
-			} else if t == FieldMdHandleTypeInsert {
-				res = s.mdFieldCreatedTime(so.CreatedTime, false, false, true, so)
-				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
-			}
-			if !res {
-				return errors.New(errStr)
-			}
+	if fields["BpVest"] {
+		res := true
+		if t == FieldMdHandleTypeCheck {
+			res = s.mdFieldBpVest(so.BpVest, true, false, false, so)
+			errStr = fmt.Sprintf("fail to modify exist value of %v", "BpVest")
+		} else if t == FieldMdHandleTypeDel {
+			res = s.mdFieldBpVest(so.BpVest, false, true, false, so)
+			errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", "BpVest")
+		} else if t == FieldMdHandleTypeInsert {
+			res = s.mdFieldBpVest(so.BpVest, false, false, true, so)
+			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "BpVest")
 		}
-
-		if fName == "EpochDuration" {
-			res := true
-			if t == FieldMdHandleTypeCheck {
-				res = s.mdFieldEpochDuration(so.EpochDuration, true, false, false, so)
-				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
-			} else if t == FieldMdHandleTypeDel {
-				res = s.mdFieldEpochDuration(so.EpochDuration, false, true, false, so)
-				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
-			} else if t == FieldMdHandleTypeInsert {
-				res = s.mdFieldEpochDuration(so.EpochDuration, false, false, true, so)
-				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
-			}
-			if !res {
-				return errors.New(errStr)
-			}
+		if !res {
+			return errors.New(errStr)
 		}
+	}
 
-		if fName == "PerTicketPrice" {
-			res := true
-			if t == FieldMdHandleTypeCheck {
-				res = s.mdFieldPerTicketPrice(so.PerTicketPrice, true, false, false, so)
-				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
-			} else if t == FieldMdHandleTypeDel {
-				res = s.mdFieldPerTicketPrice(so.PerTicketPrice, false, true, false, so)
-				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
-			} else if t == FieldMdHandleTypeInsert {
-				res = s.mdFieldPerTicketPrice(so.PerTicketPrice, false, false, true, so)
-				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
-			}
-			if !res {
-				return errors.New(errStr)
-			}
+	if fields["CreatedTime"] {
+		res := true
+		if t == FieldMdHandleTypeCheck {
+			res = s.mdFieldCreatedTime(so.CreatedTime, true, false, false, so)
+			errStr = fmt.Sprintf("fail to modify exist value of %v", "CreatedTime")
+		} else if t == FieldMdHandleTypeDel {
+			res = s.mdFieldCreatedTime(so.CreatedTime, false, true, false, so)
+			errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", "CreatedTime")
+		} else if t == FieldMdHandleTypeInsert {
+			res = s.mdFieldCreatedTime(so.CreatedTime, false, false, true, so)
+			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "CreatedTime")
 		}
-
-		if fName == "PerTicketWeight" {
-			res := true
-			if t == FieldMdHandleTypeCheck {
-				res = s.mdFieldPerTicketWeight(so.PerTicketWeight, true, false, false, so)
-				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
-			} else if t == FieldMdHandleTypeDel {
-				res = s.mdFieldPerTicketWeight(so.PerTicketWeight, false, true, false, so)
-				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
-			} else if t == FieldMdHandleTypeInsert {
-				res = s.mdFieldPerTicketWeight(so.PerTicketWeight, false, false, true, so)
-				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
-			}
-			if !res {
-				return errors.New(errStr)
-			}
+		if !res {
+			return errors.New(errStr)
 		}
+	}
 
-		if fName == "ProposedStaminaFree" {
-			res := true
-			if t == FieldMdHandleTypeCheck {
-				res = s.mdFieldProposedStaminaFree(so.ProposedStaminaFree, true, false, false, so)
-				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
-			} else if t == FieldMdHandleTypeDel {
-				res = s.mdFieldProposedStaminaFree(so.ProposedStaminaFree, false, true, false, so)
-				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
-			} else if t == FieldMdHandleTypeInsert {
-				res = s.mdFieldProposedStaminaFree(so.ProposedStaminaFree, false, false, true, so)
-				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
-			}
-			if !res {
-				return errors.New(errStr)
-			}
+	if fields["EpochDuration"] {
+		res := true
+		if t == FieldMdHandleTypeCheck {
+			res = s.mdFieldEpochDuration(so.EpochDuration, true, false, false, so)
+			errStr = fmt.Sprintf("fail to modify exist value of %v", "EpochDuration")
+		} else if t == FieldMdHandleTypeDel {
+			res = s.mdFieldEpochDuration(so.EpochDuration, false, true, false, so)
+			errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", "EpochDuration")
+		} else if t == FieldMdHandleTypeInsert {
+			res = s.mdFieldEpochDuration(so.EpochDuration, false, false, true, so)
+			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "EpochDuration")
 		}
-
-		if fName == "SigningKey" {
-			res := true
-			if t == FieldMdHandleTypeCheck {
-				res = s.mdFieldSigningKey(so.SigningKey, true, false, false, so)
-				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
-			} else if t == FieldMdHandleTypeDel {
-				res = s.mdFieldSigningKey(so.SigningKey, false, true, false, so)
-				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
-			} else if t == FieldMdHandleTypeInsert {
-				res = s.mdFieldSigningKey(so.SigningKey, false, false, true, so)
-				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
-			}
-			if !res {
-				return errors.New(errStr)
-			}
+		if !res {
+			return errors.New(errStr)
 		}
+	}
 
-		if fName == "TopNAcquireFreeToken" {
-			res := true
-			if t == FieldMdHandleTypeCheck {
-				res = s.mdFieldTopNAcquireFreeToken(so.TopNAcquireFreeToken, true, false, false, so)
-				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
-			} else if t == FieldMdHandleTypeDel {
-				res = s.mdFieldTopNAcquireFreeToken(so.TopNAcquireFreeToken, false, true, false, so)
-				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
-			} else if t == FieldMdHandleTypeInsert {
-				res = s.mdFieldTopNAcquireFreeToken(so.TopNAcquireFreeToken, false, false, true, so)
-				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
-			}
-			if !res {
-				return errors.New(errStr)
-			}
+	if fields["PerTicketPrice"] {
+		res := true
+		if t == FieldMdHandleTypeCheck {
+			res = s.mdFieldPerTicketPrice(so.PerTicketPrice, true, false, false, so)
+			errStr = fmt.Sprintf("fail to modify exist value of %v", "PerTicketPrice")
+		} else if t == FieldMdHandleTypeDel {
+			res = s.mdFieldPerTicketPrice(so.PerTicketPrice, false, true, false, so)
+			errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", "PerTicketPrice")
+		} else if t == FieldMdHandleTypeInsert {
+			res = s.mdFieldPerTicketPrice(so.PerTicketPrice, false, false, true, so)
+			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "PerTicketPrice")
 		}
-
-		if fName == "TpsExpected" {
-			res := true
-			if t == FieldMdHandleTypeCheck {
-				res = s.mdFieldTpsExpected(so.TpsExpected, true, false, false, so)
-				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
-			} else if t == FieldMdHandleTypeDel {
-				res = s.mdFieldTpsExpected(so.TpsExpected, false, true, false, so)
-				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
-			} else if t == FieldMdHandleTypeInsert {
-				res = s.mdFieldTpsExpected(so.TpsExpected, false, false, true, so)
-				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
-			}
-			if !res {
-				return errors.New(errStr)
-			}
+		if !res {
+			return errors.New(errStr)
 		}
+	}
 
-		if fName == "Url" {
-			res := true
-			if t == FieldMdHandleTypeCheck {
-				res = s.mdFieldUrl(so.Url, true, false, false, so)
-				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
-			} else if t == FieldMdHandleTypeDel {
-				res = s.mdFieldUrl(so.Url, false, true, false, so)
-				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
-			} else if t == FieldMdHandleTypeInsert {
-				res = s.mdFieldUrl(so.Url, false, false, true, so)
-				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
-			}
-			if !res {
-				return errors.New(errStr)
-			}
+	if fields["PerTicketWeight"] {
+		res := true
+		if t == FieldMdHandleTypeCheck {
+			res = s.mdFieldPerTicketWeight(so.PerTicketWeight, true, false, false, so)
+			errStr = fmt.Sprintf("fail to modify exist value of %v", "PerTicketWeight")
+		} else if t == FieldMdHandleTypeDel {
+			res = s.mdFieldPerTicketWeight(so.PerTicketWeight, false, true, false, so)
+			errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", "PerTicketWeight")
+		} else if t == FieldMdHandleTypeInsert {
+			res = s.mdFieldPerTicketWeight(so.PerTicketWeight, false, false, true, so)
+			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "PerTicketWeight")
 		}
-
-		if fName == "VoterCount" {
-			res := true
-			if t == FieldMdHandleTypeCheck {
-				res = s.mdFieldVoterCount(so.VoterCount, true, false, false, so)
-				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
-			} else if t == FieldMdHandleTypeDel {
-				res = s.mdFieldVoterCount(so.VoterCount, false, true, false, so)
-				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
-			} else if t == FieldMdHandleTypeInsert {
-				res = s.mdFieldVoterCount(so.VoterCount, false, false, true, so)
-				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
-			}
-			if !res {
-				return errors.New(errStr)
-			}
+		if !res {
+			return errors.New(errStr)
 		}
+	}
 
+	if fields["ProposedStaminaFree"] {
+		res := true
+		if t == FieldMdHandleTypeCheck {
+			res = s.mdFieldProposedStaminaFree(so.ProposedStaminaFree, true, false, false, so)
+			errStr = fmt.Sprintf("fail to modify exist value of %v", "ProposedStaminaFree")
+		} else if t == FieldMdHandleTypeDel {
+			res = s.mdFieldProposedStaminaFree(so.ProposedStaminaFree, false, true, false, so)
+			errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", "ProposedStaminaFree")
+		} else if t == FieldMdHandleTypeInsert {
+			res = s.mdFieldProposedStaminaFree(so.ProposedStaminaFree, false, false, true, so)
+			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "ProposedStaminaFree")
+		}
+		if !res {
+			return errors.New(errStr)
+		}
+	}
+
+	if fields["SigningKey"] {
+		res := true
+		if t == FieldMdHandleTypeCheck {
+			res = s.mdFieldSigningKey(so.SigningKey, true, false, false, so)
+			errStr = fmt.Sprintf("fail to modify exist value of %v", "SigningKey")
+		} else if t == FieldMdHandleTypeDel {
+			res = s.mdFieldSigningKey(so.SigningKey, false, true, false, so)
+			errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", "SigningKey")
+		} else if t == FieldMdHandleTypeInsert {
+			res = s.mdFieldSigningKey(so.SigningKey, false, false, true, so)
+			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "SigningKey")
+		}
+		if !res {
+			return errors.New(errStr)
+		}
+	}
+
+	if fields["TopNAcquireFreeToken"] {
+		res := true
+		if t == FieldMdHandleTypeCheck {
+			res = s.mdFieldTopNAcquireFreeToken(so.TopNAcquireFreeToken, true, false, false, so)
+			errStr = fmt.Sprintf("fail to modify exist value of %v", "TopNAcquireFreeToken")
+		} else if t == FieldMdHandleTypeDel {
+			res = s.mdFieldTopNAcquireFreeToken(so.TopNAcquireFreeToken, false, true, false, so)
+			errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", "TopNAcquireFreeToken")
+		} else if t == FieldMdHandleTypeInsert {
+			res = s.mdFieldTopNAcquireFreeToken(so.TopNAcquireFreeToken, false, false, true, so)
+			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "TopNAcquireFreeToken")
+		}
+		if !res {
+			return errors.New(errStr)
+		}
+	}
+
+	if fields["TpsExpected"] {
+		res := true
+		if t == FieldMdHandleTypeCheck {
+			res = s.mdFieldTpsExpected(so.TpsExpected, true, false, false, so)
+			errStr = fmt.Sprintf("fail to modify exist value of %v", "TpsExpected")
+		} else if t == FieldMdHandleTypeDel {
+			res = s.mdFieldTpsExpected(so.TpsExpected, false, true, false, so)
+			errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", "TpsExpected")
+		} else if t == FieldMdHandleTypeInsert {
+			res = s.mdFieldTpsExpected(so.TpsExpected, false, false, true, so)
+			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "TpsExpected")
+		}
+		if !res {
+			return errors.New(errStr)
+		}
+	}
+
+	if fields["Url"] {
+		res := true
+		if t == FieldMdHandleTypeCheck {
+			res = s.mdFieldUrl(so.Url, true, false, false, so)
+			errStr = fmt.Sprintf("fail to modify exist value of %v", "Url")
+		} else if t == FieldMdHandleTypeDel {
+			res = s.mdFieldUrl(so.Url, false, true, false, so)
+			errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", "Url")
+		} else if t == FieldMdHandleTypeInsert {
+			res = s.mdFieldUrl(so.Url, false, false, true, so)
+			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "Url")
+		}
+		if !res {
+			return errors.New(errStr)
+		}
+	}
+
+	if fields["VoterCount"] {
+		res := true
+		if t == FieldMdHandleTypeCheck {
+			res = s.mdFieldVoterCount(so.VoterCount, true, false, false, so)
+			errStr = fmt.Sprintf("fail to modify exist value of %v", "VoterCount")
+		} else if t == FieldMdHandleTypeDel {
+			res = s.mdFieldVoterCount(so.VoterCount, false, true, false, so)
+			errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", "VoterCount")
+		} else if t == FieldMdHandleTypeInsert {
+			res = s.mdFieldVoterCount(so.VoterCount, false, false, true, so)
+			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "VoterCount")
+		}
+		if !res {
+			return errors.New(errStr)
+		}
 	}
 
 	return nil
@@ -761,6 +779,12 @@ func (s *SoBlockProducerWrap) removeBlockProducer() error {
 	if s.dba == nil {
 		return errors.New("database is nil")
 	}
+
+	var oldVal *SoBlockProducer
+	if BlockProducerHasAnyWatcher {
+		oldVal = s.getBlockProducer()
+	}
+
 	//delete sort list key
 	if res := s.delAllSortKeys(true, nil); !res {
 		return errors.New("delAllSortKeys failed")
@@ -780,6 +804,11 @@ func (s *SoBlockProducerWrap) removeBlockProducer() error {
 	if err == nil {
 		s.mKeyBuf = nil
 		s.mKeyFlag = -1
+
+		// call watchers
+		if BlockProducerHasAnyWatcher && oldVal != nil {
+			ReportTableRecordDelete(s.mainKey, oldVal)
+		}
 		return nil
 	} else {
 		return fmt.Errorf("database.Delete failed: %s", err.Error())
@@ -2257,4 +2286,82 @@ func (s *UniBlockProducerOwnerWrap) UniQueryOwner(start *prototype.AccountName) 
 		}
 	}
 	return nil
+}
+
+////////////// SECTION Watchers ///////////////
+var (
+	BlockProducerRecordType = reflect.TypeOf((*SoBlockProducer)(nil)).Elem() // table record type
+
+	BlockProducerHasAccountCreateFeeWatcher bool // any watcher on member AccountCreateFee?
+
+	BlockProducerHasBpVestWatcher bool // any watcher on member BpVest?
+
+	BlockProducerHasCreatedTimeWatcher bool // any watcher on member CreatedTime?
+
+	BlockProducerHasEpochDurationWatcher bool // any watcher on member EpochDuration?
+
+	BlockProducerHasPerTicketPriceWatcher bool // any watcher on member PerTicketPrice?
+
+	BlockProducerHasPerTicketWeightWatcher bool // any watcher on member PerTicketWeight?
+
+	BlockProducerHasProposedStaminaFreeWatcher bool // any watcher on member ProposedStaminaFree?
+
+	BlockProducerHasSigningKeyWatcher bool // any watcher on member SigningKey?
+
+	BlockProducerHasTopNAcquireFreeTokenWatcher bool // any watcher on member TopNAcquireFreeToken?
+
+	BlockProducerHasTpsExpectedWatcher bool // any watcher on member TpsExpected?
+
+	BlockProducerHasUrlWatcher bool // any watcher on member Url?
+
+	BlockProducerHasVoterCountWatcher bool // any watcher on member VoterCount?
+
+	BlockProducerHasWholeWatcher bool // any watcher on the whole record?
+	BlockProducerHasAnyWatcher   bool // any watcher?
+)
+
+func BlockProducerRecordWatcherChanged() {
+	BlockProducerHasWholeWatcher = HasTableRecordWatcher(BlockProducerRecordType, "")
+	BlockProducerHasAnyWatcher = BlockProducerHasWholeWatcher
+
+	BlockProducerHasAccountCreateFeeWatcher = HasTableRecordWatcher(BlockProducerRecordType, "AccountCreateFee")
+	BlockProducerHasAnyWatcher = BlockProducerHasAnyWatcher || BlockProducerHasAccountCreateFeeWatcher
+
+	BlockProducerHasBpVestWatcher = HasTableRecordWatcher(BlockProducerRecordType, "BpVest")
+	BlockProducerHasAnyWatcher = BlockProducerHasAnyWatcher || BlockProducerHasBpVestWatcher
+
+	BlockProducerHasCreatedTimeWatcher = HasTableRecordWatcher(BlockProducerRecordType, "CreatedTime")
+	BlockProducerHasAnyWatcher = BlockProducerHasAnyWatcher || BlockProducerHasCreatedTimeWatcher
+
+	BlockProducerHasEpochDurationWatcher = HasTableRecordWatcher(BlockProducerRecordType, "EpochDuration")
+	BlockProducerHasAnyWatcher = BlockProducerHasAnyWatcher || BlockProducerHasEpochDurationWatcher
+
+	BlockProducerHasPerTicketPriceWatcher = HasTableRecordWatcher(BlockProducerRecordType, "PerTicketPrice")
+	BlockProducerHasAnyWatcher = BlockProducerHasAnyWatcher || BlockProducerHasPerTicketPriceWatcher
+
+	BlockProducerHasPerTicketWeightWatcher = HasTableRecordWatcher(BlockProducerRecordType, "PerTicketWeight")
+	BlockProducerHasAnyWatcher = BlockProducerHasAnyWatcher || BlockProducerHasPerTicketWeightWatcher
+
+	BlockProducerHasProposedStaminaFreeWatcher = HasTableRecordWatcher(BlockProducerRecordType, "ProposedStaminaFree")
+	BlockProducerHasAnyWatcher = BlockProducerHasAnyWatcher || BlockProducerHasProposedStaminaFreeWatcher
+
+	BlockProducerHasSigningKeyWatcher = HasTableRecordWatcher(BlockProducerRecordType, "SigningKey")
+	BlockProducerHasAnyWatcher = BlockProducerHasAnyWatcher || BlockProducerHasSigningKeyWatcher
+
+	BlockProducerHasTopNAcquireFreeTokenWatcher = HasTableRecordWatcher(BlockProducerRecordType, "TopNAcquireFreeToken")
+	BlockProducerHasAnyWatcher = BlockProducerHasAnyWatcher || BlockProducerHasTopNAcquireFreeTokenWatcher
+
+	BlockProducerHasTpsExpectedWatcher = HasTableRecordWatcher(BlockProducerRecordType, "TpsExpected")
+	BlockProducerHasAnyWatcher = BlockProducerHasAnyWatcher || BlockProducerHasTpsExpectedWatcher
+
+	BlockProducerHasUrlWatcher = HasTableRecordWatcher(BlockProducerRecordType, "Url")
+	BlockProducerHasAnyWatcher = BlockProducerHasAnyWatcher || BlockProducerHasUrlWatcher
+
+	BlockProducerHasVoterCountWatcher = HasTableRecordWatcher(BlockProducerRecordType, "VoterCount")
+	BlockProducerHasAnyWatcher = BlockProducerHasAnyWatcher || BlockProducerHasVoterCountWatcher
+
+}
+
+func init() {
+	RegisterTableWatcherChangedCallback(BlockProducerRecordType, BlockProducerRecordWatcherChanged)
 }

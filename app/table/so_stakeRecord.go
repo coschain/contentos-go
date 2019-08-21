@@ -126,6 +126,12 @@ func (s *SoStakeRecordWrap) create(f func(tInfo *SoStakeRecord)) error {
 	}
 
 	s.mKeyFlag = 1
+
+	// call watchers
+	if StakeRecordHasAnyWatcher {
+		ReportTableRecordInsert(s.mainKey, val)
+	}
+
 	return nil
 }
 
@@ -171,7 +177,7 @@ func (s *SoStakeRecordWrap) modify(f func(tInfo *SoStakeRecord)) error {
 		return errors.New("primary key does not support modification")
 	}
 
-	fieldSli, err := s.getModifiedFields(oriTable, curTable)
+	fieldSli, hasWatcher, err := s.getModifiedFields(oriTable, curTable)
 	if err != nil {
 		return err
 	}
@@ -208,6 +214,11 @@ func (s *SoStakeRecordWrap) modify(f func(tInfo *SoStakeRecord)) error {
 	err = s.handleFieldMd(FieldMdHandleTypeInsert, curTable, fieldSli)
 	if err != nil {
 		return err
+	}
+
+	// call watchers
+	if hasWatcher {
+		ReportTableRecordUpdate(s.mainKey, oriTable, curTable)
 	}
 
 	return nil
@@ -252,107 +263,105 @@ func (s *SoStakeRecordWrap) SetStakeAmount(p *prototype.Vest, errArgs ...interfa
 	return s
 }
 
-func (s *SoStakeRecordWrap) checkSortAndUniFieldValidity(curTable *SoStakeRecord, fieldSli []string) error {
-	if curTable != nil && fieldSli != nil && len(fieldSli) > 0 {
-		for _, fName := range fieldSli {
-			if len(fName) > 0 {
+func (s *SoStakeRecordWrap) checkSortAndUniFieldValidity(curTable *SoStakeRecord, fields map[string]bool) error {
+	if curTable != nil && fields != nil && len(fields) > 0 {
 
-				if fName == "RecordReverse" && curTable.RecordReverse == nil {
-					return errors.New("sort field RecordReverse can't be modified to nil")
-				}
-
-			}
+		if fields["RecordReverse"] && curTable.RecordReverse == nil {
+			return errors.New("sort field RecordReverse can't be modified to nil")
 		}
+
 	}
 	return nil
 }
 
 //Get all the modified fields in the table
-func (s *SoStakeRecordWrap) getModifiedFields(oriTable *SoStakeRecord, curTable *SoStakeRecord) ([]string, error) {
+func (s *SoStakeRecordWrap) getModifiedFields(oriTable *SoStakeRecord, curTable *SoStakeRecord) (map[string]bool, bool, error) {
 	if oriTable == nil {
-		return nil, errors.New("table info is nil, can't get modified fields")
+		return nil, false, errors.New("table info is nil, can't get modified fields")
 	}
-	var list []string
+	hasWatcher := false
+	fields := make(map[string]bool)
 
 	if !reflect.DeepEqual(oriTable.LastStakeTime, curTable.LastStakeTime) {
-		list = append(list, "LastStakeTime")
+		fields["LastStakeTime"] = true
+		hasWatcher = hasWatcher || StakeRecordHasLastStakeTimeWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.RecordReverse, curTable.RecordReverse) {
-		list = append(list, "RecordReverse")
+		fields["RecordReverse"] = true
+		hasWatcher = hasWatcher || StakeRecordHasRecordReverseWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.StakeAmount, curTable.StakeAmount) {
-		list = append(list, "StakeAmount")
+		fields["StakeAmount"] = true
+		hasWatcher = hasWatcher || StakeRecordHasStakeAmountWatcher
 	}
 
-	return list, nil
+	hasWatcher = hasWatcher || StakeRecordHasWholeWatcher
+	return fields, hasWatcher, nil
 }
 
-func (s *SoStakeRecordWrap) handleFieldMd(t FieldMdHandleType, so *SoStakeRecord, fSli []string) error {
+func (s *SoStakeRecordWrap) handleFieldMd(t FieldMdHandleType, so *SoStakeRecord, fields map[string]bool) error {
 	if so == nil {
 		return errors.New("fail to modify empty table")
 	}
 
 	//there is no field need to modify
-	if fSli == nil || len(fSli) < 1 {
+	if fields == nil || len(fields) < 1 {
 		return nil
 	}
 
 	errStr := ""
-	for _, fName := range fSli {
 
-		if fName == "LastStakeTime" {
-			res := true
-			if t == FieldMdHandleTypeCheck {
-				res = s.mdFieldLastStakeTime(so.LastStakeTime, true, false, false, so)
-				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
-			} else if t == FieldMdHandleTypeDel {
-				res = s.mdFieldLastStakeTime(so.LastStakeTime, false, true, false, so)
-				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
-			} else if t == FieldMdHandleTypeInsert {
-				res = s.mdFieldLastStakeTime(so.LastStakeTime, false, false, true, so)
-				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
-			}
-			if !res {
-				return errors.New(errStr)
-			}
+	if fields["LastStakeTime"] {
+		res := true
+		if t == FieldMdHandleTypeCheck {
+			res = s.mdFieldLastStakeTime(so.LastStakeTime, true, false, false, so)
+			errStr = fmt.Sprintf("fail to modify exist value of %v", "LastStakeTime")
+		} else if t == FieldMdHandleTypeDel {
+			res = s.mdFieldLastStakeTime(so.LastStakeTime, false, true, false, so)
+			errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", "LastStakeTime")
+		} else if t == FieldMdHandleTypeInsert {
+			res = s.mdFieldLastStakeTime(so.LastStakeTime, false, false, true, so)
+			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "LastStakeTime")
 		}
-
-		if fName == "RecordReverse" {
-			res := true
-			if t == FieldMdHandleTypeCheck {
-				res = s.mdFieldRecordReverse(so.RecordReverse, true, false, false, so)
-				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
-			} else if t == FieldMdHandleTypeDel {
-				res = s.mdFieldRecordReverse(so.RecordReverse, false, true, false, so)
-				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
-			} else if t == FieldMdHandleTypeInsert {
-				res = s.mdFieldRecordReverse(so.RecordReverse, false, false, true, so)
-				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
-			}
-			if !res {
-				return errors.New(errStr)
-			}
+		if !res {
+			return errors.New(errStr)
 		}
+	}
 
-		if fName == "StakeAmount" {
-			res := true
-			if t == FieldMdHandleTypeCheck {
-				res = s.mdFieldStakeAmount(so.StakeAmount, true, false, false, so)
-				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
-			} else if t == FieldMdHandleTypeDel {
-				res = s.mdFieldStakeAmount(so.StakeAmount, false, true, false, so)
-				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
-			} else if t == FieldMdHandleTypeInsert {
-				res = s.mdFieldStakeAmount(so.StakeAmount, false, false, true, so)
-				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
-			}
-			if !res {
-				return errors.New(errStr)
-			}
+	if fields["RecordReverse"] {
+		res := true
+		if t == FieldMdHandleTypeCheck {
+			res = s.mdFieldRecordReverse(so.RecordReverse, true, false, false, so)
+			errStr = fmt.Sprintf("fail to modify exist value of %v", "RecordReverse")
+		} else if t == FieldMdHandleTypeDel {
+			res = s.mdFieldRecordReverse(so.RecordReverse, false, true, false, so)
+			errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", "RecordReverse")
+		} else if t == FieldMdHandleTypeInsert {
+			res = s.mdFieldRecordReverse(so.RecordReverse, false, false, true, so)
+			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "RecordReverse")
 		}
+		if !res {
+			return errors.New(errStr)
+		}
+	}
 
+	if fields["StakeAmount"] {
+		res := true
+		if t == FieldMdHandleTypeCheck {
+			res = s.mdFieldStakeAmount(so.StakeAmount, true, false, false, so)
+			errStr = fmt.Sprintf("fail to modify exist value of %v", "StakeAmount")
+		} else if t == FieldMdHandleTypeDel {
+			res = s.mdFieldStakeAmount(so.StakeAmount, false, true, false, so)
+			errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", "StakeAmount")
+		} else if t == FieldMdHandleTypeInsert {
+			res = s.mdFieldStakeAmount(so.StakeAmount, false, false, true, so)
+			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "StakeAmount")
+		}
+		if !res {
+			return errors.New(errStr)
+		}
 	}
 
 	return nil
@@ -482,6 +491,12 @@ func (s *SoStakeRecordWrap) removeStakeRecord() error {
 	if s.dba == nil {
 		return errors.New("database is nil")
 	}
+
+	var oldVal *SoStakeRecord
+	if StakeRecordHasAnyWatcher {
+		oldVal = s.getStakeRecord()
+	}
+
 	//delete sort list key
 	if res := s.delAllSortKeys(true, nil); !res {
 		return errors.New("delAllSortKeys failed")
@@ -501,6 +516,11 @@ func (s *SoStakeRecordWrap) removeStakeRecord() error {
 	if err == nil {
 		s.mKeyBuf = nil
 		s.mKeyFlag = -1
+
+		// call watchers
+		if StakeRecordHasAnyWatcher && oldVal != nil {
+			ReportTableRecordDelete(s.mainKey, oldVal)
+		}
 		return nil
 	} else {
 		return fmt.Errorf("database.Delete failed: %s", err.Error())
@@ -1246,4 +1266,37 @@ func (s *UniStakeRecordRecordWrap) UniQueryRecord(start *prototype.StakeRecord) 
 		}
 	}
 	return nil
+}
+
+////////////// SECTION Watchers ///////////////
+var (
+	StakeRecordRecordType = reflect.TypeOf((*SoStakeRecord)(nil)).Elem() // table record type
+
+	StakeRecordHasLastStakeTimeWatcher bool // any watcher on member LastStakeTime?
+
+	StakeRecordHasRecordReverseWatcher bool // any watcher on member RecordReverse?
+
+	StakeRecordHasStakeAmountWatcher bool // any watcher on member StakeAmount?
+
+	StakeRecordHasWholeWatcher bool // any watcher on the whole record?
+	StakeRecordHasAnyWatcher   bool // any watcher?
+)
+
+func StakeRecordRecordWatcherChanged() {
+	StakeRecordHasWholeWatcher = HasTableRecordWatcher(StakeRecordRecordType, "")
+	StakeRecordHasAnyWatcher = StakeRecordHasWholeWatcher
+
+	StakeRecordHasLastStakeTimeWatcher = HasTableRecordWatcher(StakeRecordRecordType, "LastStakeTime")
+	StakeRecordHasAnyWatcher = StakeRecordHasAnyWatcher || StakeRecordHasLastStakeTimeWatcher
+
+	StakeRecordHasRecordReverseWatcher = HasTableRecordWatcher(StakeRecordRecordType, "RecordReverse")
+	StakeRecordHasAnyWatcher = StakeRecordHasAnyWatcher || StakeRecordHasRecordReverseWatcher
+
+	StakeRecordHasStakeAmountWatcher = HasTableRecordWatcher(StakeRecordRecordType, "StakeAmount")
+	StakeRecordHasAnyWatcher = StakeRecordHasAnyWatcher || StakeRecordHasStakeAmountWatcher
+
+}
+
+func init() {
+	RegisterTableWatcherChangedCallback(StakeRecordRecordType, StakeRecordRecordWatcherChanged)
 }

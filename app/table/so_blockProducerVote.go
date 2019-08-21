@@ -126,6 +126,12 @@ func (s *SoBlockProducerVoteWrap) create(f func(tInfo *SoBlockProducerVote)) err
 	}
 
 	s.mKeyFlag = 1
+
+	// call watchers
+	if BlockProducerVoteHasAnyWatcher {
+		ReportTableRecordInsert(s.mainKey, val)
+	}
+
 	return nil
 }
 
@@ -171,7 +177,7 @@ func (s *SoBlockProducerVoteWrap) modify(f func(tInfo *SoBlockProducerVote)) err
 		return errors.New("primary key does not support modification")
 	}
 
-	fieldSli, err := s.getModifiedFields(oriTable, curTable)
+	fieldSli, hasWatcher, err := s.getModifiedFields(oriTable, curTable)
 	if err != nil {
 		return err
 	}
@@ -210,6 +216,11 @@ func (s *SoBlockProducerVoteWrap) modify(f func(tInfo *SoBlockProducerVote)) err
 		return err
 	}
 
+	// call watchers
+	if hasWatcher {
+		ReportTableRecordUpdate(s.mainKey, oriTable, curTable)
+	}
+
 	return nil
 
 }
@@ -242,86 +253,83 @@ func (s *SoBlockProducerVoteWrap) SetVoterName(p *prototype.AccountName, errArgs
 	return s
 }
 
-func (s *SoBlockProducerVoteWrap) checkSortAndUniFieldValidity(curTable *SoBlockProducerVote, fieldSli []string) error {
-	if curTable != nil && fieldSli != nil && len(fieldSli) > 0 {
-		for _, fName := range fieldSli {
-			if len(fName) > 0 {
+func (s *SoBlockProducerVoteWrap) checkSortAndUniFieldValidity(curTable *SoBlockProducerVote, fields map[string]bool) error {
+	if curTable != nil && fields != nil && len(fields) > 0 {
 
-				if fName == "VoterName" && curTable.VoterName == nil {
-					return errors.New("unique field VoterName can't be modified to nil")
-				}
-
-			}
+		if fields["VoterName"] && curTable.VoterName == nil {
+			return errors.New("unique field VoterName can't be modified to nil")
 		}
+
 	}
 	return nil
 }
 
 //Get all the modified fields in the table
-func (s *SoBlockProducerVoteWrap) getModifiedFields(oriTable *SoBlockProducerVote, curTable *SoBlockProducerVote) ([]string, error) {
+func (s *SoBlockProducerVoteWrap) getModifiedFields(oriTable *SoBlockProducerVote, curTable *SoBlockProducerVote) (map[string]bool, bool, error) {
 	if oriTable == nil {
-		return nil, errors.New("table info is nil, can't get modified fields")
+		return nil, false, errors.New("table info is nil, can't get modified fields")
 	}
-	var list []string
+	hasWatcher := false
+	fields := make(map[string]bool)
 
 	if !reflect.DeepEqual(oriTable.VoteTime, curTable.VoteTime) {
-		list = append(list, "VoteTime")
+		fields["VoteTime"] = true
+		hasWatcher = hasWatcher || BlockProducerVoteHasVoteTimeWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.VoterName, curTable.VoterName) {
-		list = append(list, "VoterName")
+		fields["VoterName"] = true
+		hasWatcher = hasWatcher || BlockProducerVoteHasVoterNameWatcher
 	}
 
-	return list, nil
+	hasWatcher = hasWatcher || BlockProducerVoteHasWholeWatcher
+	return fields, hasWatcher, nil
 }
 
-func (s *SoBlockProducerVoteWrap) handleFieldMd(t FieldMdHandleType, so *SoBlockProducerVote, fSli []string) error {
+func (s *SoBlockProducerVoteWrap) handleFieldMd(t FieldMdHandleType, so *SoBlockProducerVote, fields map[string]bool) error {
 	if so == nil {
 		return errors.New("fail to modify empty table")
 	}
 
 	//there is no field need to modify
-	if fSli == nil || len(fSli) < 1 {
+	if fields == nil || len(fields) < 1 {
 		return nil
 	}
 
 	errStr := ""
-	for _, fName := range fSli {
 
-		if fName == "VoteTime" {
-			res := true
-			if t == FieldMdHandleTypeCheck {
-				res = s.mdFieldVoteTime(so.VoteTime, true, false, false, so)
-				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
-			} else if t == FieldMdHandleTypeDel {
-				res = s.mdFieldVoteTime(so.VoteTime, false, true, false, so)
-				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
-			} else if t == FieldMdHandleTypeInsert {
-				res = s.mdFieldVoteTime(so.VoteTime, false, false, true, so)
-				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
-			}
-			if !res {
-				return errors.New(errStr)
-			}
+	if fields["VoteTime"] {
+		res := true
+		if t == FieldMdHandleTypeCheck {
+			res = s.mdFieldVoteTime(so.VoteTime, true, false, false, so)
+			errStr = fmt.Sprintf("fail to modify exist value of %v", "VoteTime")
+		} else if t == FieldMdHandleTypeDel {
+			res = s.mdFieldVoteTime(so.VoteTime, false, true, false, so)
+			errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", "VoteTime")
+		} else if t == FieldMdHandleTypeInsert {
+			res = s.mdFieldVoteTime(so.VoteTime, false, false, true, so)
+			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "VoteTime")
 		}
-
-		if fName == "VoterName" {
-			res := true
-			if t == FieldMdHandleTypeCheck {
-				res = s.mdFieldVoterName(so.VoterName, true, false, false, so)
-				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
-			} else if t == FieldMdHandleTypeDel {
-				res = s.mdFieldVoterName(so.VoterName, false, true, false, so)
-				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
-			} else if t == FieldMdHandleTypeInsert {
-				res = s.mdFieldVoterName(so.VoterName, false, false, true, so)
-				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
-			}
-			if !res {
-				return errors.New(errStr)
-			}
+		if !res {
+			return errors.New(errStr)
 		}
+	}
 
+	if fields["VoterName"] {
+		res := true
+		if t == FieldMdHandleTypeCheck {
+			res = s.mdFieldVoterName(so.VoterName, true, false, false, so)
+			errStr = fmt.Sprintf("fail to modify exist value of %v", "VoterName")
+		} else if t == FieldMdHandleTypeDel {
+			res = s.mdFieldVoterName(so.VoterName, false, true, false, so)
+			errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", "VoterName")
+		} else if t == FieldMdHandleTypeInsert {
+			res = s.mdFieldVoterName(so.VoterName, false, false, true, so)
+			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "VoterName")
+		}
+		if !res {
+			return errors.New(errStr)
+		}
 	}
 
 	return nil
@@ -401,6 +409,12 @@ func (s *SoBlockProducerVoteWrap) removeBlockProducerVote() error {
 	if s.dba == nil {
 		return errors.New("database is nil")
 	}
+
+	var oldVal *SoBlockProducerVote
+	if BlockProducerVoteHasAnyWatcher {
+		oldVal = s.getBlockProducerVote()
+	}
+
 	//delete sort list key
 	if res := s.delAllSortKeys(true, nil); !res {
 		return errors.New("delAllSortKeys failed")
@@ -420,6 +434,11 @@ func (s *SoBlockProducerVoteWrap) removeBlockProducerVote() error {
 	if err == nil {
 		s.mKeyBuf = nil
 		s.mKeyFlag = -1
+
+		// call watchers
+		if BlockProducerVoteHasAnyWatcher && oldVal != nil {
+			ReportTableRecordDelete(s.mainKey, oldVal)
+		}
 		return nil
 	} else {
 		return fmt.Errorf("database.Delete failed: %s", err.Error())
@@ -1091,4 +1110,32 @@ func (s *UniBlockProducerVoteVoterNameWrap) UniQueryVoterName(start *prototype.A
 		}
 	}
 	return nil
+}
+
+////////////// SECTION Watchers ///////////////
+var (
+	BlockProducerVoteRecordType = reflect.TypeOf((*SoBlockProducerVote)(nil)).Elem() // table record type
+
+	BlockProducerVoteHasVoteTimeWatcher bool // any watcher on member VoteTime?
+
+	BlockProducerVoteHasVoterNameWatcher bool // any watcher on member VoterName?
+
+	BlockProducerVoteHasWholeWatcher bool // any watcher on the whole record?
+	BlockProducerVoteHasAnyWatcher   bool // any watcher?
+)
+
+func BlockProducerVoteRecordWatcherChanged() {
+	BlockProducerVoteHasWholeWatcher = HasTableRecordWatcher(BlockProducerVoteRecordType, "")
+	BlockProducerVoteHasAnyWatcher = BlockProducerVoteHasWholeWatcher
+
+	BlockProducerVoteHasVoteTimeWatcher = HasTableRecordWatcher(BlockProducerVoteRecordType, "VoteTime")
+	BlockProducerVoteHasAnyWatcher = BlockProducerVoteHasAnyWatcher || BlockProducerVoteHasVoteTimeWatcher
+
+	BlockProducerVoteHasVoterNameWatcher = HasTableRecordWatcher(BlockProducerVoteRecordType, "VoterName")
+	BlockProducerVoteHasAnyWatcher = BlockProducerVoteHasAnyWatcher || BlockProducerVoteHasVoterNameWatcher
+
+}
+
+func init() {
+	RegisterTableWatcherChangedCallback(BlockProducerVoteRecordType, BlockProducerVoteRecordWatcherChanged)
 }

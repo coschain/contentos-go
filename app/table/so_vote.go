@@ -127,6 +127,12 @@ func (s *SoVoteWrap) create(f func(tInfo *SoVote)) error {
 	}
 
 	s.mKeyFlag = 1
+
+	// call watchers
+	if VoteHasAnyWatcher {
+		ReportTableRecordInsert(s.mainKey, val)
+	}
+
 	return nil
 }
 
@@ -172,7 +178,7 @@ func (s *SoVoteWrap) modify(f func(tInfo *SoVote)) error {
 		return errors.New("primary key does not support modification")
 	}
 
-	fieldSli, err := s.getModifiedFields(oriTable, curTable)
+	fieldSli, hasWatcher, err := s.getModifiedFields(oriTable, curTable)
 	if err != nil {
 		return err
 	}
@@ -209,6 +215,11 @@ func (s *SoVoteWrap) modify(f func(tInfo *SoVote)) error {
 	err = s.handleFieldMd(FieldMdHandleTypeInsert, curTable, fieldSli)
 	if err != nil {
 		return err
+	}
+
+	// call watchers
+	if hasWatcher {
+		ReportTableRecordUpdate(s.mainKey, oriTable, curTable)
 	}
 
 	return nil
@@ -263,128 +274,127 @@ func (s *SoVoteWrap) SetWeightedVp(p string, errArgs ...interface{}) *SoVoteWrap
 	return s
 }
 
-func (s *SoVoteWrap) checkSortAndUniFieldValidity(curTable *SoVote, fieldSli []string) error {
-	if curTable != nil && fieldSli != nil && len(fieldSli) > 0 {
-		for _, fName := range fieldSli {
-			if len(fName) > 0 {
+func (s *SoVoteWrap) checkSortAndUniFieldValidity(curTable *SoVote, fields map[string]bool) error {
+	if curTable != nil && fields != nil && len(fields) > 0 {
 
-				if fName == "VoteTime" && curTable.VoteTime == nil {
-					return errors.New("sort field VoteTime can't be modified to nil")
-				}
-
-			}
+		if fields["VoteTime"] && curTable.VoteTime == nil {
+			return errors.New("sort field VoteTime can't be modified to nil")
 		}
+
 	}
 	return nil
 }
 
 //Get all the modified fields in the table
-func (s *SoVoteWrap) getModifiedFields(oriTable *SoVote, curTable *SoVote) ([]string, error) {
+func (s *SoVoteWrap) getModifiedFields(oriTable *SoVote, curTable *SoVote) (map[string]bool, bool, error) {
 	if oriTable == nil {
-		return nil, errors.New("table info is nil, can't get modified fields")
+		return nil, false, errors.New("table info is nil, can't get modified fields")
 	}
-	var list []string
+	hasWatcher := false
+	fields := make(map[string]bool)
 
 	if !reflect.DeepEqual(oriTable.PostId, curTable.PostId) {
-		list = append(list, "PostId")
+		fields["PostId"] = true
+		hasWatcher = hasWatcher || VoteHasPostIdWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.Upvote, curTable.Upvote) {
-		list = append(list, "Upvote")
+		fields["Upvote"] = true
+		hasWatcher = hasWatcher || VoteHasUpvoteWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.VoteTime, curTable.VoteTime) {
-		list = append(list, "VoteTime")
+		fields["VoteTime"] = true
+		hasWatcher = hasWatcher || VoteHasVoteTimeWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.WeightedVp, curTable.WeightedVp) {
-		list = append(list, "WeightedVp")
+		fields["WeightedVp"] = true
+		hasWatcher = hasWatcher || VoteHasWeightedVpWatcher
 	}
 
-	return list, nil
+	hasWatcher = hasWatcher || VoteHasWholeWatcher
+	return fields, hasWatcher, nil
 }
 
-func (s *SoVoteWrap) handleFieldMd(t FieldMdHandleType, so *SoVote, fSli []string) error {
+func (s *SoVoteWrap) handleFieldMd(t FieldMdHandleType, so *SoVote, fields map[string]bool) error {
 	if so == nil {
 		return errors.New("fail to modify empty table")
 	}
 
 	//there is no field need to modify
-	if fSli == nil || len(fSli) < 1 {
+	if fields == nil || len(fields) < 1 {
 		return nil
 	}
 
 	errStr := ""
-	for _, fName := range fSli {
 
-		if fName == "PostId" {
-			res := true
-			if t == FieldMdHandleTypeCheck {
-				res = s.mdFieldPostId(so.PostId, true, false, false, so)
-				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
-			} else if t == FieldMdHandleTypeDel {
-				res = s.mdFieldPostId(so.PostId, false, true, false, so)
-				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
-			} else if t == FieldMdHandleTypeInsert {
-				res = s.mdFieldPostId(so.PostId, false, false, true, so)
-				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
-			}
-			if !res {
-				return errors.New(errStr)
-			}
+	if fields["PostId"] {
+		res := true
+		if t == FieldMdHandleTypeCheck {
+			res = s.mdFieldPostId(so.PostId, true, false, false, so)
+			errStr = fmt.Sprintf("fail to modify exist value of %v", "PostId")
+		} else if t == FieldMdHandleTypeDel {
+			res = s.mdFieldPostId(so.PostId, false, true, false, so)
+			errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", "PostId")
+		} else if t == FieldMdHandleTypeInsert {
+			res = s.mdFieldPostId(so.PostId, false, false, true, so)
+			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "PostId")
 		}
-
-		if fName == "Upvote" {
-			res := true
-			if t == FieldMdHandleTypeCheck {
-				res = s.mdFieldUpvote(so.Upvote, true, false, false, so)
-				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
-			} else if t == FieldMdHandleTypeDel {
-				res = s.mdFieldUpvote(so.Upvote, false, true, false, so)
-				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
-			} else if t == FieldMdHandleTypeInsert {
-				res = s.mdFieldUpvote(so.Upvote, false, false, true, so)
-				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
-			}
-			if !res {
-				return errors.New(errStr)
-			}
+		if !res {
+			return errors.New(errStr)
 		}
+	}
 
-		if fName == "VoteTime" {
-			res := true
-			if t == FieldMdHandleTypeCheck {
-				res = s.mdFieldVoteTime(so.VoteTime, true, false, false, so)
-				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
-			} else if t == FieldMdHandleTypeDel {
-				res = s.mdFieldVoteTime(so.VoteTime, false, true, false, so)
-				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
-			} else if t == FieldMdHandleTypeInsert {
-				res = s.mdFieldVoteTime(so.VoteTime, false, false, true, so)
-				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
-			}
-			if !res {
-				return errors.New(errStr)
-			}
+	if fields["Upvote"] {
+		res := true
+		if t == FieldMdHandleTypeCheck {
+			res = s.mdFieldUpvote(so.Upvote, true, false, false, so)
+			errStr = fmt.Sprintf("fail to modify exist value of %v", "Upvote")
+		} else if t == FieldMdHandleTypeDel {
+			res = s.mdFieldUpvote(so.Upvote, false, true, false, so)
+			errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", "Upvote")
+		} else if t == FieldMdHandleTypeInsert {
+			res = s.mdFieldUpvote(so.Upvote, false, false, true, so)
+			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "Upvote")
 		}
-
-		if fName == "WeightedVp" {
-			res := true
-			if t == FieldMdHandleTypeCheck {
-				res = s.mdFieldWeightedVp(so.WeightedVp, true, false, false, so)
-				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
-			} else if t == FieldMdHandleTypeDel {
-				res = s.mdFieldWeightedVp(so.WeightedVp, false, true, false, so)
-				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
-			} else if t == FieldMdHandleTypeInsert {
-				res = s.mdFieldWeightedVp(so.WeightedVp, false, false, true, so)
-				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
-			}
-			if !res {
-				return errors.New(errStr)
-			}
+		if !res {
+			return errors.New(errStr)
 		}
+	}
 
+	if fields["VoteTime"] {
+		res := true
+		if t == FieldMdHandleTypeCheck {
+			res = s.mdFieldVoteTime(so.VoteTime, true, false, false, so)
+			errStr = fmt.Sprintf("fail to modify exist value of %v", "VoteTime")
+		} else if t == FieldMdHandleTypeDel {
+			res = s.mdFieldVoteTime(so.VoteTime, false, true, false, so)
+			errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", "VoteTime")
+		} else if t == FieldMdHandleTypeInsert {
+			res = s.mdFieldVoteTime(so.VoteTime, false, false, true, so)
+			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "VoteTime")
+		}
+		if !res {
+			return errors.New(errStr)
+		}
+	}
+
+	if fields["WeightedVp"] {
+		res := true
+		if t == FieldMdHandleTypeCheck {
+			res = s.mdFieldWeightedVp(so.WeightedVp, true, false, false, so)
+			errStr = fmt.Sprintf("fail to modify exist value of %v", "WeightedVp")
+		} else if t == FieldMdHandleTypeDel {
+			res = s.mdFieldWeightedVp(so.WeightedVp, false, true, false, so)
+			errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", "WeightedVp")
+		} else if t == FieldMdHandleTypeInsert {
+			res = s.mdFieldWeightedVp(so.WeightedVp, false, false, true, so)
+			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "WeightedVp")
+		}
+		if !res {
+			return errors.New(errStr)
+		}
 	}
 
 	return nil
@@ -564,6 +574,12 @@ func (s *SoVoteWrap) removeVote() error {
 	if s.dba == nil {
 		return errors.New("database is nil")
 	}
+
+	var oldVal *SoVote
+	if VoteHasAnyWatcher {
+		oldVal = s.getVote()
+	}
+
 	//delete sort list key
 	if res := s.delAllSortKeys(true, nil); !res {
 		return errors.New("delAllSortKeys failed")
@@ -583,6 +599,11 @@ func (s *SoVoteWrap) removeVote() error {
 	if err == nil {
 		s.mKeyBuf = nil
 		s.mKeyFlag = -1
+
+		// call watchers
+		if VoteHasAnyWatcher && oldVal != nil {
+			ReportTableRecordDelete(s.mainKey, oldVal)
+		}
 		return nil
 	} else {
 		return fmt.Errorf("database.Delete failed: %s", err.Error())
@@ -1525,4 +1546,42 @@ func (s *UniVoteVoterWrap) UniQueryVoter(start *prototype.VoterId) *SoVoteWrap {
 		}
 	}
 	return nil
+}
+
+////////////// SECTION Watchers ///////////////
+var (
+	VoteRecordType = reflect.TypeOf((*SoVote)(nil)).Elem() // table record type
+
+	VoteHasPostIdWatcher bool // any watcher on member PostId?
+
+	VoteHasUpvoteWatcher bool // any watcher on member Upvote?
+
+	VoteHasVoteTimeWatcher bool // any watcher on member VoteTime?
+
+	VoteHasWeightedVpWatcher bool // any watcher on member WeightedVp?
+
+	VoteHasWholeWatcher bool // any watcher on the whole record?
+	VoteHasAnyWatcher   bool // any watcher?
+)
+
+func VoteRecordWatcherChanged() {
+	VoteHasWholeWatcher = HasTableRecordWatcher(VoteRecordType, "")
+	VoteHasAnyWatcher = VoteHasWholeWatcher
+
+	VoteHasPostIdWatcher = HasTableRecordWatcher(VoteRecordType, "PostId")
+	VoteHasAnyWatcher = VoteHasAnyWatcher || VoteHasPostIdWatcher
+
+	VoteHasUpvoteWatcher = HasTableRecordWatcher(VoteRecordType, "Upvote")
+	VoteHasAnyWatcher = VoteHasAnyWatcher || VoteHasUpvoteWatcher
+
+	VoteHasVoteTimeWatcher = HasTableRecordWatcher(VoteRecordType, "VoteTime")
+	VoteHasAnyWatcher = VoteHasAnyWatcher || VoteHasVoteTimeWatcher
+
+	VoteHasWeightedVpWatcher = HasTableRecordWatcher(VoteRecordType, "WeightedVp")
+	VoteHasAnyWatcher = VoteHasAnyWatcher || VoteHasWeightedVpWatcher
+
+}
+
+func init() {
+	RegisterTableWatcherChangedCallback(VoteRecordType, VoteRecordWatcherChanged)
 }

@@ -121,6 +121,12 @@ func (s *SoBlockSummaryObjectWrap) create(f func(tInfo *SoBlockSummaryObject)) e
 	}
 
 	s.mKeyFlag = 1
+
+	// call watchers
+	if BlockSummaryObjectHasAnyWatcher {
+		ReportTableRecordInsert(s.mainKey, val)
+	}
+
 	return nil
 }
 
@@ -166,7 +172,7 @@ func (s *SoBlockSummaryObjectWrap) modify(f func(tInfo *SoBlockSummaryObject)) e
 		return errors.New("primary key does not support modification")
 	}
 
-	fieldSli, err := s.getModifiedFields(oriTable, curTable)
+	fieldSli, hasWatcher, err := s.getModifiedFields(oriTable, curTable)
 	if err != nil {
 		return err
 	}
@@ -205,6 +211,11 @@ func (s *SoBlockSummaryObjectWrap) modify(f func(tInfo *SoBlockSummaryObject)) e
 		return err
 	}
 
+	// call watchers
+	if hasWatcher {
+		ReportTableRecordUpdate(s.mainKey, oriTable, curTable)
+	}
+
 	return nil
 
 }
@@ -227,61 +238,57 @@ func (s *SoBlockSummaryObjectWrap) SetBlockId(p *prototype.Sha256, errArgs ...in
 	return s
 }
 
-func (s *SoBlockSummaryObjectWrap) checkSortAndUniFieldValidity(curTable *SoBlockSummaryObject, fieldSli []string) error {
-	if curTable != nil && fieldSli != nil && len(fieldSli) > 0 {
-		for _, fName := range fieldSli {
-			if len(fName) > 0 {
+func (s *SoBlockSummaryObjectWrap) checkSortAndUniFieldValidity(curTable *SoBlockSummaryObject, fields map[string]bool) error {
+	if curTable != nil && fields != nil && len(fields) > 0 {
 
-			}
-		}
 	}
 	return nil
 }
 
 //Get all the modified fields in the table
-func (s *SoBlockSummaryObjectWrap) getModifiedFields(oriTable *SoBlockSummaryObject, curTable *SoBlockSummaryObject) ([]string, error) {
+func (s *SoBlockSummaryObjectWrap) getModifiedFields(oriTable *SoBlockSummaryObject, curTable *SoBlockSummaryObject) (map[string]bool, bool, error) {
 	if oriTable == nil {
-		return nil, errors.New("table info is nil, can't get modified fields")
+		return nil, false, errors.New("table info is nil, can't get modified fields")
 	}
-	var list []string
+	hasWatcher := false
+	fields := make(map[string]bool)
 
 	if !reflect.DeepEqual(oriTable.BlockId, curTable.BlockId) {
-		list = append(list, "BlockId")
+		fields["BlockId"] = true
+		hasWatcher = hasWatcher || BlockSummaryObjectHasBlockIdWatcher
 	}
 
-	return list, nil
+	hasWatcher = hasWatcher || BlockSummaryObjectHasWholeWatcher
+	return fields, hasWatcher, nil
 }
 
-func (s *SoBlockSummaryObjectWrap) handleFieldMd(t FieldMdHandleType, so *SoBlockSummaryObject, fSli []string) error {
+func (s *SoBlockSummaryObjectWrap) handleFieldMd(t FieldMdHandleType, so *SoBlockSummaryObject, fields map[string]bool) error {
 	if so == nil {
 		return errors.New("fail to modify empty table")
 	}
 
 	//there is no field need to modify
-	if fSli == nil || len(fSli) < 1 {
+	if fields == nil || len(fields) < 1 {
 		return nil
 	}
 
 	errStr := ""
-	for _, fName := range fSli {
 
-		if fName == "BlockId" {
-			res := true
-			if t == FieldMdHandleTypeCheck {
-				res = s.mdFieldBlockId(so.BlockId, true, false, false, so)
-				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
-			} else if t == FieldMdHandleTypeDel {
-				res = s.mdFieldBlockId(so.BlockId, false, true, false, so)
-				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
-			} else if t == FieldMdHandleTypeInsert {
-				res = s.mdFieldBlockId(so.BlockId, false, false, true, so)
-				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
-			}
-			if !res {
-				return errors.New(errStr)
-			}
+	if fields["BlockId"] {
+		res := true
+		if t == FieldMdHandleTypeCheck {
+			res = s.mdFieldBlockId(so.BlockId, true, false, false, so)
+			errStr = fmt.Sprintf("fail to modify exist value of %v", "BlockId")
+		} else if t == FieldMdHandleTypeDel {
+			res = s.mdFieldBlockId(so.BlockId, false, true, false, so)
+			errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", "BlockId")
+		} else if t == FieldMdHandleTypeInsert {
+			res = s.mdFieldBlockId(so.BlockId, false, false, true, so)
+			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "BlockId")
 		}
-
+		if !res {
+			return errors.New(errStr)
+		}
 	}
 
 	return nil
@@ -315,6 +322,12 @@ func (s *SoBlockSummaryObjectWrap) removeBlockSummaryObject() error {
 	if s.dba == nil {
 		return errors.New("database is nil")
 	}
+
+	var oldVal *SoBlockSummaryObject
+	if BlockSummaryObjectHasAnyWatcher {
+		oldVal = s.getBlockSummaryObject()
+	}
+
 	//delete sort list key
 	if res := s.delAllSortKeys(true, nil); !res {
 		return errors.New("delAllSortKeys failed")
@@ -334,6 +347,11 @@ func (s *SoBlockSummaryObjectWrap) removeBlockSummaryObject() error {
 	if err == nil {
 		s.mKeyBuf = nil
 		s.mKeyFlag = -1
+
+		// call watchers
+		if BlockSummaryObjectHasAnyWatcher && oldVal != nil {
+			ReportTableRecordDelete(s.mainKey, oldVal)
+		}
 		return nil
 	} else {
 		return fmt.Errorf("database.Delete failed: %s", err.Error())
@@ -682,4 +700,27 @@ func (s *UniBlockSummaryObjectIdWrap) UniQueryId(start *uint32) *SoBlockSummaryO
 		}
 	}
 	return nil
+}
+
+////////////// SECTION Watchers ///////////////
+var (
+	BlockSummaryObjectRecordType = reflect.TypeOf((*SoBlockSummaryObject)(nil)).Elem() // table record type
+
+	BlockSummaryObjectHasBlockIdWatcher bool // any watcher on member BlockId?
+
+	BlockSummaryObjectHasWholeWatcher bool // any watcher on the whole record?
+	BlockSummaryObjectHasAnyWatcher   bool // any watcher?
+)
+
+func BlockSummaryObjectRecordWatcherChanged() {
+	BlockSummaryObjectHasWholeWatcher = HasTableRecordWatcher(BlockSummaryObjectRecordType, "")
+	BlockSummaryObjectHasAnyWatcher = BlockSummaryObjectHasWholeWatcher
+
+	BlockSummaryObjectHasBlockIdWatcher = HasTableRecordWatcher(BlockSummaryObjectRecordType, "BlockId")
+	BlockSummaryObjectHasAnyWatcher = BlockSummaryObjectHasAnyWatcher || BlockSummaryObjectHasBlockIdWatcher
+
+}
+
+func init() {
+	RegisterTableWatcherChangedCallback(BlockSummaryObjectRecordType, BlockSummaryObjectRecordWatcherChanged)
 }

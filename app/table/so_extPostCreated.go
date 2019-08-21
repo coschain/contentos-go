@@ -122,6 +122,12 @@ func (s *SoExtPostCreatedWrap) create(f func(tInfo *SoExtPostCreated)) error {
 	}
 
 	s.mKeyFlag = 1
+
+	// call watchers
+	if ExtPostCreatedHasAnyWatcher {
+		ReportTableRecordInsert(s.mainKey, val)
+	}
+
 	return nil
 }
 
@@ -167,7 +173,7 @@ func (s *SoExtPostCreatedWrap) modify(f func(tInfo *SoExtPostCreated)) error {
 		return errors.New("primary key does not support modification")
 	}
 
-	fieldSli, err := s.getModifiedFields(oriTable, curTable)
+	fieldSli, hasWatcher, err := s.getModifiedFields(oriTable, curTable)
 	if err != nil {
 		return err
 	}
@@ -206,6 +212,11 @@ func (s *SoExtPostCreatedWrap) modify(f func(tInfo *SoExtPostCreated)) error {
 		return err
 	}
 
+	// call watchers
+	if hasWatcher {
+		ReportTableRecordUpdate(s.mainKey, oriTable, curTable)
+	}
+
 	return nil
 
 }
@@ -228,65 +239,61 @@ func (s *SoExtPostCreatedWrap) SetCreatedOrder(p *prototype.PostCreatedOrder, er
 	return s
 }
 
-func (s *SoExtPostCreatedWrap) checkSortAndUniFieldValidity(curTable *SoExtPostCreated, fieldSli []string) error {
-	if curTable != nil && fieldSli != nil && len(fieldSli) > 0 {
-		for _, fName := range fieldSli {
-			if len(fName) > 0 {
+func (s *SoExtPostCreatedWrap) checkSortAndUniFieldValidity(curTable *SoExtPostCreated, fields map[string]bool) error {
+	if curTable != nil && fields != nil && len(fields) > 0 {
 
-				if fName == "CreatedOrder" && curTable.CreatedOrder == nil {
-					return errors.New("sort field CreatedOrder can't be modified to nil")
-				}
-
-			}
+		if fields["CreatedOrder"] && curTable.CreatedOrder == nil {
+			return errors.New("sort field CreatedOrder can't be modified to nil")
 		}
+
 	}
 	return nil
 }
 
 //Get all the modified fields in the table
-func (s *SoExtPostCreatedWrap) getModifiedFields(oriTable *SoExtPostCreated, curTable *SoExtPostCreated) ([]string, error) {
+func (s *SoExtPostCreatedWrap) getModifiedFields(oriTable *SoExtPostCreated, curTable *SoExtPostCreated) (map[string]bool, bool, error) {
 	if oriTable == nil {
-		return nil, errors.New("table info is nil, can't get modified fields")
+		return nil, false, errors.New("table info is nil, can't get modified fields")
 	}
-	var list []string
+	hasWatcher := false
+	fields := make(map[string]bool)
 
 	if !reflect.DeepEqual(oriTable.CreatedOrder, curTable.CreatedOrder) {
-		list = append(list, "CreatedOrder")
+		fields["CreatedOrder"] = true
+		hasWatcher = hasWatcher || ExtPostCreatedHasCreatedOrderWatcher
 	}
 
-	return list, nil
+	hasWatcher = hasWatcher || ExtPostCreatedHasWholeWatcher
+	return fields, hasWatcher, nil
 }
 
-func (s *SoExtPostCreatedWrap) handleFieldMd(t FieldMdHandleType, so *SoExtPostCreated, fSli []string) error {
+func (s *SoExtPostCreatedWrap) handleFieldMd(t FieldMdHandleType, so *SoExtPostCreated, fields map[string]bool) error {
 	if so == nil {
 		return errors.New("fail to modify empty table")
 	}
 
 	//there is no field need to modify
-	if fSli == nil || len(fSli) < 1 {
+	if fields == nil || len(fields) < 1 {
 		return nil
 	}
 
 	errStr := ""
-	for _, fName := range fSli {
 
-		if fName == "CreatedOrder" {
-			res := true
-			if t == FieldMdHandleTypeCheck {
-				res = s.mdFieldCreatedOrder(so.CreatedOrder, true, false, false, so)
-				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
-			} else if t == FieldMdHandleTypeDel {
-				res = s.mdFieldCreatedOrder(so.CreatedOrder, false, true, false, so)
-				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
-			} else if t == FieldMdHandleTypeInsert {
-				res = s.mdFieldCreatedOrder(so.CreatedOrder, false, false, true, so)
-				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
-			}
-			if !res {
-				return errors.New(errStr)
-			}
+	if fields["CreatedOrder"] {
+		res := true
+		if t == FieldMdHandleTypeCheck {
+			res = s.mdFieldCreatedOrder(so.CreatedOrder, true, false, false, so)
+			errStr = fmt.Sprintf("fail to modify exist value of %v", "CreatedOrder")
+		} else if t == FieldMdHandleTypeDel {
+			res = s.mdFieldCreatedOrder(so.CreatedOrder, false, true, false, so)
+			errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", "CreatedOrder")
+		} else if t == FieldMdHandleTypeInsert {
+			res = s.mdFieldCreatedOrder(so.CreatedOrder, false, false, true, so)
+			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "CreatedOrder")
 		}
-
+		if !res {
+			return errors.New(errStr)
+		}
 	}
 
 	return nil
@@ -369,6 +376,12 @@ func (s *SoExtPostCreatedWrap) removeExtPostCreated() error {
 	if s.dba == nil {
 		return errors.New("database is nil")
 	}
+
+	var oldVal *SoExtPostCreated
+	if ExtPostCreatedHasAnyWatcher {
+		oldVal = s.getExtPostCreated()
+	}
+
 	//delete sort list key
 	if res := s.delAllSortKeys(true, nil); !res {
 		return errors.New("delAllSortKeys failed")
@@ -388,6 +401,11 @@ func (s *SoExtPostCreatedWrap) removeExtPostCreated() error {
 	if err == nil {
 		s.mKeyBuf = nil
 		s.mKeyFlag = -1
+
+		// call watchers
+		if ExtPostCreatedHasAnyWatcher && oldVal != nil {
+			ReportTableRecordDelete(s.mainKey, oldVal)
+		}
 		return nil
 	} else {
 		return fmt.Errorf("database.Delete failed: %s", err.Error())
@@ -846,4 +864,27 @@ func (s *UniExtPostCreatedPostIdWrap) UniQueryPostId(start *uint64) *SoExtPostCr
 		}
 	}
 	return nil
+}
+
+////////////// SECTION Watchers ///////////////
+var (
+	ExtPostCreatedRecordType = reflect.TypeOf((*SoExtPostCreated)(nil)).Elem() // table record type
+
+	ExtPostCreatedHasCreatedOrderWatcher bool // any watcher on member CreatedOrder?
+
+	ExtPostCreatedHasWholeWatcher bool // any watcher on the whole record?
+	ExtPostCreatedHasAnyWatcher   bool // any watcher?
+)
+
+func ExtPostCreatedRecordWatcherChanged() {
+	ExtPostCreatedHasWholeWatcher = HasTableRecordWatcher(ExtPostCreatedRecordType, "")
+	ExtPostCreatedHasAnyWatcher = ExtPostCreatedHasWholeWatcher
+
+	ExtPostCreatedHasCreatedOrderWatcher = HasTableRecordWatcher(ExtPostCreatedRecordType, "CreatedOrder")
+	ExtPostCreatedHasAnyWatcher = ExtPostCreatedHasAnyWatcher || ExtPostCreatedHasCreatedOrderWatcher
+
+}
+
+func init() {
+	RegisterTableWatcherChangedCallback(ExtPostCreatedRecordType, ExtPostCreatedRecordWatcherChanged)
 }

@@ -126,6 +126,12 @@ func (s *SoExtDailyTrxWrap) create(f func(tInfo *SoExtDailyTrx)) error {
 	}
 
 	s.mKeyFlag = 1
+
+	// call watchers
+	if ExtDailyTrxHasAnyWatcher {
+		ReportTableRecordInsert(s.mainKey, val)
+	}
+
 	return nil
 }
 
@@ -171,7 +177,7 @@ func (s *SoExtDailyTrxWrap) modify(f func(tInfo *SoExtDailyTrx)) error {
 		return errors.New("primary key does not support modification")
 	}
 
-	fieldSli, err := s.getModifiedFields(oriTable, curTable)
+	fieldSli, hasWatcher, err := s.getModifiedFields(oriTable, curTable)
 	if err != nil {
 		return err
 	}
@@ -210,6 +216,11 @@ func (s *SoExtDailyTrxWrap) modify(f func(tInfo *SoExtDailyTrx)) error {
 		return err
 	}
 
+	// call watchers
+	if hasWatcher {
+		ReportTableRecordUpdate(s.mainKey, oriTable, curTable)
+	}
+
 	return nil
 
 }
@@ -232,61 +243,57 @@ func (s *SoExtDailyTrxWrap) SetCount(p uint64, errArgs ...interface{}) *SoExtDai
 	return s
 }
 
-func (s *SoExtDailyTrxWrap) checkSortAndUniFieldValidity(curTable *SoExtDailyTrx, fieldSli []string) error {
-	if curTable != nil && fieldSli != nil && len(fieldSli) > 0 {
-		for _, fName := range fieldSli {
-			if len(fName) > 0 {
+func (s *SoExtDailyTrxWrap) checkSortAndUniFieldValidity(curTable *SoExtDailyTrx, fields map[string]bool) error {
+	if curTable != nil && fields != nil && len(fields) > 0 {
 
-			}
-		}
 	}
 	return nil
 }
 
 //Get all the modified fields in the table
-func (s *SoExtDailyTrxWrap) getModifiedFields(oriTable *SoExtDailyTrx, curTable *SoExtDailyTrx) ([]string, error) {
+func (s *SoExtDailyTrxWrap) getModifiedFields(oriTable *SoExtDailyTrx, curTable *SoExtDailyTrx) (map[string]bool, bool, error) {
 	if oriTable == nil {
-		return nil, errors.New("table info is nil, can't get modified fields")
+		return nil, false, errors.New("table info is nil, can't get modified fields")
 	}
-	var list []string
+	hasWatcher := false
+	fields := make(map[string]bool)
 
 	if !reflect.DeepEqual(oriTable.Count, curTable.Count) {
-		list = append(list, "Count")
+		fields["Count"] = true
+		hasWatcher = hasWatcher || ExtDailyTrxHasCountWatcher
 	}
 
-	return list, nil
+	hasWatcher = hasWatcher || ExtDailyTrxHasWholeWatcher
+	return fields, hasWatcher, nil
 }
 
-func (s *SoExtDailyTrxWrap) handleFieldMd(t FieldMdHandleType, so *SoExtDailyTrx, fSli []string) error {
+func (s *SoExtDailyTrxWrap) handleFieldMd(t FieldMdHandleType, so *SoExtDailyTrx, fields map[string]bool) error {
 	if so == nil {
 		return errors.New("fail to modify empty table")
 	}
 
 	//there is no field need to modify
-	if fSli == nil || len(fSli) < 1 {
+	if fields == nil || len(fields) < 1 {
 		return nil
 	}
 
 	errStr := ""
-	for _, fName := range fSli {
 
-		if fName == "Count" {
-			res := true
-			if t == FieldMdHandleTypeCheck {
-				res = s.mdFieldCount(so.Count, true, false, false, so)
-				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
-			} else if t == FieldMdHandleTypeDel {
-				res = s.mdFieldCount(so.Count, false, true, false, so)
-				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
-			} else if t == FieldMdHandleTypeInsert {
-				res = s.mdFieldCount(so.Count, false, false, true, so)
-				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
-			}
-			if !res {
-				return errors.New(errStr)
-			}
+	if fields["Count"] {
+		res := true
+		if t == FieldMdHandleTypeCheck {
+			res = s.mdFieldCount(so.Count, true, false, false, so)
+			errStr = fmt.Sprintf("fail to modify exist value of %v", "Count")
+		} else if t == FieldMdHandleTypeDel {
+			res = s.mdFieldCount(so.Count, false, true, false, so)
+			errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", "Count")
+		} else if t == FieldMdHandleTypeInsert {
+			res = s.mdFieldCount(so.Count, false, false, true, so)
+			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "Count")
 		}
-
+		if !res {
+			return errors.New(errStr)
+		}
 	}
 
 	return nil
@@ -416,6 +423,12 @@ func (s *SoExtDailyTrxWrap) removeExtDailyTrx() error {
 	if s.dba == nil {
 		return errors.New("database is nil")
 	}
+
+	var oldVal *SoExtDailyTrx
+	if ExtDailyTrxHasAnyWatcher {
+		oldVal = s.getExtDailyTrx()
+	}
+
 	//delete sort list key
 	if res := s.delAllSortKeys(true, nil); !res {
 		return errors.New("delAllSortKeys failed")
@@ -435,6 +448,11 @@ func (s *SoExtDailyTrxWrap) removeExtDailyTrx() error {
 	if err == nil {
 		s.mKeyBuf = nil
 		s.mKeyFlag = -1
+
+		// call watchers
+		if ExtDailyTrxHasAnyWatcher && oldVal != nil {
+			ReportTableRecordDelete(s.mainKey, oldVal)
+		}
 		return nil
 	} else {
 		return fmt.Errorf("database.Delete failed: %s", err.Error())
@@ -1014,4 +1032,27 @@ func (s *UniExtDailyTrxDateWrap) UniQueryDate(start *prototype.TimePointSec) *So
 		}
 	}
 	return nil
+}
+
+////////////// SECTION Watchers ///////////////
+var (
+	ExtDailyTrxRecordType = reflect.TypeOf((*SoExtDailyTrx)(nil)).Elem() // table record type
+
+	ExtDailyTrxHasCountWatcher bool // any watcher on member Count?
+
+	ExtDailyTrxHasWholeWatcher bool // any watcher on the whole record?
+	ExtDailyTrxHasAnyWatcher   bool // any watcher?
+)
+
+func ExtDailyTrxRecordWatcherChanged() {
+	ExtDailyTrxHasWholeWatcher = HasTableRecordWatcher(ExtDailyTrxRecordType, "")
+	ExtDailyTrxHasAnyWatcher = ExtDailyTrxHasWholeWatcher
+
+	ExtDailyTrxHasCountWatcher = HasTableRecordWatcher(ExtDailyTrxRecordType, "Count")
+	ExtDailyTrxHasAnyWatcher = ExtDailyTrxHasAnyWatcher || ExtDailyTrxHasCountWatcher
+
+}
+
+func init() {
+	RegisterTableWatcherChangedCallback(ExtDailyTrxRecordType, ExtDailyTrxRecordWatcherChanged)
 }

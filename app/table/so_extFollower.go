@@ -125,6 +125,12 @@ func (s *SoExtFollowerWrap) create(f func(tInfo *SoExtFollower)) error {
 	}
 
 	s.mKeyFlag = 1
+
+	// call watchers
+	if ExtFollowerHasAnyWatcher {
+		ReportTableRecordInsert(s.mainKey, val)
+	}
+
 	return nil
 }
 
@@ -170,7 +176,7 @@ func (s *SoExtFollowerWrap) modify(f func(tInfo *SoExtFollower)) error {
 		return errors.New("primary key does not support modification")
 	}
 
-	fieldSli, err := s.getModifiedFields(oriTable, curTable)
+	fieldSli, hasWatcher, err := s.getModifiedFields(oriTable, curTable)
 	if err != nil {
 		return err
 	}
@@ -209,6 +215,11 @@ func (s *SoExtFollowerWrap) modify(f func(tInfo *SoExtFollower)) error {
 		return err
 	}
 
+	// call watchers
+	if hasWatcher {
+		ReportTableRecordUpdate(s.mainKey, oriTable, curTable)
+	}
+
 	return nil
 
 }
@@ -231,65 +242,61 @@ func (s *SoExtFollowerWrap) SetFollowerCreatedOrder(p *prototype.FollowerCreated
 	return s
 }
 
-func (s *SoExtFollowerWrap) checkSortAndUniFieldValidity(curTable *SoExtFollower, fieldSli []string) error {
-	if curTable != nil && fieldSli != nil && len(fieldSli) > 0 {
-		for _, fName := range fieldSli {
-			if len(fName) > 0 {
+func (s *SoExtFollowerWrap) checkSortAndUniFieldValidity(curTable *SoExtFollower, fields map[string]bool) error {
+	if curTable != nil && fields != nil && len(fields) > 0 {
 
-				if fName == "FollowerCreatedOrder" && curTable.FollowerCreatedOrder == nil {
-					return errors.New("sort field FollowerCreatedOrder can't be modified to nil")
-				}
-
-			}
+		if fields["FollowerCreatedOrder"] && curTable.FollowerCreatedOrder == nil {
+			return errors.New("sort field FollowerCreatedOrder can't be modified to nil")
 		}
+
 	}
 	return nil
 }
 
 //Get all the modified fields in the table
-func (s *SoExtFollowerWrap) getModifiedFields(oriTable *SoExtFollower, curTable *SoExtFollower) ([]string, error) {
+func (s *SoExtFollowerWrap) getModifiedFields(oriTable *SoExtFollower, curTable *SoExtFollower) (map[string]bool, bool, error) {
 	if oriTable == nil {
-		return nil, errors.New("table info is nil, can't get modified fields")
+		return nil, false, errors.New("table info is nil, can't get modified fields")
 	}
-	var list []string
+	hasWatcher := false
+	fields := make(map[string]bool)
 
 	if !reflect.DeepEqual(oriTable.FollowerCreatedOrder, curTable.FollowerCreatedOrder) {
-		list = append(list, "FollowerCreatedOrder")
+		fields["FollowerCreatedOrder"] = true
+		hasWatcher = hasWatcher || ExtFollowerHasFollowerCreatedOrderWatcher
 	}
 
-	return list, nil
+	hasWatcher = hasWatcher || ExtFollowerHasWholeWatcher
+	return fields, hasWatcher, nil
 }
 
-func (s *SoExtFollowerWrap) handleFieldMd(t FieldMdHandleType, so *SoExtFollower, fSli []string) error {
+func (s *SoExtFollowerWrap) handleFieldMd(t FieldMdHandleType, so *SoExtFollower, fields map[string]bool) error {
 	if so == nil {
 		return errors.New("fail to modify empty table")
 	}
 
 	//there is no field need to modify
-	if fSli == nil || len(fSli) < 1 {
+	if fields == nil || len(fields) < 1 {
 		return nil
 	}
 
 	errStr := ""
-	for _, fName := range fSli {
 
-		if fName == "FollowerCreatedOrder" {
-			res := true
-			if t == FieldMdHandleTypeCheck {
-				res = s.mdFieldFollowerCreatedOrder(so.FollowerCreatedOrder, true, false, false, so)
-				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
-			} else if t == FieldMdHandleTypeDel {
-				res = s.mdFieldFollowerCreatedOrder(so.FollowerCreatedOrder, false, true, false, so)
-				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
-			} else if t == FieldMdHandleTypeInsert {
-				res = s.mdFieldFollowerCreatedOrder(so.FollowerCreatedOrder, false, false, true, so)
-				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
-			}
-			if !res {
-				return errors.New(errStr)
-			}
+	if fields["FollowerCreatedOrder"] {
+		res := true
+		if t == FieldMdHandleTypeCheck {
+			res = s.mdFieldFollowerCreatedOrder(so.FollowerCreatedOrder, true, false, false, so)
+			errStr = fmt.Sprintf("fail to modify exist value of %v", "FollowerCreatedOrder")
+		} else if t == FieldMdHandleTypeDel {
+			res = s.mdFieldFollowerCreatedOrder(so.FollowerCreatedOrder, false, true, false, so)
+			errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", "FollowerCreatedOrder")
+		} else if t == FieldMdHandleTypeInsert {
+			res = s.mdFieldFollowerCreatedOrder(so.FollowerCreatedOrder, false, false, true, so)
+			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "FollowerCreatedOrder")
 		}
-
+		if !res {
+			return errors.New(errStr)
+		}
 	}
 
 	return nil
@@ -373,6 +380,12 @@ func (s *SoExtFollowerWrap) removeExtFollower() error {
 	if s.dba == nil {
 		return errors.New("database is nil")
 	}
+
+	var oldVal *SoExtFollower
+	if ExtFollowerHasAnyWatcher {
+		oldVal = s.getExtFollower()
+	}
+
 	//delete sort list key
 	if res := s.delAllSortKeys(true, nil); !res {
 		return errors.New("delAllSortKeys failed")
@@ -392,6 +405,11 @@ func (s *SoExtFollowerWrap) removeExtFollower() error {
 	if err == nil {
 		s.mKeyBuf = nil
 		s.mKeyFlag = -1
+
+		// call watchers
+		if ExtFollowerHasAnyWatcher && oldVal != nil {
+			ReportTableRecordDelete(s.mainKey, oldVal)
+		}
 		return nil
 	} else {
 		return fmt.Errorf("database.Delete failed: %s", err.Error())
@@ -864,4 +882,27 @@ func (s *UniExtFollowerFollowerInfoWrap) UniQueryFollowerInfo(start *prototype.F
 		}
 	}
 	return nil
+}
+
+////////////// SECTION Watchers ///////////////
+var (
+	ExtFollowerRecordType = reflect.TypeOf((*SoExtFollower)(nil)).Elem() // table record type
+
+	ExtFollowerHasFollowerCreatedOrderWatcher bool // any watcher on member FollowerCreatedOrder?
+
+	ExtFollowerHasWholeWatcher bool // any watcher on the whole record?
+	ExtFollowerHasAnyWatcher   bool // any watcher?
+)
+
+func ExtFollowerRecordWatcherChanged() {
+	ExtFollowerHasWholeWatcher = HasTableRecordWatcher(ExtFollowerRecordType, "")
+	ExtFollowerHasAnyWatcher = ExtFollowerHasWholeWatcher
+
+	ExtFollowerHasFollowerCreatedOrderWatcher = HasTableRecordWatcher(ExtFollowerRecordType, "FollowerCreatedOrder")
+	ExtFollowerHasAnyWatcher = ExtFollowerHasAnyWatcher || ExtFollowerHasFollowerCreatedOrderWatcher
+
+}
+
+func init() {
+	RegisterTableWatcherChangedCallback(ExtFollowerRecordType, ExtFollowerRecordWatcherChanged)
 }

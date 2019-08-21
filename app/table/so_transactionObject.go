@@ -125,6 +125,12 @@ func (s *SoTransactionObjectWrap) create(f func(tInfo *SoTransactionObject)) err
 	}
 
 	s.mKeyFlag = 1
+
+	// call watchers
+	if TransactionObjectHasAnyWatcher {
+		ReportTableRecordInsert(s.mainKey, val)
+	}
+
 	return nil
 }
 
@@ -170,7 +176,7 @@ func (s *SoTransactionObjectWrap) modify(f func(tInfo *SoTransactionObject)) err
 		return errors.New("primary key does not support modification")
 	}
 
-	fieldSli, err := s.getModifiedFields(oriTable, curTable)
+	fieldSli, hasWatcher, err := s.getModifiedFields(oriTable, curTable)
 	if err != nil {
 		return err
 	}
@@ -209,6 +215,11 @@ func (s *SoTransactionObjectWrap) modify(f func(tInfo *SoTransactionObject)) err
 		return err
 	}
 
+	// call watchers
+	if hasWatcher {
+		ReportTableRecordUpdate(s.mainKey, oriTable, curTable)
+	}
+
 	return nil
 
 }
@@ -231,65 +242,61 @@ func (s *SoTransactionObjectWrap) SetExpiration(p *prototype.TimePointSec, errAr
 	return s
 }
 
-func (s *SoTransactionObjectWrap) checkSortAndUniFieldValidity(curTable *SoTransactionObject, fieldSli []string) error {
-	if curTable != nil && fieldSli != nil && len(fieldSli) > 0 {
-		for _, fName := range fieldSli {
-			if len(fName) > 0 {
+func (s *SoTransactionObjectWrap) checkSortAndUniFieldValidity(curTable *SoTransactionObject, fields map[string]bool) error {
+	if curTable != nil && fields != nil && len(fields) > 0 {
 
-				if fName == "Expiration" && curTable.Expiration == nil {
-					return errors.New("sort field Expiration can't be modified to nil")
-				}
-
-			}
+		if fields["Expiration"] && curTable.Expiration == nil {
+			return errors.New("sort field Expiration can't be modified to nil")
 		}
+
 	}
 	return nil
 }
 
 //Get all the modified fields in the table
-func (s *SoTransactionObjectWrap) getModifiedFields(oriTable *SoTransactionObject, curTable *SoTransactionObject) ([]string, error) {
+func (s *SoTransactionObjectWrap) getModifiedFields(oriTable *SoTransactionObject, curTable *SoTransactionObject) (map[string]bool, bool, error) {
 	if oriTable == nil {
-		return nil, errors.New("table info is nil, can't get modified fields")
+		return nil, false, errors.New("table info is nil, can't get modified fields")
 	}
-	var list []string
+	hasWatcher := false
+	fields := make(map[string]bool)
 
 	if !reflect.DeepEqual(oriTable.Expiration, curTable.Expiration) {
-		list = append(list, "Expiration")
+		fields["Expiration"] = true
+		hasWatcher = hasWatcher || TransactionObjectHasExpirationWatcher
 	}
 
-	return list, nil
+	hasWatcher = hasWatcher || TransactionObjectHasWholeWatcher
+	return fields, hasWatcher, nil
 }
 
-func (s *SoTransactionObjectWrap) handleFieldMd(t FieldMdHandleType, so *SoTransactionObject, fSli []string) error {
+func (s *SoTransactionObjectWrap) handleFieldMd(t FieldMdHandleType, so *SoTransactionObject, fields map[string]bool) error {
 	if so == nil {
 		return errors.New("fail to modify empty table")
 	}
 
 	//there is no field need to modify
-	if fSli == nil || len(fSli) < 1 {
+	if fields == nil || len(fields) < 1 {
 		return nil
 	}
 
 	errStr := ""
-	for _, fName := range fSli {
 
-		if fName == "Expiration" {
-			res := true
-			if t == FieldMdHandleTypeCheck {
-				res = s.mdFieldExpiration(so.Expiration, true, false, false, so)
-				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
-			} else if t == FieldMdHandleTypeDel {
-				res = s.mdFieldExpiration(so.Expiration, false, true, false, so)
-				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
-			} else if t == FieldMdHandleTypeInsert {
-				res = s.mdFieldExpiration(so.Expiration, false, false, true, so)
-				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
-			}
-			if !res {
-				return errors.New(errStr)
-			}
+	if fields["Expiration"] {
+		res := true
+		if t == FieldMdHandleTypeCheck {
+			res = s.mdFieldExpiration(so.Expiration, true, false, false, so)
+			errStr = fmt.Sprintf("fail to modify exist value of %v", "Expiration")
+		} else if t == FieldMdHandleTypeDel {
+			res = s.mdFieldExpiration(so.Expiration, false, true, false, so)
+			errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", "Expiration")
+		} else if t == FieldMdHandleTypeInsert {
+			res = s.mdFieldExpiration(so.Expiration, false, false, true, so)
+			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "Expiration")
 		}
-
+		if !res {
+			return errors.New(errStr)
+		}
 	}
 
 	return nil
@@ -373,6 +380,12 @@ func (s *SoTransactionObjectWrap) removeTransactionObject() error {
 	if s.dba == nil {
 		return errors.New("database is nil")
 	}
+
+	var oldVal *SoTransactionObject
+	if TransactionObjectHasAnyWatcher {
+		oldVal = s.getTransactionObject()
+	}
+
 	//delete sort list key
 	if res := s.delAllSortKeys(true, nil); !res {
 		return errors.New("delAllSortKeys failed")
@@ -392,6 +405,11 @@ func (s *SoTransactionObjectWrap) removeTransactionObject() error {
 	if err == nil {
 		s.mKeyBuf = nil
 		s.mKeyFlag = -1
+
+		// call watchers
+		if TransactionObjectHasAnyWatcher && oldVal != nil {
+			ReportTableRecordDelete(s.mainKey, oldVal)
+		}
 		return nil
 	} else {
 		return fmt.Errorf("database.Delete failed: %s", err.Error())
@@ -864,4 +882,27 @@ func (s *UniTransactionObjectTrxIdWrap) UniQueryTrxId(start *prototype.Sha256) *
 		}
 	}
 	return nil
+}
+
+////////////// SECTION Watchers ///////////////
+var (
+	TransactionObjectRecordType = reflect.TypeOf((*SoTransactionObject)(nil)).Elem() // table record type
+
+	TransactionObjectHasExpirationWatcher bool // any watcher on member Expiration?
+
+	TransactionObjectHasWholeWatcher bool // any watcher on the whole record?
+	TransactionObjectHasAnyWatcher   bool // any watcher?
+)
+
+func TransactionObjectRecordWatcherChanged() {
+	TransactionObjectHasWholeWatcher = HasTableRecordWatcher(TransactionObjectRecordType, "")
+	TransactionObjectHasAnyWatcher = TransactionObjectHasWholeWatcher
+
+	TransactionObjectHasExpirationWatcher = HasTableRecordWatcher(TransactionObjectRecordType, "Expiration")
+	TransactionObjectHasAnyWatcher = TransactionObjectHasAnyWatcher || TransactionObjectHasExpirationWatcher
+
+}
+
+func init() {
+	RegisterTableWatcherChangedCallback(TransactionObjectRecordType, TransactionObjectRecordWatcherChanged)
 }

@@ -128,6 +128,12 @@ func (s *SoExtTrxWrap) create(f func(tInfo *SoExtTrx)) error {
 	}
 
 	s.mKeyFlag = 1
+
+	// call watchers
+	if ExtTrxHasAnyWatcher {
+		ReportTableRecordInsert(s.mainKey, val)
+	}
+
 	return nil
 }
 
@@ -173,7 +179,7 @@ func (s *SoExtTrxWrap) modify(f func(tInfo *SoExtTrx)) error {
 		return errors.New("primary key does not support modification")
 	}
 
-	fieldSli, err := s.getModifiedFields(oriTable, curTable)
+	fieldSli, hasWatcher, err := s.getModifiedFields(oriTable, curTable)
 	if err != nil {
 		return err
 	}
@@ -210,6 +216,11 @@ func (s *SoExtTrxWrap) modify(f func(tInfo *SoExtTrx)) error {
 	err = s.handleFieldMd(FieldMdHandleTypeInsert, curTable, fieldSli)
 	if err != nil {
 		return err
+	}
+
+	// call watchers
+	if hasWatcher {
+		ReportTableRecordUpdate(s.mainKey, oriTable, curTable)
 	}
 
 	return nil
@@ -274,153 +285,153 @@ func (s *SoExtTrxWrap) SetTrxWrap(p *prototype.TransactionWrapper, errArgs ...in
 	return s
 }
 
-func (s *SoExtTrxWrap) checkSortAndUniFieldValidity(curTable *SoExtTrx, fieldSli []string) error {
-	if curTable != nil && fieldSli != nil && len(fieldSli) > 0 {
-		for _, fName := range fieldSli {
-			if len(fName) > 0 {
+func (s *SoExtTrxWrap) checkSortAndUniFieldValidity(curTable *SoExtTrx, fields map[string]bool) error {
+	if curTable != nil && fields != nil && len(fields) > 0 {
 
-				if fName == "BlockTime" && curTable.BlockTime == nil {
-					return errors.New("sort field BlockTime can't be modified to nil")
-				}
-
-				if fName == "TrxCreateOrder" && curTable.TrxCreateOrder == nil {
-					return errors.New("sort field TrxCreateOrder can't be modified to nil")
-				}
-
-			}
+		if fields["BlockTime"] && curTable.BlockTime == nil {
+			return errors.New("sort field BlockTime can't be modified to nil")
 		}
+
+		if fields["TrxCreateOrder"] && curTable.TrxCreateOrder == nil {
+			return errors.New("sort field TrxCreateOrder can't be modified to nil")
+		}
+
 	}
 	return nil
 }
 
 //Get all the modified fields in the table
-func (s *SoExtTrxWrap) getModifiedFields(oriTable *SoExtTrx, curTable *SoExtTrx) ([]string, error) {
+func (s *SoExtTrxWrap) getModifiedFields(oriTable *SoExtTrx, curTable *SoExtTrx) (map[string]bool, bool, error) {
 	if oriTable == nil {
-		return nil, errors.New("table info is nil, can't get modified fields")
+		return nil, false, errors.New("table info is nil, can't get modified fields")
 	}
-	var list []string
+	hasWatcher := false
+	fields := make(map[string]bool)
 
 	if !reflect.DeepEqual(oriTable.BlockHeight, curTable.BlockHeight) {
-		list = append(list, "BlockHeight")
+		fields["BlockHeight"] = true
+		hasWatcher = hasWatcher || ExtTrxHasBlockHeightWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.BlockId, curTable.BlockId) {
-		list = append(list, "BlockId")
+		fields["BlockId"] = true
+		hasWatcher = hasWatcher || ExtTrxHasBlockIdWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.BlockTime, curTable.BlockTime) {
-		list = append(list, "BlockTime")
+		fields["BlockTime"] = true
+		hasWatcher = hasWatcher || ExtTrxHasBlockTimeWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.TrxCreateOrder, curTable.TrxCreateOrder) {
-		list = append(list, "TrxCreateOrder")
+		fields["TrxCreateOrder"] = true
+		hasWatcher = hasWatcher || ExtTrxHasTrxCreateOrderWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.TrxWrap, curTable.TrxWrap) {
-		list = append(list, "TrxWrap")
+		fields["TrxWrap"] = true
+		hasWatcher = hasWatcher || ExtTrxHasTrxWrapWatcher
 	}
 
-	return list, nil
+	hasWatcher = hasWatcher || ExtTrxHasWholeWatcher
+	return fields, hasWatcher, nil
 }
 
-func (s *SoExtTrxWrap) handleFieldMd(t FieldMdHandleType, so *SoExtTrx, fSli []string) error {
+func (s *SoExtTrxWrap) handleFieldMd(t FieldMdHandleType, so *SoExtTrx, fields map[string]bool) error {
 	if so == nil {
 		return errors.New("fail to modify empty table")
 	}
 
 	//there is no field need to modify
-	if fSli == nil || len(fSli) < 1 {
+	if fields == nil || len(fields) < 1 {
 		return nil
 	}
 
 	errStr := ""
-	for _, fName := range fSli {
 
-		if fName == "BlockHeight" {
-			res := true
-			if t == FieldMdHandleTypeCheck {
-				res = s.mdFieldBlockHeight(so.BlockHeight, true, false, false, so)
-				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
-			} else if t == FieldMdHandleTypeDel {
-				res = s.mdFieldBlockHeight(so.BlockHeight, false, true, false, so)
-				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
-			} else if t == FieldMdHandleTypeInsert {
-				res = s.mdFieldBlockHeight(so.BlockHeight, false, false, true, so)
-				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
-			}
-			if !res {
-				return errors.New(errStr)
-			}
+	if fields["BlockHeight"] {
+		res := true
+		if t == FieldMdHandleTypeCheck {
+			res = s.mdFieldBlockHeight(so.BlockHeight, true, false, false, so)
+			errStr = fmt.Sprintf("fail to modify exist value of %v", "BlockHeight")
+		} else if t == FieldMdHandleTypeDel {
+			res = s.mdFieldBlockHeight(so.BlockHeight, false, true, false, so)
+			errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", "BlockHeight")
+		} else if t == FieldMdHandleTypeInsert {
+			res = s.mdFieldBlockHeight(so.BlockHeight, false, false, true, so)
+			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "BlockHeight")
 		}
-
-		if fName == "BlockId" {
-			res := true
-			if t == FieldMdHandleTypeCheck {
-				res = s.mdFieldBlockId(so.BlockId, true, false, false, so)
-				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
-			} else if t == FieldMdHandleTypeDel {
-				res = s.mdFieldBlockId(so.BlockId, false, true, false, so)
-				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
-			} else if t == FieldMdHandleTypeInsert {
-				res = s.mdFieldBlockId(so.BlockId, false, false, true, so)
-				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
-			}
-			if !res {
-				return errors.New(errStr)
-			}
+		if !res {
+			return errors.New(errStr)
 		}
+	}
 
-		if fName == "BlockTime" {
-			res := true
-			if t == FieldMdHandleTypeCheck {
-				res = s.mdFieldBlockTime(so.BlockTime, true, false, false, so)
-				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
-			} else if t == FieldMdHandleTypeDel {
-				res = s.mdFieldBlockTime(so.BlockTime, false, true, false, so)
-				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
-			} else if t == FieldMdHandleTypeInsert {
-				res = s.mdFieldBlockTime(so.BlockTime, false, false, true, so)
-				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
-			}
-			if !res {
-				return errors.New(errStr)
-			}
+	if fields["BlockId"] {
+		res := true
+		if t == FieldMdHandleTypeCheck {
+			res = s.mdFieldBlockId(so.BlockId, true, false, false, so)
+			errStr = fmt.Sprintf("fail to modify exist value of %v", "BlockId")
+		} else if t == FieldMdHandleTypeDel {
+			res = s.mdFieldBlockId(so.BlockId, false, true, false, so)
+			errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", "BlockId")
+		} else if t == FieldMdHandleTypeInsert {
+			res = s.mdFieldBlockId(so.BlockId, false, false, true, so)
+			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "BlockId")
 		}
-
-		if fName == "TrxCreateOrder" {
-			res := true
-			if t == FieldMdHandleTypeCheck {
-				res = s.mdFieldTrxCreateOrder(so.TrxCreateOrder, true, false, false, so)
-				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
-			} else if t == FieldMdHandleTypeDel {
-				res = s.mdFieldTrxCreateOrder(so.TrxCreateOrder, false, true, false, so)
-				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
-			} else if t == FieldMdHandleTypeInsert {
-				res = s.mdFieldTrxCreateOrder(so.TrxCreateOrder, false, false, true, so)
-				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
-			}
-			if !res {
-				return errors.New(errStr)
-			}
+		if !res {
+			return errors.New(errStr)
 		}
+	}
 
-		if fName == "TrxWrap" {
-			res := true
-			if t == FieldMdHandleTypeCheck {
-				res = s.mdFieldTrxWrap(so.TrxWrap, true, false, false, so)
-				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
-			} else if t == FieldMdHandleTypeDel {
-				res = s.mdFieldTrxWrap(so.TrxWrap, false, true, false, so)
-				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
-			} else if t == FieldMdHandleTypeInsert {
-				res = s.mdFieldTrxWrap(so.TrxWrap, false, false, true, so)
-				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
-			}
-			if !res {
-				return errors.New(errStr)
-			}
+	if fields["BlockTime"] {
+		res := true
+		if t == FieldMdHandleTypeCheck {
+			res = s.mdFieldBlockTime(so.BlockTime, true, false, false, so)
+			errStr = fmt.Sprintf("fail to modify exist value of %v", "BlockTime")
+		} else if t == FieldMdHandleTypeDel {
+			res = s.mdFieldBlockTime(so.BlockTime, false, true, false, so)
+			errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", "BlockTime")
+		} else if t == FieldMdHandleTypeInsert {
+			res = s.mdFieldBlockTime(so.BlockTime, false, false, true, so)
+			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "BlockTime")
 		}
+		if !res {
+			return errors.New(errStr)
+		}
+	}
 
+	if fields["TrxCreateOrder"] {
+		res := true
+		if t == FieldMdHandleTypeCheck {
+			res = s.mdFieldTrxCreateOrder(so.TrxCreateOrder, true, false, false, so)
+			errStr = fmt.Sprintf("fail to modify exist value of %v", "TrxCreateOrder")
+		} else if t == FieldMdHandleTypeDel {
+			res = s.mdFieldTrxCreateOrder(so.TrxCreateOrder, false, true, false, so)
+			errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", "TrxCreateOrder")
+		} else if t == FieldMdHandleTypeInsert {
+			res = s.mdFieldTrxCreateOrder(so.TrxCreateOrder, false, false, true, so)
+			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "TrxCreateOrder")
+		}
+		if !res {
+			return errors.New(errStr)
+		}
+	}
+
+	if fields["TrxWrap"] {
+		res := true
+		if t == FieldMdHandleTypeCheck {
+			res = s.mdFieldTrxWrap(so.TrxWrap, true, false, false, so)
+			errStr = fmt.Sprintf("fail to modify exist value of %v", "TrxWrap")
+		} else if t == FieldMdHandleTypeDel {
+			res = s.mdFieldTrxWrap(so.TrxWrap, false, true, false, so)
+			errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", "TrxWrap")
+		} else if t == FieldMdHandleTypeInsert {
+			res = s.mdFieldTrxWrap(so.TrxWrap, false, false, true, so)
+			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "TrxWrap")
+		}
+		if !res {
+			return errors.New(errStr)
+		}
 	}
 
 	return nil
@@ -650,6 +661,12 @@ func (s *SoExtTrxWrap) removeExtTrx() error {
 	if s.dba == nil {
 		return errors.New("database is nil")
 	}
+
+	var oldVal *SoExtTrx
+	if ExtTrxHasAnyWatcher {
+		oldVal = s.getExtTrx()
+	}
+
 	//delete sort list key
 	if res := s.delAllSortKeys(true, nil); !res {
 		return errors.New("delAllSortKeys failed")
@@ -669,6 +686,11 @@ func (s *SoExtTrxWrap) removeExtTrx() error {
 	if err == nil {
 		s.mKeyBuf = nil
 		s.mKeyFlag = -1
+
+		// call watchers
+		if ExtTrxHasAnyWatcher && oldVal != nil {
+			ReportTableRecordDelete(s.mainKey, oldVal)
+		}
 		return nil
 	} else {
 		return fmt.Errorf("database.Delete failed: %s", err.Error())
@@ -1918,4 +1940,47 @@ func (s *UniExtTrxTrxIdWrap) UniQueryTrxId(start *prototype.Sha256) *SoExtTrxWra
 		}
 	}
 	return nil
+}
+
+////////////// SECTION Watchers ///////////////
+var (
+	ExtTrxRecordType = reflect.TypeOf((*SoExtTrx)(nil)).Elem() // table record type
+
+	ExtTrxHasBlockHeightWatcher bool // any watcher on member BlockHeight?
+
+	ExtTrxHasBlockIdWatcher bool // any watcher on member BlockId?
+
+	ExtTrxHasBlockTimeWatcher bool // any watcher on member BlockTime?
+
+	ExtTrxHasTrxCreateOrderWatcher bool // any watcher on member TrxCreateOrder?
+
+	ExtTrxHasTrxWrapWatcher bool // any watcher on member TrxWrap?
+
+	ExtTrxHasWholeWatcher bool // any watcher on the whole record?
+	ExtTrxHasAnyWatcher   bool // any watcher?
+)
+
+func ExtTrxRecordWatcherChanged() {
+	ExtTrxHasWholeWatcher = HasTableRecordWatcher(ExtTrxRecordType, "")
+	ExtTrxHasAnyWatcher = ExtTrxHasWholeWatcher
+
+	ExtTrxHasBlockHeightWatcher = HasTableRecordWatcher(ExtTrxRecordType, "BlockHeight")
+	ExtTrxHasAnyWatcher = ExtTrxHasAnyWatcher || ExtTrxHasBlockHeightWatcher
+
+	ExtTrxHasBlockIdWatcher = HasTableRecordWatcher(ExtTrxRecordType, "BlockId")
+	ExtTrxHasAnyWatcher = ExtTrxHasAnyWatcher || ExtTrxHasBlockIdWatcher
+
+	ExtTrxHasBlockTimeWatcher = HasTableRecordWatcher(ExtTrxRecordType, "BlockTime")
+	ExtTrxHasAnyWatcher = ExtTrxHasAnyWatcher || ExtTrxHasBlockTimeWatcher
+
+	ExtTrxHasTrxCreateOrderWatcher = HasTableRecordWatcher(ExtTrxRecordType, "TrxCreateOrder")
+	ExtTrxHasAnyWatcher = ExtTrxHasAnyWatcher || ExtTrxHasTrxCreateOrderWatcher
+
+	ExtTrxHasTrxWrapWatcher = HasTableRecordWatcher(ExtTrxRecordType, "TrxWrap")
+	ExtTrxHasAnyWatcher = ExtTrxHasAnyWatcher || ExtTrxHasTrxWrapWatcher
+
+}
+
+func init() {
+	RegisterTableWatcherChangedCallback(ExtTrxRecordType, ExtTrxRecordWatcherChanged)
 }

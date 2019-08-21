@@ -125,6 +125,12 @@ func (s *SoExtRewardWrap) create(f func(tInfo *SoExtReward)) error {
 	}
 
 	s.mKeyFlag = 1
+
+	// call watchers
+	if ExtRewardHasAnyWatcher {
+		ReportTableRecordInsert(s.mainKey, val)
+	}
+
 	return nil
 }
 
@@ -170,7 +176,7 @@ func (s *SoExtRewardWrap) modify(f func(tInfo *SoExtReward)) error {
 		return errors.New("primary key does not support modification")
 	}
 
-	fieldSli, err := s.getModifiedFields(oriTable, curTable)
+	fieldSli, hasWatcher, err := s.getModifiedFields(oriTable, curTable)
 	if err != nil {
 		return err
 	}
@@ -209,6 +215,11 @@ func (s *SoExtRewardWrap) modify(f func(tInfo *SoExtReward)) error {
 		return err
 	}
 
+	// call watchers
+	if hasWatcher {
+		ReportTableRecordUpdate(s.mainKey, oriTable, curTable)
+	}
+
 	return nil
 
 }
@@ -241,82 +252,79 @@ func (s *SoExtRewardWrap) SetReward(p *prototype.Vest, errArgs ...interface{}) *
 	return s
 }
 
-func (s *SoExtRewardWrap) checkSortAndUniFieldValidity(curTable *SoExtReward, fieldSli []string) error {
-	if curTable != nil && fieldSli != nil && len(fieldSli) > 0 {
-		for _, fName := range fieldSli {
-			if len(fName) > 0 {
+func (s *SoExtRewardWrap) checkSortAndUniFieldValidity(curTable *SoExtReward, fields map[string]bool) error {
+	if curTable != nil && fields != nil && len(fields) > 0 {
 
-			}
-		}
 	}
 	return nil
 }
 
 //Get all the modified fields in the table
-func (s *SoExtRewardWrap) getModifiedFields(oriTable *SoExtReward, curTable *SoExtReward) ([]string, error) {
+func (s *SoExtRewardWrap) getModifiedFields(oriTable *SoExtReward, curTable *SoExtReward) (map[string]bool, bool, error) {
 	if oriTable == nil {
-		return nil, errors.New("table info is nil, can't get modified fields")
+		return nil, false, errors.New("table info is nil, can't get modified fields")
 	}
-	var list []string
+	hasWatcher := false
+	fields := make(map[string]bool)
 
 	if !reflect.DeepEqual(oriTable.BlockHeight, curTable.BlockHeight) {
-		list = append(list, "BlockHeight")
+		fields["BlockHeight"] = true
+		hasWatcher = hasWatcher || ExtRewardHasBlockHeightWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.Reward, curTable.Reward) {
-		list = append(list, "Reward")
+		fields["Reward"] = true
+		hasWatcher = hasWatcher || ExtRewardHasRewardWatcher
 	}
 
-	return list, nil
+	hasWatcher = hasWatcher || ExtRewardHasWholeWatcher
+	return fields, hasWatcher, nil
 }
 
-func (s *SoExtRewardWrap) handleFieldMd(t FieldMdHandleType, so *SoExtReward, fSli []string) error {
+func (s *SoExtRewardWrap) handleFieldMd(t FieldMdHandleType, so *SoExtReward, fields map[string]bool) error {
 	if so == nil {
 		return errors.New("fail to modify empty table")
 	}
 
 	//there is no field need to modify
-	if fSli == nil || len(fSli) < 1 {
+	if fields == nil || len(fields) < 1 {
 		return nil
 	}
 
 	errStr := ""
-	for _, fName := range fSli {
 
-		if fName == "BlockHeight" {
-			res := true
-			if t == FieldMdHandleTypeCheck {
-				res = s.mdFieldBlockHeight(so.BlockHeight, true, false, false, so)
-				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
-			} else if t == FieldMdHandleTypeDel {
-				res = s.mdFieldBlockHeight(so.BlockHeight, false, true, false, so)
-				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
-			} else if t == FieldMdHandleTypeInsert {
-				res = s.mdFieldBlockHeight(so.BlockHeight, false, false, true, so)
-				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
-			}
-			if !res {
-				return errors.New(errStr)
-			}
+	if fields["BlockHeight"] {
+		res := true
+		if t == FieldMdHandleTypeCheck {
+			res = s.mdFieldBlockHeight(so.BlockHeight, true, false, false, so)
+			errStr = fmt.Sprintf("fail to modify exist value of %v", "BlockHeight")
+		} else if t == FieldMdHandleTypeDel {
+			res = s.mdFieldBlockHeight(so.BlockHeight, false, true, false, so)
+			errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", "BlockHeight")
+		} else if t == FieldMdHandleTypeInsert {
+			res = s.mdFieldBlockHeight(so.BlockHeight, false, false, true, so)
+			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "BlockHeight")
 		}
-
-		if fName == "Reward" {
-			res := true
-			if t == FieldMdHandleTypeCheck {
-				res = s.mdFieldReward(so.Reward, true, false, false, so)
-				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
-			} else if t == FieldMdHandleTypeDel {
-				res = s.mdFieldReward(so.Reward, false, true, false, so)
-				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
-			} else if t == FieldMdHandleTypeInsert {
-				res = s.mdFieldReward(so.Reward, false, false, true, so)
-				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
-			}
-			if !res {
-				return errors.New(errStr)
-			}
+		if !res {
+			return errors.New(errStr)
 		}
+	}
 
+	if fields["Reward"] {
+		res := true
+		if t == FieldMdHandleTypeCheck {
+			res = s.mdFieldReward(so.Reward, true, false, false, so)
+			errStr = fmt.Sprintf("fail to modify exist value of %v", "Reward")
+		} else if t == FieldMdHandleTypeDel {
+			res = s.mdFieldReward(so.Reward, false, true, false, so)
+			errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", "Reward")
+		} else if t == FieldMdHandleTypeInsert {
+			res = s.mdFieldReward(so.Reward, false, false, true, so)
+			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "Reward")
+		}
+		if !res {
+			return errors.New(errStr)
+		}
 	}
 
 	return nil
@@ -400,6 +408,12 @@ func (s *SoExtRewardWrap) removeExtReward() error {
 	if s.dba == nil {
 		return errors.New("database is nil")
 	}
+
+	var oldVal *SoExtReward
+	if ExtRewardHasAnyWatcher {
+		oldVal = s.getExtReward()
+	}
+
 	//delete sort list key
 	if res := s.delAllSortKeys(true, nil); !res {
 		return errors.New("delAllSortKeys failed")
@@ -419,6 +433,11 @@ func (s *SoExtRewardWrap) removeExtReward() error {
 	if err == nil {
 		s.mKeyBuf = nil
 		s.mKeyFlag = -1
+
+		// call watchers
+		if ExtRewardHasAnyWatcher && oldVal != nil {
+			ReportTableRecordDelete(s.mainKey, oldVal)
+		}
 		return nil
 	} else {
 		return fmt.Errorf("database.Delete failed: %s", err.Error())
@@ -1025,4 +1044,32 @@ func (s *UniExtRewardIdWrap) UniQueryId(start *prototype.RewardCashoutId) *SoExt
 		}
 	}
 	return nil
+}
+
+////////////// SECTION Watchers ///////////////
+var (
+	ExtRewardRecordType = reflect.TypeOf((*SoExtReward)(nil)).Elem() // table record type
+
+	ExtRewardHasBlockHeightWatcher bool // any watcher on member BlockHeight?
+
+	ExtRewardHasRewardWatcher bool // any watcher on member Reward?
+
+	ExtRewardHasWholeWatcher bool // any watcher on the whole record?
+	ExtRewardHasAnyWatcher   bool // any watcher?
+)
+
+func ExtRewardRecordWatcherChanged() {
+	ExtRewardHasWholeWatcher = HasTableRecordWatcher(ExtRewardRecordType, "")
+	ExtRewardHasAnyWatcher = ExtRewardHasWholeWatcher
+
+	ExtRewardHasBlockHeightWatcher = HasTableRecordWatcher(ExtRewardRecordType, "BlockHeight")
+	ExtRewardHasAnyWatcher = ExtRewardHasAnyWatcher || ExtRewardHasBlockHeightWatcher
+
+	ExtRewardHasRewardWatcher = HasTableRecordWatcher(ExtRewardRecordType, "Reward")
+	ExtRewardHasAnyWatcher = ExtRewardHasAnyWatcher || ExtRewardHasRewardWatcher
+
+}
+
+func init() {
+	RegisterTableWatcherChangedCallback(ExtRewardRecordType, ExtRewardRecordWatcherChanged)
 }

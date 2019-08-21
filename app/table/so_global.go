@@ -121,6 +121,12 @@ func (s *SoGlobalWrap) create(f func(tInfo *SoGlobal)) error {
 	}
 
 	s.mKeyFlag = 1
+
+	// call watchers
+	if GlobalHasAnyWatcher {
+		ReportTableRecordInsert(s.mainKey, val)
+	}
+
 	return nil
 }
 
@@ -166,7 +172,7 @@ func (s *SoGlobalWrap) modify(f func(tInfo *SoGlobal)) error {
 		return errors.New("primary key does not support modification")
 	}
 
-	fieldSli, err := s.getModifiedFields(oriTable, curTable)
+	fieldSli, hasWatcher, err := s.getModifiedFields(oriTable, curTable)
 	if err != nil {
 		return err
 	}
@@ -205,6 +211,11 @@ func (s *SoGlobalWrap) modify(f func(tInfo *SoGlobal)) error {
 		return err
 	}
 
+	// call watchers
+	if hasWatcher {
+		ReportTableRecordUpdate(s.mainKey, oriTable, curTable)
+	}
+
 	return nil
 
 }
@@ -227,61 +238,57 @@ func (s *SoGlobalWrap) SetProps(p *prototype.DynamicProperties, errArgs ...inter
 	return s
 }
 
-func (s *SoGlobalWrap) checkSortAndUniFieldValidity(curTable *SoGlobal, fieldSli []string) error {
-	if curTable != nil && fieldSli != nil && len(fieldSli) > 0 {
-		for _, fName := range fieldSli {
-			if len(fName) > 0 {
+func (s *SoGlobalWrap) checkSortAndUniFieldValidity(curTable *SoGlobal, fields map[string]bool) error {
+	if curTable != nil && fields != nil && len(fields) > 0 {
 
-			}
-		}
 	}
 	return nil
 }
 
 //Get all the modified fields in the table
-func (s *SoGlobalWrap) getModifiedFields(oriTable *SoGlobal, curTable *SoGlobal) ([]string, error) {
+func (s *SoGlobalWrap) getModifiedFields(oriTable *SoGlobal, curTable *SoGlobal) (map[string]bool, bool, error) {
 	if oriTable == nil {
-		return nil, errors.New("table info is nil, can't get modified fields")
+		return nil, false, errors.New("table info is nil, can't get modified fields")
 	}
-	var list []string
+	hasWatcher := false
+	fields := make(map[string]bool)
 
 	if !reflect.DeepEqual(oriTable.Props, curTable.Props) {
-		list = append(list, "Props")
+		fields["Props"] = true
+		hasWatcher = hasWatcher || GlobalHasPropsWatcher
 	}
 
-	return list, nil
+	hasWatcher = hasWatcher || GlobalHasWholeWatcher
+	return fields, hasWatcher, nil
 }
 
-func (s *SoGlobalWrap) handleFieldMd(t FieldMdHandleType, so *SoGlobal, fSli []string) error {
+func (s *SoGlobalWrap) handleFieldMd(t FieldMdHandleType, so *SoGlobal, fields map[string]bool) error {
 	if so == nil {
 		return errors.New("fail to modify empty table")
 	}
 
 	//there is no field need to modify
-	if fSli == nil || len(fSli) < 1 {
+	if fields == nil || len(fields) < 1 {
 		return nil
 	}
 
 	errStr := ""
-	for _, fName := range fSli {
 
-		if fName == "Props" {
-			res := true
-			if t == FieldMdHandleTypeCheck {
-				res = s.mdFieldProps(so.Props, true, false, false, so)
-				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
-			} else if t == FieldMdHandleTypeDel {
-				res = s.mdFieldProps(so.Props, false, true, false, so)
-				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
-			} else if t == FieldMdHandleTypeInsert {
-				res = s.mdFieldProps(so.Props, false, false, true, so)
-				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
-			}
-			if !res {
-				return errors.New(errStr)
-			}
+	if fields["Props"] {
+		res := true
+		if t == FieldMdHandleTypeCheck {
+			res = s.mdFieldProps(so.Props, true, false, false, so)
+			errStr = fmt.Sprintf("fail to modify exist value of %v", "Props")
+		} else if t == FieldMdHandleTypeDel {
+			res = s.mdFieldProps(so.Props, false, true, false, so)
+			errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", "Props")
+		} else if t == FieldMdHandleTypeInsert {
+			res = s.mdFieldProps(so.Props, false, false, true, so)
+			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "Props")
 		}
-
+		if !res {
+			return errors.New(errStr)
+		}
 	}
 
 	return nil
@@ -315,6 +322,12 @@ func (s *SoGlobalWrap) removeGlobal() error {
 	if s.dba == nil {
 		return errors.New("database is nil")
 	}
+
+	var oldVal *SoGlobal
+	if GlobalHasAnyWatcher {
+		oldVal = s.getGlobal()
+	}
+
 	//delete sort list key
 	if res := s.delAllSortKeys(true, nil); !res {
 		return errors.New("delAllSortKeys failed")
@@ -334,6 +347,11 @@ func (s *SoGlobalWrap) removeGlobal() error {
 	if err == nil {
 		s.mKeyBuf = nil
 		s.mKeyFlag = -1
+
+		// call watchers
+		if GlobalHasAnyWatcher && oldVal != nil {
+			ReportTableRecordDelete(s.mainKey, oldVal)
+		}
 		return nil
 	} else {
 		return fmt.Errorf("database.Delete failed: %s", err.Error())
@@ -682,4 +700,27 @@ func (s *UniGlobalIdWrap) UniQueryId(start *int32) *SoGlobalWrap {
 		}
 	}
 	return nil
+}
+
+////////////// SECTION Watchers ///////////////
+var (
+	GlobalRecordType = reflect.TypeOf((*SoGlobal)(nil)).Elem() // table record type
+
+	GlobalHasPropsWatcher bool // any watcher on member Props?
+
+	GlobalHasWholeWatcher bool // any watcher on the whole record?
+	GlobalHasAnyWatcher   bool // any watcher?
+)
+
+func GlobalRecordWatcherChanged() {
+	GlobalHasWholeWatcher = HasTableRecordWatcher(GlobalRecordType, "")
+	GlobalHasAnyWatcher = GlobalHasWholeWatcher
+
+	GlobalHasPropsWatcher = HasTableRecordWatcher(GlobalRecordType, "Props")
+	GlobalHasAnyWatcher = GlobalHasAnyWatcher || GlobalHasPropsWatcher
+
+}
+
+func init() {
+	RegisterTableWatcherChangedCallback(GlobalRecordType, GlobalRecordWatcherChanged)
 }
