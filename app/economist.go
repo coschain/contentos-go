@@ -324,7 +324,7 @@ func (e *Economist) Do(trxObserver iservices.ITrxObserver) {
 	e.cashoutReplies(replies)
 	e.cashoutDapps(dappsRoutes)
 
-	voteCashoutWrap := table.NewSoVoteCashoutWrap(e.db, &end)
+	voteCashoutWrap := table.NewSoVoteCashoutWrap(e.db, &globalProps.HeadBlockNumber)
 	if !voteCashoutWrap.CheckExist() {
 		return
 	}

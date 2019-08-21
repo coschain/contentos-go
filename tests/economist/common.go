@@ -30,6 +30,13 @@ func RegisterBlockProducer(account *DandelionAccount, t *testing.T)  {
 	registerBlockProducer(account, t)
 }
 
+func SelfTransferToVesting(accounts []*DandelionAccount, amount uint64, t *testing.T) {
+	a := assert.New(t)
+	for _, account := range accounts {
+		a.NoError(account.SendTrxAndProduceBlock(TransferToVest(account.Name, account.Name, amount, "")))
+	}
+}
+
 func bigDecay(rawValue *big.Int) *big.Int {
 	var decayValue big.Int
 	decayValue.Mul(rawValue, new(big.Int).SetUint64(constants.BlockInterval))
