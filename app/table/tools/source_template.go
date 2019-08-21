@@ -191,6 +191,12 @@ func (s *So{{.ClsName}}Wrap) create(f func(tInfo *So{{.ClsName}})) error {
     }
     {{end}}
     s.mKeyFlag = 1
+
+	// call watchers
+	if {{$.ClsName}}HasAnyWatcher {
+		ReportTableRecordInsert(s.mainKey, val)
+	}
+
 	return nil
 }
 
@@ -237,7 +243,7 @@ func (s *So{{.ClsName}}Wrap) modify(f func(tInfo *So{{.ClsName}})) error {
     }
 
  
-    fieldSli,err := s.getModifiedFields(oriTable, curTable)
+    fieldSli, hasWatcher, err := s.getModifiedFields(oriTable, curTable)
     if err != nil {
 		return err
 	}
@@ -276,7 +282,12 @@ func (s *So{{.ClsName}}Wrap) modify(f func(tInfo *So{{.ClsName}})) error {
     if err != nil {
        return err
     }
-    
+
+	// call watchers
+    if hasWatcher {
+		ReportTableRecordUpdate(s.mainKey, oriTable, curTable)
+	}
+
     return nil
 
 }
@@ -305,93 +316,86 @@ func (s *So{{$.ClsName}}Wrap) Set{{$k1}}(p {{formatRTypeStr $v1.PType}}, errArgs
 {{end}}
 {{end}}
 
-func (s *So{{$.ClsName}}Wrap) checkSortAndUniFieldValidity(curTable *So{{$.ClsName}}, fieldSli []string) error {
-     if curTable != nil && fieldSli != nil && len(fieldSli) > 0 {
-        for _,fName := range fieldSli {
-            if len(fName) > 0 {
-             {{range $k1, $v1 := .SortList}}
-            {{if ne $v1.PName $.MainKeyName}}
-             {{$baseType := (DetectBaseType $v1.PType) -}}
-	         {{if not $baseType -}} 
-             if fName == "{{$v1.PName}}" &&  curTable.{{$v1.PName}} == nil {
-                 return errors.New("sort field {{$v1.PName}} can't be modified to nil")
-             }
-             {{end}}
-
-            {{end}}
-            {{end}}
-
-            {{range $k2, $v2 := .UniqueFieldMap}}
-            {{if ne $v2.PName $.MainKeyName}}
-              {{$baseType := (DetectBaseType $v2.PType) -}}
-	          {{if not $baseType -}}
-              {{ $isSrt := checkIsContainField  $v2.PName $.LKeyWithType}} 
-              {{if eq $isSrt false }}
-              if fName == "{{$v2.PName}}" && curTable.{{$v2.PName}} == nil{
-                 return errors.New("unique field {{$v2.PName}} can't be modified to nil")
-              }
-              {{end}}
-              {{end}}
-             
-            {{end}}
-            {{end}}
-            }
+func (s *So{{$.ClsName}}Wrap) checkSortAndUniFieldValidity(curTable *So{{$.ClsName}}, fields map[string]bool) error {
+     if curTable != nil && fields != nil && len(fields) > 0 {
+		{{range $k1, $v1 := .SortList}}
+		{{if ne $v1.PName $.MainKeyName}}
+		{{$baseType := (DetectBaseType $v1.PType) -}}
+	    {{if not $baseType -}} 
+        if fields["{{$v1.PName}}"] &&  curTable.{{$v1.PName}} == nil {
+        	return errors.New("sort field {{$v1.PName}} can't be modified to nil")
         }
-     }
+        {{end}}
+		{{end}}
+        {{end}}
+		
+		{{range $k2, $v2 := .UniqueFieldMap}}
+		{{if ne $v2.PName $.MainKeyName}}
+        {{$baseType := (DetectBaseType $v2.PType) -}}
+		{{if not $baseType -}}
+		{{ $isSrt := checkIsContainField  $v2.PName $.LKeyWithType}} 
+		{{if eq $isSrt false }}
+        if fields["{{$v2.PName}}"] && curTable.{{$v2.PName}} == nil{
+        	return errors.New("unique field {{$v2.PName}} can't be modified to nil")
+        }
+        {{end}}
+        {{end}}
+        {{end}}
+        {{end}}
+	 }
      return nil
 }
 
 //Get all the modified fields in the table
-func (s *So{{$.ClsName}}Wrap) getModifiedFields (oriTable *So{{$.ClsName}}, curTable *So{{$.ClsName}}) ([]string, error) {
+func (s *So{{$.ClsName}}Wrap) getModifiedFields (oriTable *So{{$.ClsName}}, curTable *So{{$.ClsName}}) (map[string]bool, bool, error) {
      if oriTable == nil  {
-       return nil,errors.New("table info is nil, can't get modified fields")
+       return nil, false, errors.New("table info is nil, can't get modified fields")
 	 }
-     var list []string
+     hasWatcher := false
+     fields := make(map[string]bool)
      {{range $k1, $v1 := .MemberKeyMap}}
      {{if ne $k1 $.MainKeyName}}
      if !reflect.DeepEqual(oriTable.{{$k1}}, curTable.{{$k1}}) {
-		list = append(list, "{{$k1}}")
+		fields["{{$k1}}"] = true
+        hasWatcher = hasWatcher || {{$.ClsName}}Has{{$k1}}Watcher
 	 }
      {{end}}
      {{end}}
-     return list,nil
+     hasWatcher = hasWatcher || {{$.ClsName}}HasWholeWatcher
+     return fields, hasWatcher, nil
 }
 
-func (s *So{{$.ClsName}}Wrap) handleFieldMd (t FieldMdHandleType, so *So{{.ClsName}}, fSli []string) error {
+func (s *So{{$.ClsName}}Wrap) handleFieldMd (t FieldMdHandleType, so *So{{.ClsName}}, fields map[string]bool) error {
      if so == nil {
         return errors.New("fail to modify empty table")
      }
      
      //there is no field need to modify
-     if fSli == nil || len(fSli) < 1 {
+     if fields == nil || len(fields) < 1 {
         return nil
      }
 
-
      errStr := ""
-     for _,fName := range fSli {
-        {{range $k1, $v1 := .MemberKeyMap}}
-        {{if ne $k1 $.MainKeyName}}
-         if fName == "{{$k1}}" {
-             res := true
-            if t == FieldMdHandleTypeCheck {
-               res = s.mdField{{$k1}}(so.{{$k1}}, true, false, false, so)
-               errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
-            } else if t == FieldMdHandleTypeDel {
-               res = s.mdField{{$k1}}(so.{{$k1}}, false, true, false, so)
-               errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
-            } else if t == FieldMdHandleTypeInsert {
-               res = s.mdField{{$k1}}(so.{{$k1}}, false, false, true, so)
-               errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
-            } 
-            if !res {
-               return errors.New(errStr)
-            }
-         } 
-         {{end}}
-         {{end}}
-     }
-     
+     {{range $k1, $v1 := .MemberKeyMap}}
+     {{if ne $k1 $.MainKeyName}}
+     if fields["{{$k1}}"] {
+     	res := true
+     	if t == FieldMdHandleTypeCheck {
+     		res = s.mdField{{$k1}}(so.{{$k1}}, true, false, false, so)
+			errStr = fmt.Sprintf("fail to modify exist value of %v", "{{$k1}}")
+        } else if t == FieldMdHandleTypeDel {
+        	res = s.mdField{{$k1}}(so.{{$k1}}, false, true, false, so)
+        	errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", "{{$k1}}")
+        } else if t == FieldMdHandleTypeInsert {
+        	res = s.mdField{{$k1}}(so.{{$k1}}, false, false, true, so)
+        	errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "{{$k1}}")
+        } 
+        if !res {
+        	return errors.New(errStr)
+        }
+	 } 
+     {{end}}
+     {{end}}
      return nil
 }
 
@@ -493,6 +497,12 @@ func (s *So{{.ClsName}}Wrap) remove{{.ClsName}}() error {
     if s.dba == nil {
         return errors.New("database is nil")
     }
+
+	var oldVal *So{{.ClsName}}
+	if {{$.ClsName}}HasAnyWatcher {
+		oldVal = s.get{{$.ClsName}}()
+	}
+
     {{if ge  $.SListCount 0 -}}
     //delete sort list key
     if res := s.delAllSortKeys(true, nil); !res {
@@ -515,6 +525,11 @@ func (s *So{{.ClsName}}Wrap) remove{{.ClsName}}() error {
     if err == nil {
 		s.mKeyBuf = nil
 		s.mKeyFlag = -1
+
+		// call watchers
+		if {{$.ClsName}}HasAnyWatcher && oldVal != nil {
+			ReportTableRecordDelete(s.mainKey, oldVal)
+		}
 		return nil
 	}else{
 		return fmt.Errorf("database.Delete failed: %s", err.Error())
@@ -1109,6 +1124,33 @@ func (s *Uni{{$.ClsName}}{{$k}}Wrap) UniQuery{{$k}}(start *{{formatStr $v.PType}
 
 
 {{end}}
+
+////////////// SECTION Watchers ///////////////
+var (
+	{{$.ClsName}}RecordType = reflect.TypeOf((*So{{.ClsName}})(nil)).Elem()    // table record type
+	{{range $k1, $v1 := .MemberKeyMap}}
+	{{if ne $k1 $.MainKeyName}}
+	{{$.ClsName}}Has{{$k1}}Watcher bool     // any watcher on member {{$k1}}?
+	{{end}}
+	{{end}}
+	{{$.ClsName}}HasWholeWatcher bool       // any watcher on the whole record?
+	{{$.ClsName}}HasAnyWatcher bool         // any watcher?
+)
+
+func {{$.ClsName}}RecordWatcherChanged() {
+	{{$.ClsName}}HasWholeWatcher = HasTableRecordWatcher({{$.ClsName}}RecordType, "")
+	{{$.ClsName}}HasAnyWatcher = {{$.ClsName}}HasWholeWatcher
+	{{range $k1, $v1 := .MemberKeyMap}}
+	{{if ne $k1 $.MainKeyName}}
+	{{$.ClsName}}Has{{$k1}}Watcher = HasTableRecordWatcher({{$.ClsName}}RecordType, "{{$k1}}")
+	{{$.ClsName}}HasAnyWatcher = {{$.ClsName}}HasAnyWatcher || {{$.ClsName}}Has{{$k1}}Watcher
+	{{end}}
+	{{end}}
+}
+
+func init() {
+	RegisterTableWatcherChangedCallback({{$.ClsName}}RecordType, {{$.ClsName}}RecordWatcherChanged)
+}
 
 `
 	fName := TmlFolder + "so_" + tInfo.Name + ".go"
