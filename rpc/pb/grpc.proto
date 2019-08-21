@@ -124,6 +124,8 @@ service ApiService {
 
     rpc GetBlockProducerByName (GetBlockProducerByNameRequest) returns (BlockProducerResponse) {
     }
+    rpc GetAccountNameByPubKey (GetAccountNameByPubKeyRequest) returns (AccountResponse) {
+    }
 }
 
 
@@ -139,6 +141,10 @@ message GetTableContentRequest {
 
 message TableContentResponse {
     string table_content = 1;
+}
+
+message GetAccountNameByPubKeyRequest {
+    string public_key = 1;
 }
 
 message GetAccountByNameRequest {

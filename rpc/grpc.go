@@ -85,6 +85,22 @@ func (as *APIService) QueryTableContent(ctx context.Context, req *grpcpb.GetTabl
 	return res, nil
 }
 
+func (as *APIService) GetAccountNameByPubKey(ctx context.Context, req *grpcpb.GetAccountNameByPubKeyRequest ) (*grpcpb.AccountResponse, error) {
+	as.db.RLock()
+	defer as.db.RUnlock()
+
+	uniWrap := table.UniAccountPubKeyWrap{Dba: as.db}
+	pubkey,err := prototype.PublicKeyFromWIF(req.PublicKey)
+	if err != nil {
+		return &grpcpb.AccountResponse{},err
+	}
+
+	accountWrap := uniWrap.UniQueryPubKey(pubkey)
+
+	acct := as.getAccountResponseByName(accountWrap.GetName(),false)
+	return acct, nil
+}
+
 func (as *APIService) GetAccountByName(ctx context.Context, req *grpcpb.GetAccountByNameRequest) (*grpcpb.AccountResponse, error) {
 	as.db.RLock()
 	defer as.db.RUnlock()
