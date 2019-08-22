@@ -1,16 +1,14 @@
 package economist
 
 import (
+	"github.com/coschain/contentos-go/app"
+	"github.com/coschain/contentos-go/common/constants"
+	. "github.com/coschain/contentos-go/dandelion"
 	"github.com/coschain/contentos-go/prototype"
+	"github.com/stretchr/testify/assert"
 	"math"
 	"math/big"
 	"testing"
-)
-
-import (
-	"github.com/coschain/contentos-go/common/constants"
-	. "github.com/coschain/contentos-go/dandelion"
-	"github.com/stretchr/testify/assert"
 )
 
 type PostTester struct {
@@ -95,6 +93,7 @@ func (tester *PostTester) normal(t *testing.T, d *Dandelion) {
 	vest1 := d.Account(tester.acc0.Name).GetVest().Value
 	a.NoError(d.ProduceBlocks(1))
 	a.Equal(d.Account(tester.acc0.Name).GetVest().Value, vest1)
+	a.Equal(d.Post(POST).GetCashoutBlockNum(), app.CashoutCompleted)
 }
 
 func (tester *PostTester) cashout(t *testing.T, d *Dandelion) {

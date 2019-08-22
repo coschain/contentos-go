@@ -1,6 +1,7 @@
 package economist
 
 import (
+	"github.com/coschain/contentos-go/app"
 	"github.com/coschain/contentos-go/common/constants"
 	. "github.com/coschain/contentos-go/dandelion"
 	"github.com/coschain/contentos-go/prototype"
@@ -93,6 +94,7 @@ func (tester *ReplyTester) normal(t *testing.T, d *Dandelion) {
 	a.Equal(d.Account(tester.acc0.Name).GetVest().Value, vest1)
 	// make all post/test has been cashouted
 	a.NoError(d.ProduceBlocks(constants.PostCashOutDelayBlock))
+	a.Equal(d.Post(REPLY).GetCashoutBlockNum(), app.CashoutCompleted)
 }
 
 func (tester *ReplyTester) cashout(t *testing.T, d *Dandelion) {
