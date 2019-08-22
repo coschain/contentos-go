@@ -28,13 +28,14 @@ message so_account {
     uint64                      stamina_use_block      =      18;
     uint64                      stamina_free         =      19;
     uint64                      stamina_free_use_block      =      20;
-    prototype.vest              stake_vest     =      21;
-    prototype.time_point_sec    last_stake_time      =      22;
-    uint32                      reputation          =      23;
-    string                      reputation_memo      =      24;
-    uint32                      charged_ticket      =      25;
-    uint32                      freeze          =      26;
-    string                      freeze_memo      =      27;
+    prototype.vest              stake_vest_from_me     =      21;
+    prototype.vest              stake_vest_for_me     =      22;
+    prototype.time_point_sec    last_stake_time      =      23;
+    uint32                      reputation          =      24;
+    string                      reputation_memo      =      25;
+    uint32                      charged_ticket      =      26;
+    uint32                      freeze          =      27;
+    string                      freeze_memo      =      28;
       
 }
 

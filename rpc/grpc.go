@@ -927,10 +927,12 @@ func (as *APIService) getAccountResponseByName(name *prototype.AccountName, isNe
 		acctInfo.PostCount = accWrap.GetPostCount()
 		acctInfo.TrxCount = accWrap.GetCreatedTrxCount()
 		acctInfo.VotePower = accWrap.GetVotePower()
-		acctInfo.StakeVest = accWrap.GetStakeVest()
+		acctInfo.StakeVestForMe = accWrap.GetStakeVestForMe()
+		acctInfo.StakeVestFromMe = accWrap.GetStakeVestFromMe()
 		acctInfo.WithdrawRemains = accWrap.GetToPowerdown()
 		acctInfo.WithdrawEachTime = accWrap.GetEachPowerdownRate()
 		acctInfo.BpVoteCount = accWrap.GetBpVoteCount()
+		acctInfo.PublicKey = accWrap.GetPubKey()
 		currentBlockNum := gp.GetHeadBlockNumber()
 		currentTime := gp.GetTime()
 		nextWithdrawBlock := accWrap.GetNextPowerdownBlockNum()
@@ -957,12 +959,6 @@ func (as *APIService) getAccountResponseByName(name *prototype.AccountName, isNe
 				PerTicketWeight:       witWrap.GetPerTicketWeight(),
 				VoterCount:            witWrap.GetVoterCount(),
 			}
-		}
-
-		keyWrap := table.NewSoAccountWrap(as.db, name)
-
-		if keyWrap.CheckExist() {
-			acctInfo.PublicKey = keyWrap.GetPubKey()
 		}
 
 		followWrap := table.NewSoExtFollowCountWrap(as.db, name)

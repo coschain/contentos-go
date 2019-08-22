@@ -638,7 +638,8 @@ func (c *TrxPool) initGenesis() {
 		tInfo.ToPowerdown = &prototype.Vest{Value: 0}
 		tInfo.HasPowerdown = &prototype.Vest{Value: 0}
 		tInfo.PubKey = pubKey
-		tInfo.StakeVest = prototype.NewVest(0)
+		tInfo.StakeVestForMe = prototype.NewVest(0)
+		tInfo.StakeVestFromMe = prototype.NewVest(0)
 		tInfo.Reputation = constants.DefaultReputation
 		tInfo.ChargedTicket = 0
 		tInfo.VotePower = 1000
@@ -1103,7 +1104,7 @@ func (c *TrxPool) calculateUserMaxStamina(db iservices.IDatabaseRW,name string) 
 	accountWrap := table.NewSoAccountWrap(db, &prototype.AccountName{Value:name})
 
 	oneDayStamina := dgpWrap.GetProps().GetOneDayStamina()
-	stakeVest := accountWrap.GetStakeVest().Value
+	stakeVest := accountWrap.GetStakeVestForMe().Value
 
 	allStakeVest := dgpWrap.GetProps().StakeVest.Value
 	if allStakeVest == 0 {

@@ -197,7 +197,7 @@ message AccountInfo {
     uint64                                  stamina_free_remain  = 12;
     uint64                                  stamina_stake_remain  = 13;
     uint64                                  stamina_max     = 14;
-    prototype.vest                          stake_vest      = 15;
+    prototype.vest                          stake_vest_for_me = 15;
     prototype.vest                          withdraw_remains = 16;
     prototype.vest                          withdraw_each_time = 17;
     prototype.time_point_sec                next_withdraw_time =      18;
@@ -208,6 +208,7 @@ message AccountInfo {
     uint32                                  free_ticket = 23;
     uint32                                  freeze = 24;
     string                                  freeze_memo = 25;
+    prototype.vest                          stake_vest_from_me = 26;
 }
 
 message AccountResponse {

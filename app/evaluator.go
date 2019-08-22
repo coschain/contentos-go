@@ -263,7 +263,8 @@ func (ev *AccountCreateEvaluator) Apply() {
 		tInfo.ToPowerdown = &prototype.Vest{Value: 0}
 		tInfo.HasPowerdown = &prototype.Vest{Value: 0}
 		tInfo.PubKey = op.PubKey
-		tInfo.StakeVest = prototype.NewVest(0)
+		tInfo.StakeVestForMe = prototype.NewVest(0)
+		tInfo.StakeVestFromMe = prototype.NewVest(0)
 		tInfo.Reputation = constants.DefaultReputation
 		tInfo.ChargedTicket = 0
 		tInfo.VotePower = 1000
@@ -1089,12 +1090,13 @@ func (ev *StakeEvaluator) Apply() {
 	//fidWrap.SetBalance(fBalance)
 	fidWrap.Modify(func(tInfo *table.SoAccount) {
 		tInfo.Balance.Sub(op.Amount)
+		tInfo.StakeVestFromMe.Add(op.Amount.ToVest())
 	})
 
 	//tVests.Add(addVests)
 	//tidWrap.SetStakeVest(tVests)
 	tidWrap.Modify(func(tInfo *table.SoAccount) {
-		tInfo.StakeVest.Add(addVests)
+		tInfo.StakeVestForMe.Add(addVests)
 	})
 
 	// unique stake record
@@ -1153,7 +1155,7 @@ func (ev *UnStakeEvaluator) Apply() {
 	//vest.Sub(value.ToVest())
 	//debtorWrap.SetStakeVest(vest)
 	debtorWrap.Modify(func(tInfo *table.SoAccount) {
-		tInfo.StakeVest.Sub(value.ToVest())
+		tInfo.StakeVestForMe.Sub(value.ToVest())
 	})
 
 	//fBalance := creditorWrap.GetBalance()
@@ -1161,6 +1163,7 @@ func (ev *UnStakeEvaluator) Apply() {
 	//creditorWrap.SetBalance(fBalance)
 	creditorWrap.Modify(func(tInfo *table.SoAccount) {
 		tInfo.Balance.Add(value)
+		tInfo.StakeVestFromMe.Sub(op.Amount.ToVest())
 	})
 
 	// update stake record
