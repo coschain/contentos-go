@@ -65,12 +65,13 @@ func AddTableRecordFieldWatcher(dbSvcId uint32, recordType reflect.Type, primary
 		panic("watcher is not a function")
 	}
 	watcherType := watcher.Type()
-	if watcherType.NumIn() != 4 ||
-		watcherType.In(0).Kind() != reflect.Int ||
-		watcherType.In(1) != keyType ||
-		watcherType.In(2) != valType ||
-		watcherType.In(3) != valType {
-		panic(fmt.Sprintf("watcher function type must be func(event int, key %v, before, after %v)", keyType, valType))
+	if watcherType.NumIn() != 5 ||
+		watcherType.In(0).Kind() != reflect.String ||
+		watcherType.In(1).Kind() != reflect.Int ||
+		watcherType.In(2) != keyType ||
+		watcherType.In(3) != valType ||
+		watcherType.In(4) != valType {
+		panic(fmt.Sprintf("watcher function type must be func(dbBranch string, event int, key %v, before, after %v)", keyType, valType))
 	}
 
 	sTableWatchersLock.Lock()
@@ -119,7 +120,7 @@ func HasTableRecordWatcher(dbSvcId uint32, recordType reflect.Type, field string
 	return
 }
 
-func ReportTableRecordInsert(dbSvcId uint32, key interface{}, record interface{}) {
+func ReportTableRecordInsert(dbSvcId uint32, dbBranch string, key interface{}, record interface{}) {
 	sTableWatchersLock.RLock()
 	defer sTableWatchersLock.RUnlock()
 
@@ -127,12 +128,14 @@ func ReportTableRecordInsert(dbSvcId uint32, key interface{}, record interface{}
 		vRec := reflect.ValueOf(record)
 		if watchers, ok := dbWatchers[vRec.Type().Elem()]; ok {
 			vKey := reflect.ValueOf(key)
+			vBranch := reflect.ValueOf(dbBranch)
 			for _, w := range watchers {
 				vData := vRec
 				if len(w.field) > 0 {
 					vData = vRec.Elem().FieldByName(w.field)
 				}
 				w.callback.Call([]reflect.Value{
+					vBranch,
 					vTableRecordInsert,
 					vKey,
 					reflect.Zero(w.dataType),
@@ -143,7 +146,7 @@ func ReportTableRecordInsert(dbSvcId uint32, key interface{}, record interface{}
 	}
 }
 
-func ReportTableRecordUpdate(dbSvcId uint32, key interface{}, oldRecord, newRecord interface{}) {
+func ReportTableRecordUpdate(dbSvcId uint32, dbBranch string, key interface{}, oldRecord, newRecord interface{}) {
 	sTableWatchersLock.RLock()
 	defer sTableWatchersLock.RUnlock()
 
@@ -151,12 +154,14 @@ func ReportTableRecordUpdate(dbSvcId uint32, key interface{}, oldRecord, newReco
 		oldRec, newRec := reflect.ValueOf(oldRecord), reflect.ValueOf(newRecord)
 		if watchers, ok := dbWatchers[newRec.Type().Elem()]; ok {
 			vKey := reflect.ValueOf(key)
+			vBranch := reflect.ValueOf(dbBranch)
 			for _, w := range watchers {
 				oldData, newData := oldRec, newRec
 				if len(w.field) > 0 {
 					oldData, newData = oldRec.Elem().FieldByName(w.field), newRec.Elem().FieldByName(w.field)
 				}
 				w.callback.Call([]reflect.Value{
+					vBranch,
 					vTableRecordUpdate,
 					vKey,
 					oldData,
@@ -167,7 +172,7 @@ func ReportTableRecordUpdate(dbSvcId uint32, key interface{}, oldRecord, newReco
 	}
 }
 
-func ReportTableRecordDelete(dbSvcId uint32, key interface{}, record interface{}) {
+func ReportTableRecordDelete(dbSvcId uint32, dbBranch string, key interface{}, record interface{}) {
 	sTableWatchersLock.RLock()
 	defer sTableWatchersLock.RUnlock()
 
@@ -175,12 +180,14 @@ func ReportTableRecordDelete(dbSvcId uint32, key interface{}, record interface{}
 		vRec := reflect.ValueOf(record)
 		if watchers, ok := dbWatchers[vRec.Type().Elem()]; ok {
 			vKey := reflect.ValueOf(key)
+			vBranch := reflect.ValueOf(dbBranch)
 			for _, w := range watchers {
 				vData := vRec
 				if len(w.field) > 0 {
 					vData = vRec.Elem().FieldByName(w.field)
 				}
 				w.callback.Call([]reflect.Value{
+					vBranch,
 					vTableRecordDelete,
 					vKey,
 					vData,

@@ -139,7 +139,7 @@ func (s *SoExtRewardWrap) create(f func(tInfo *SoExtReward)) error {
 	// call watchers
 	s.initWatcherFlag()
 	if s.watcherFlag.AnyWatcher {
-		ReportTableRecordInsert(s.dba.ServiceId(), s.mainKey, val)
+		ReportTableRecordInsert(s.dba.ServiceId(), s.dba.BranchId(), s.mainKey, val)
 	}
 
 	return nil
@@ -229,7 +229,7 @@ func (s *SoExtRewardWrap) modify(f func(tInfo *SoExtReward)) error {
 
 	// call watchers
 	if hasWatcher {
-		ReportTableRecordUpdate(s.dba.ServiceId(), s.mainKey, oriTable, curTable)
+		ReportTableRecordUpdate(s.dba.ServiceId(), s.dba.BranchId(), s.mainKey, oriTable, curTable)
 	}
 
 	return nil
@@ -450,7 +450,7 @@ func (s *SoExtRewardWrap) removeExtReward() error {
 
 		// call watchers
 		if s.watcherFlag.AnyWatcher && oldVal != nil {
-			ReportTableRecordDelete(s.dba.ServiceId(), s.mainKey, oldVal)
+			ReportTableRecordDelete(s.dba.ServiceId(), s.dba.BranchId(), s.mainKey, oldVal)
 		}
 		return nil
 	} else {

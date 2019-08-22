@@ -58,6 +58,10 @@ func (s *DatabaseService) ServiceId() uint32 {
 	return s.sid
 }
 
+func (s *DatabaseService) BranchId() string {
+	return iservices.DbTrunk
+}
+
 func (s *DatabaseService) Start(node *node.Node) error {
 	db, err := NewLevelDatabase(s.path)
 	if err != nil {
@@ -235,6 +239,9 @@ func (s *DatabaseService) RUnlock() {
 	s.lock.RUnlock()
 }
 
-func (s *DatabaseService) NewPatch() iservices.IDatabasePatch {
-	return NewDatabasePatch(s.sid, s.tdb)
+func (s *DatabaseService) NewPatch(branchId...string) iservices.IDatabasePatch {
+	if len(branchId) == 0 {
+		return NewDatabasePatch(s.sid, s.BranchId(), s.tdb)
+	}
+	return NewDatabasePatch(s.sid, branchId[0], s.tdb)
 }

@@ -5,6 +5,7 @@ package iservices
 //
 
 var DbServerName = "db"
+var DbTrunk = ""
 
 //
 // interface for transaction executor
@@ -28,6 +29,7 @@ type IDatabaseBatch interface {
 
 type IDatabaseServiceId interface {
 	ServiceId() uint32
+	BranchId() string
 }
 
 type IDatabaseRW interface {
@@ -66,7 +68,7 @@ type IDatabasePatch interface {
 	Apply() error
 
 	// patch on patch
-	NewPatch() IDatabasePatch
+	NewPatch(branchId...string) IDatabasePatch
 }
 
 //
@@ -158,5 +160,5 @@ type IDatabaseService interface {
 	RLock()
 	RUnlock()
 
-	NewPatch() IDatabasePatch
+	NewPatch(branchId...string) IDatabasePatch
 }
