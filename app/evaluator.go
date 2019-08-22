@@ -1102,17 +1102,19 @@ func (ev *StakeEvaluator) Apply() {
 		From:   op.From,
 		To: op.To,
 	})
+	headBlockTime := ev.GlobalProp().HeadBlockTime()
 	if !recordWrap.CheckExist() {
 		recordWrap.Create(func(record *table.SoStakeRecord) {
 			record.Record = &prototype.StakeRecord{
-				From:   &prototype.AccountName{Value: op.From.Value},
-				To: &prototype.AccountName{Value: op.To.Value},
+				From:  op.From,
+				To: op.To,
 			}
 			record.RecordReverse = &prototype.StakeRecordReverse{
-				To:&prototype.AccountName{Value: op.To.Value},
-				From:   &prototype.AccountName{Value: op.From.Value},
+				To: op.To,
+				From: op.From,
 			}
-			record.StakeAmount = prototype.NewVest(addVests.Value)
+			record.StakeAmount = addVests
+			record.LastStakeTime = headBlockTime
 		})
 	} else {
 		//oldVest := recordWrap.GetStakeAmount()
@@ -1120,10 +1122,9 @@ func (ev *StakeEvaluator) Apply() {
 		//recordWrap.SetStakeAmount(oldVest)
 		recordWrap.Modify(func(tInfo *table.SoStakeRecord) {
 			tInfo.StakeAmount.Add(addVests)
+			tInfo.LastStakeTime = headBlockTime
 		})
 	}
-	headBlockTime := ev.GlobalProp().HeadBlockTime()
-	recordWrap.SetLastStakeTime(headBlockTime)
 
 	ev.GlobalProp().TransferToVest(op.Amount)
 	ev.GlobalProp().TransferToStakeVest(op.Amount)
