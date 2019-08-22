@@ -642,7 +642,7 @@ func (c *TrxPool) initGenesis() {
 		tInfo.StakeVestFromMe = prototype.NewVest(0)
 		tInfo.Reputation = constants.DefaultReputation
 		tInfo.ChargedTicket = 0
-		tInfo.VotePower = 1000
+		tInfo.VotePower = constants.FullVP
 	})
 
 	// create block_producer_object
@@ -678,18 +678,23 @@ func (c *TrxPool) initGenesis() {
 		tInfo.Props.TpsExpected = constants.DefaultTPSExpected
 		tInfo.Props.AccountCreateFee = prototype.NewCoin(constants.DefaultAccountCreateFee)
 		tInfo.Props.TotalVest = prototype.NewVest(0)
-		tInfo.Props.PoolPostRewards = prototype.NewVest(0)
-		tInfo.Props.PoolReplyRewards = prototype.NewVest(0)
 		//tInfo.Props.PostWeightedVps = "0"
 		//tInfo.Props.ReplyWeightedVps = "0"
-		tInfo.Props.PostWeightedVps = constants.InitPostWeightedVps
-		tInfo.Props.ReplyWeightedVps = constants.InitReplyWeightedVps
+		tInfo.Props.WeightedVpsPost = constants.InitPostWeightedVps
+		tInfo.Props.WeightedVpsReply = constants.InitReplyWeightedVps
+		tInfo.Props.WeightedVpsVote = constants.InitVoteWeightedVps
+		tInfo.Props.WeightedVpsDapp = constants.InitDappWeightedVps
 		tInfo.Props.IthYear = 1
 		tInfo.Props.AnnualBudget = prototype.NewVest(0)
 		tInfo.Props.AnnualMinted = prototype.NewVest(0)
-		tInfo.Props.PoolPostDappRewards = prototype.NewVest(0)
-		tInfo.Props.PoolReplyDappRewards = prototype.NewVest(0)
-		tInfo.Props.PoolVoterRewards = prototype.NewVest(0)
+		tInfo.Props.PoolPostRewards = prototype.NewVest(0)
+		tInfo.Props.PoolReplyRewards = prototype.NewVest(0)
+		tInfo.Props.PoolDappRewards = prototype.NewVest(0)
+		tInfo.Props.PoolVoteRewards = prototype.NewVest(0)
+		tInfo.Props.ClaimedPostRewards = prototype.NewVest(0)
+		tInfo.Props.ClaimedReplyRewards = prototype.NewVest(0)
+		tInfo.Props.ClaimedVoteRewards = prototype.NewVest(0)
+		tInfo.Props.ClaimedDappRewards = prototype.NewVest(0)
 		tInfo.Props.StakeVest = prototype.NewVest(0)
 		tInfo.Props.OneDayStamina = constants.OneDayStamina
 		tInfo.Props.CurrentEpochStartBlock = 0
@@ -700,7 +705,6 @@ func (c *TrxPool) initGenesis() {
 		tInfo.Props.TicketsIncome = prototype.NewVest(0)
 		tInfo.Props.ChargedTicketsNum = 0
 		tInfo.Props.TicketsBpBonus = prototype.NewVest(0)
-		tInfo.Props.VoteWeightedVps = constants.InitVoteWeightedVps
 	})
 
 	// create block summary buffer 2048
