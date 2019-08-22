@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"sync"
 
 	"github.com/coschain/contentos-go/common/encoding/kope"
 	"github.com/coschain/contentos-go/iservices"
@@ -22,19 +23,21 @@ var (
 
 ////////////// SECTION Wrap Define ///////////////
 type SoBlockProducerWrap struct {
-	dba       iservices.IDatabaseRW
-	mainKey   *prototype.AccountName
-	mKeyFlag  int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
-	mKeyBuf   []byte //the buffer after the main key is encoded with prefix
-	mBuf      []byte //the value after the main key is encoded
-	mdFuncMap map[string]interface{}
+	dba         iservices.IDatabaseRW
+	mainKey     *prototype.AccountName
+	watcherFlag *BlockProducerWatcherFlag
+	mKeyFlag    int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
+	mKeyBuf     []byte //the buffer after the main key is encoded with prefix
+	mBuf        []byte //the value after the main key is encoded
+	mdFuncMap   map[string]interface{}
 }
 
 func NewSoBlockProducerWrap(dba iservices.IDatabaseRW, key *prototype.AccountName) *SoBlockProducerWrap {
 	if dba == nil || key == nil {
 		return nil
 	}
-	result := &SoBlockProducerWrap{dba, key, -1, nil, nil, nil}
+	result := &SoBlockProducerWrap{dba, key, nil, -1, nil, nil, nil}
+	result.initWatcherFlag()
 	return result
 }
 
@@ -78,6 +81,13 @@ func (s *SoBlockProducerWrap) MustNotExist(errMsgs ...interface{}) *SoBlockProdu
 		panic(bindErrorInfo(fmt.Sprintf("SoBlockProducerWrap.MustNotExist: %v already exists", s.mainKey), errMsgs...))
 	}
 	return s
+}
+
+func (s *SoBlockProducerWrap) initWatcherFlag() {
+	if s.watcherFlag == nil {
+		s.watcherFlag = new(BlockProducerWatcherFlag)
+		*(s.watcherFlag) = BlockProducerWatcherFlagOfDb(s.dba.ServiceId())
+	}
 }
 
 func (s *SoBlockProducerWrap) create(f func(tInfo *SoBlockProducer)) error {
@@ -128,8 +138,9 @@ func (s *SoBlockProducerWrap) create(f func(tInfo *SoBlockProducer)) error {
 	s.mKeyFlag = 1
 
 	// call watchers
-	if BlockProducerHasAnyWatcher {
-		ReportTableRecordInsert(s.mainKey, val)
+	s.initWatcherFlag()
+	if s.watcherFlag.AnyWatcher {
+		ReportTableRecordInsert(s.dba.ServiceId(), s.mainKey, val)
 	}
 
 	return nil
@@ -177,6 +188,7 @@ func (s *SoBlockProducerWrap) modify(f func(tInfo *SoBlockProducer)) error {
 		return errors.New("primary key does not support modification")
 	}
 
+	s.initWatcherFlag()
 	fieldSli, hasWatcher, err := s.getModifiedFields(oriTable, curTable)
 	if err != nil {
 		return err
@@ -218,7 +230,7 @@ func (s *SoBlockProducerWrap) modify(f func(tInfo *SoBlockProducer)) error {
 
 	// call watchers
 	if hasWatcher {
-		ReportTableRecordUpdate(s.mainKey, oriTable, curTable)
+		ReportTableRecordUpdate(s.dba.ServiceId(), s.mainKey, oriTable, curTable)
 	}
 
 	return nil
@@ -374,65 +386,65 @@ func (s *SoBlockProducerWrap) getModifiedFields(oriTable *SoBlockProducer, curTa
 
 	if !reflect.DeepEqual(oriTable.AccountCreateFee, curTable.AccountCreateFee) {
 		fields["AccountCreateFee"] = true
-		hasWatcher = hasWatcher || BlockProducerHasAccountCreateFeeWatcher
+		hasWatcher = hasWatcher || s.watcherFlag.HasAccountCreateFeeWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.BpVest, curTable.BpVest) {
 		fields["BpVest"] = true
-		hasWatcher = hasWatcher || BlockProducerHasBpVestWatcher
+		hasWatcher = hasWatcher || s.watcherFlag.HasBpVestWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.CreatedTime, curTable.CreatedTime) {
 		fields["CreatedTime"] = true
-		hasWatcher = hasWatcher || BlockProducerHasCreatedTimeWatcher
+		hasWatcher = hasWatcher || s.watcherFlag.HasCreatedTimeWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.EpochDuration, curTable.EpochDuration) {
 		fields["EpochDuration"] = true
-		hasWatcher = hasWatcher || BlockProducerHasEpochDurationWatcher
+		hasWatcher = hasWatcher || s.watcherFlag.HasEpochDurationWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.PerTicketPrice, curTable.PerTicketPrice) {
 		fields["PerTicketPrice"] = true
-		hasWatcher = hasWatcher || BlockProducerHasPerTicketPriceWatcher
+		hasWatcher = hasWatcher || s.watcherFlag.HasPerTicketPriceWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.PerTicketWeight, curTable.PerTicketWeight) {
 		fields["PerTicketWeight"] = true
-		hasWatcher = hasWatcher || BlockProducerHasPerTicketWeightWatcher
+		hasWatcher = hasWatcher || s.watcherFlag.HasPerTicketWeightWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.ProposedStaminaFree, curTable.ProposedStaminaFree) {
 		fields["ProposedStaminaFree"] = true
-		hasWatcher = hasWatcher || BlockProducerHasProposedStaminaFreeWatcher
+		hasWatcher = hasWatcher || s.watcherFlag.HasProposedStaminaFreeWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.SigningKey, curTable.SigningKey) {
 		fields["SigningKey"] = true
-		hasWatcher = hasWatcher || BlockProducerHasSigningKeyWatcher
+		hasWatcher = hasWatcher || s.watcherFlag.HasSigningKeyWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.TopNAcquireFreeToken, curTable.TopNAcquireFreeToken) {
 		fields["TopNAcquireFreeToken"] = true
-		hasWatcher = hasWatcher || BlockProducerHasTopNAcquireFreeTokenWatcher
+		hasWatcher = hasWatcher || s.watcherFlag.HasTopNAcquireFreeTokenWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.TpsExpected, curTable.TpsExpected) {
 		fields["TpsExpected"] = true
-		hasWatcher = hasWatcher || BlockProducerHasTpsExpectedWatcher
+		hasWatcher = hasWatcher || s.watcherFlag.HasTpsExpectedWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.Url, curTable.Url) {
 		fields["Url"] = true
-		hasWatcher = hasWatcher || BlockProducerHasUrlWatcher
+		hasWatcher = hasWatcher || s.watcherFlag.HasUrlWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.VoterCount, curTable.VoterCount) {
 		fields["VoterCount"] = true
-		hasWatcher = hasWatcher || BlockProducerHasVoterCountWatcher
+		hasWatcher = hasWatcher || s.watcherFlag.HasVoterCountWatcher
 	}
 
-	hasWatcher = hasWatcher || BlockProducerHasWholeWatcher
+	hasWatcher = hasWatcher || s.watcherFlag.WholeWatcher
 	return fields, hasWatcher, nil
 }
 
@@ -780,8 +792,10 @@ func (s *SoBlockProducerWrap) removeBlockProducer() error {
 		return errors.New("database is nil")
 	}
 
+	s.initWatcherFlag()
+
 	var oldVal *SoBlockProducer
-	if BlockProducerHasAnyWatcher {
+	if s.watcherFlag.AnyWatcher {
 		oldVal = s.getBlockProducer()
 	}
 
@@ -806,8 +820,8 @@ func (s *SoBlockProducerWrap) removeBlockProducer() error {
 		s.mKeyFlag = -1
 
 		// call watchers
-		if BlockProducerHasAnyWatcher && oldVal != nil {
-			ReportTableRecordDelete(s.mainKey, oldVal)
+		if s.watcherFlag.AnyWatcher && oldVal != nil {
+			ReportTableRecordDelete(s.dba.ServiceId(), s.mainKey, oldVal)
 		}
 		return nil
 	} else {
@@ -2289,77 +2303,92 @@ func (s *UniBlockProducerOwnerWrap) UniQueryOwner(start *prototype.AccountName) 
 }
 
 ////////////// SECTION Watchers ///////////////
+
+type BlockProducerWatcherFlag struct {
+	HasAccountCreateFeeWatcher bool
+
+	HasBpVestWatcher bool
+
+	HasCreatedTimeWatcher bool
+
+	HasEpochDurationWatcher bool
+
+	HasPerTicketPriceWatcher bool
+
+	HasPerTicketWeightWatcher bool
+
+	HasProposedStaminaFreeWatcher bool
+
+	HasSigningKeyWatcher bool
+
+	HasTopNAcquireFreeTokenWatcher bool
+
+	HasTpsExpectedWatcher bool
+
+	HasUrlWatcher bool
+
+	HasVoterCountWatcher bool
+
+	WholeWatcher bool
+	AnyWatcher   bool
+}
+
 var (
-	BlockProducerRecordType = reflect.TypeOf((*SoBlockProducer)(nil)).Elem() // table record type
-
-	BlockProducerHasAccountCreateFeeWatcher bool // any watcher on member AccountCreateFee?
-
-	BlockProducerHasBpVestWatcher bool // any watcher on member BpVest?
-
-	BlockProducerHasCreatedTimeWatcher bool // any watcher on member CreatedTime?
-
-	BlockProducerHasEpochDurationWatcher bool // any watcher on member EpochDuration?
-
-	BlockProducerHasPerTicketPriceWatcher bool // any watcher on member PerTicketPrice?
-
-	BlockProducerHasPerTicketWeightWatcher bool // any watcher on member PerTicketWeight?
-
-	BlockProducerHasProposedStaminaFreeWatcher bool // any watcher on member ProposedStaminaFree?
-
-	BlockProducerHasSigningKeyWatcher bool // any watcher on member SigningKey?
-
-	BlockProducerHasTopNAcquireFreeTokenWatcher bool // any watcher on member TopNAcquireFreeToken?
-
-	BlockProducerHasTpsExpectedWatcher bool // any watcher on member TpsExpected?
-
-	BlockProducerHasUrlWatcher bool // any watcher on member Url?
-
-	BlockProducerHasVoterCountWatcher bool // any watcher on member VoterCount?
-
-	BlockProducerHasWholeWatcher bool // any watcher on the whole record?
-	BlockProducerHasAnyWatcher   bool // any watcher?
+	BlockProducerRecordType       = reflect.TypeOf((*SoBlockProducer)(nil)).Elem()
+	BlockProducerWatcherFlags     = make(map[uint32]BlockProducerWatcherFlag)
+	BlockProducerWatcherFlagsLock sync.RWMutex
 )
 
-func BlockProducerRecordWatcherChanged() {
-	BlockProducerHasWholeWatcher = HasTableRecordWatcher(BlockProducerRecordType, "")
-	BlockProducerHasAnyWatcher = BlockProducerHasWholeWatcher
+func BlockProducerWatcherFlagOfDb(dbSvcId uint32) BlockProducerWatcherFlag {
+	BlockProducerWatcherFlagsLock.RLock()
+	defer BlockProducerWatcherFlagsLock.RUnlock()
+	return BlockProducerWatcherFlags[dbSvcId]
+}
 
-	BlockProducerHasAccountCreateFeeWatcher = HasTableRecordWatcher(BlockProducerRecordType, "AccountCreateFee")
-	BlockProducerHasAnyWatcher = BlockProducerHasAnyWatcher || BlockProducerHasAccountCreateFeeWatcher
+func BlockProducerRecordWatcherChanged(dbSvcId uint32) {
+	var flag BlockProducerWatcherFlag
+	flag.WholeWatcher = HasTableRecordWatcher(dbSvcId, BlockProducerRecordType, "")
+	flag.AnyWatcher = flag.WholeWatcher
 
-	BlockProducerHasBpVestWatcher = HasTableRecordWatcher(BlockProducerRecordType, "BpVest")
-	BlockProducerHasAnyWatcher = BlockProducerHasAnyWatcher || BlockProducerHasBpVestWatcher
+	flag.HasAccountCreateFeeWatcher = HasTableRecordWatcher(dbSvcId, BlockProducerRecordType, "AccountCreateFee")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasAccountCreateFeeWatcher
 
-	BlockProducerHasCreatedTimeWatcher = HasTableRecordWatcher(BlockProducerRecordType, "CreatedTime")
-	BlockProducerHasAnyWatcher = BlockProducerHasAnyWatcher || BlockProducerHasCreatedTimeWatcher
+	flag.HasBpVestWatcher = HasTableRecordWatcher(dbSvcId, BlockProducerRecordType, "BpVest")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasBpVestWatcher
 
-	BlockProducerHasEpochDurationWatcher = HasTableRecordWatcher(BlockProducerRecordType, "EpochDuration")
-	BlockProducerHasAnyWatcher = BlockProducerHasAnyWatcher || BlockProducerHasEpochDurationWatcher
+	flag.HasCreatedTimeWatcher = HasTableRecordWatcher(dbSvcId, BlockProducerRecordType, "CreatedTime")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasCreatedTimeWatcher
 
-	BlockProducerHasPerTicketPriceWatcher = HasTableRecordWatcher(BlockProducerRecordType, "PerTicketPrice")
-	BlockProducerHasAnyWatcher = BlockProducerHasAnyWatcher || BlockProducerHasPerTicketPriceWatcher
+	flag.HasEpochDurationWatcher = HasTableRecordWatcher(dbSvcId, BlockProducerRecordType, "EpochDuration")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasEpochDurationWatcher
 
-	BlockProducerHasPerTicketWeightWatcher = HasTableRecordWatcher(BlockProducerRecordType, "PerTicketWeight")
-	BlockProducerHasAnyWatcher = BlockProducerHasAnyWatcher || BlockProducerHasPerTicketWeightWatcher
+	flag.HasPerTicketPriceWatcher = HasTableRecordWatcher(dbSvcId, BlockProducerRecordType, "PerTicketPrice")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasPerTicketPriceWatcher
 
-	BlockProducerHasProposedStaminaFreeWatcher = HasTableRecordWatcher(BlockProducerRecordType, "ProposedStaminaFree")
-	BlockProducerHasAnyWatcher = BlockProducerHasAnyWatcher || BlockProducerHasProposedStaminaFreeWatcher
+	flag.HasPerTicketWeightWatcher = HasTableRecordWatcher(dbSvcId, BlockProducerRecordType, "PerTicketWeight")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasPerTicketWeightWatcher
 
-	BlockProducerHasSigningKeyWatcher = HasTableRecordWatcher(BlockProducerRecordType, "SigningKey")
-	BlockProducerHasAnyWatcher = BlockProducerHasAnyWatcher || BlockProducerHasSigningKeyWatcher
+	flag.HasProposedStaminaFreeWatcher = HasTableRecordWatcher(dbSvcId, BlockProducerRecordType, "ProposedStaminaFree")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasProposedStaminaFreeWatcher
 
-	BlockProducerHasTopNAcquireFreeTokenWatcher = HasTableRecordWatcher(BlockProducerRecordType, "TopNAcquireFreeToken")
-	BlockProducerHasAnyWatcher = BlockProducerHasAnyWatcher || BlockProducerHasTopNAcquireFreeTokenWatcher
+	flag.HasSigningKeyWatcher = HasTableRecordWatcher(dbSvcId, BlockProducerRecordType, "SigningKey")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasSigningKeyWatcher
 
-	BlockProducerHasTpsExpectedWatcher = HasTableRecordWatcher(BlockProducerRecordType, "TpsExpected")
-	BlockProducerHasAnyWatcher = BlockProducerHasAnyWatcher || BlockProducerHasTpsExpectedWatcher
+	flag.HasTopNAcquireFreeTokenWatcher = HasTableRecordWatcher(dbSvcId, BlockProducerRecordType, "TopNAcquireFreeToken")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasTopNAcquireFreeTokenWatcher
 
-	BlockProducerHasUrlWatcher = HasTableRecordWatcher(BlockProducerRecordType, "Url")
-	BlockProducerHasAnyWatcher = BlockProducerHasAnyWatcher || BlockProducerHasUrlWatcher
+	flag.HasTpsExpectedWatcher = HasTableRecordWatcher(dbSvcId, BlockProducerRecordType, "TpsExpected")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasTpsExpectedWatcher
 
-	BlockProducerHasVoterCountWatcher = HasTableRecordWatcher(BlockProducerRecordType, "VoterCount")
-	BlockProducerHasAnyWatcher = BlockProducerHasAnyWatcher || BlockProducerHasVoterCountWatcher
+	flag.HasUrlWatcher = HasTableRecordWatcher(dbSvcId, BlockProducerRecordType, "Url")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasUrlWatcher
 
+	flag.HasVoterCountWatcher = HasTableRecordWatcher(dbSvcId, BlockProducerRecordType, "VoterCount")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasVoterCountWatcher
+
+	BlockProducerWatcherFlagsLock.Lock()
+	BlockProducerWatcherFlags[dbSvcId] = flag
+	BlockProducerWatcherFlagsLock.Unlock()
 }
 
 func init() {

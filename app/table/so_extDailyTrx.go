@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"sync"
 
 	"github.com/coschain/contentos-go/common/encoding/kope"
 	"github.com/coschain/contentos-go/iservices"
@@ -22,19 +23,21 @@ var (
 
 ////////////// SECTION Wrap Define ///////////////
 type SoExtDailyTrxWrap struct {
-	dba       iservices.IDatabaseRW
-	mainKey   *prototype.TimePointSec
-	mKeyFlag  int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
-	mKeyBuf   []byte //the buffer after the main key is encoded with prefix
-	mBuf      []byte //the value after the main key is encoded
-	mdFuncMap map[string]interface{}
+	dba         iservices.IDatabaseRW
+	mainKey     *prototype.TimePointSec
+	watcherFlag *ExtDailyTrxWatcherFlag
+	mKeyFlag    int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
+	mKeyBuf     []byte //the buffer after the main key is encoded with prefix
+	mBuf        []byte //the value after the main key is encoded
+	mdFuncMap   map[string]interface{}
 }
 
 func NewSoExtDailyTrxWrap(dba iservices.IDatabaseRW, key *prototype.TimePointSec) *SoExtDailyTrxWrap {
 	if dba == nil || key == nil {
 		return nil
 	}
-	result := &SoExtDailyTrxWrap{dba, key, -1, nil, nil, nil}
+	result := &SoExtDailyTrxWrap{dba, key, nil, -1, nil, nil, nil}
+	result.initWatcherFlag()
 	return result
 }
 
@@ -78,6 +81,13 @@ func (s *SoExtDailyTrxWrap) MustNotExist(errMsgs ...interface{}) *SoExtDailyTrxW
 		panic(bindErrorInfo(fmt.Sprintf("SoExtDailyTrxWrap.MustNotExist: %v already exists", s.mainKey), errMsgs...))
 	}
 	return s
+}
+
+func (s *SoExtDailyTrxWrap) initWatcherFlag() {
+	if s.watcherFlag == nil {
+		s.watcherFlag = new(ExtDailyTrxWatcherFlag)
+		*(s.watcherFlag) = ExtDailyTrxWatcherFlagOfDb(s.dba.ServiceId())
+	}
 }
 
 func (s *SoExtDailyTrxWrap) create(f func(tInfo *SoExtDailyTrx)) error {
@@ -128,8 +138,9 @@ func (s *SoExtDailyTrxWrap) create(f func(tInfo *SoExtDailyTrx)) error {
 	s.mKeyFlag = 1
 
 	// call watchers
-	if ExtDailyTrxHasAnyWatcher {
-		ReportTableRecordInsert(s.mainKey, val)
+	s.initWatcherFlag()
+	if s.watcherFlag.AnyWatcher {
+		ReportTableRecordInsert(s.dba.ServiceId(), s.mainKey, val)
 	}
 
 	return nil
@@ -177,6 +188,7 @@ func (s *SoExtDailyTrxWrap) modify(f func(tInfo *SoExtDailyTrx)) error {
 		return errors.New("primary key does not support modification")
 	}
 
+	s.initWatcherFlag()
 	fieldSli, hasWatcher, err := s.getModifiedFields(oriTable, curTable)
 	if err != nil {
 		return err
@@ -218,7 +230,7 @@ func (s *SoExtDailyTrxWrap) modify(f func(tInfo *SoExtDailyTrx)) error {
 
 	// call watchers
 	if hasWatcher {
-		ReportTableRecordUpdate(s.mainKey, oriTable, curTable)
+		ReportTableRecordUpdate(s.dba.ServiceId(), s.mainKey, oriTable, curTable)
 	}
 
 	return nil
@@ -260,10 +272,10 @@ func (s *SoExtDailyTrxWrap) getModifiedFields(oriTable *SoExtDailyTrx, curTable 
 
 	if !reflect.DeepEqual(oriTable.Count, curTable.Count) {
 		fields["Count"] = true
-		hasWatcher = hasWatcher || ExtDailyTrxHasCountWatcher
+		hasWatcher = hasWatcher || s.watcherFlag.HasCountWatcher
 	}
 
-	hasWatcher = hasWatcher || ExtDailyTrxHasWholeWatcher
+	hasWatcher = hasWatcher || s.watcherFlag.WholeWatcher
 	return fields, hasWatcher, nil
 }
 
@@ -424,8 +436,10 @@ func (s *SoExtDailyTrxWrap) removeExtDailyTrx() error {
 		return errors.New("database is nil")
 	}
 
+	s.initWatcherFlag()
+
 	var oldVal *SoExtDailyTrx
-	if ExtDailyTrxHasAnyWatcher {
+	if s.watcherFlag.AnyWatcher {
 		oldVal = s.getExtDailyTrx()
 	}
 
@@ -450,8 +464,8 @@ func (s *SoExtDailyTrxWrap) removeExtDailyTrx() error {
 		s.mKeyFlag = -1
 
 		// call watchers
-		if ExtDailyTrxHasAnyWatcher && oldVal != nil {
-			ReportTableRecordDelete(s.mainKey, oldVal)
+		if s.watcherFlag.AnyWatcher && oldVal != nil {
+			ReportTableRecordDelete(s.dba.ServiceId(), s.mainKey, oldVal)
 		}
 		return nil
 	} else {
@@ -1035,22 +1049,37 @@ func (s *UniExtDailyTrxDateWrap) UniQueryDate(start *prototype.TimePointSec) *So
 }
 
 ////////////// SECTION Watchers ///////////////
+
+type ExtDailyTrxWatcherFlag struct {
+	HasCountWatcher bool
+
+	WholeWatcher bool
+	AnyWatcher   bool
+}
+
 var (
-	ExtDailyTrxRecordType = reflect.TypeOf((*SoExtDailyTrx)(nil)).Elem() // table record type
-
-	ExtDailyTrxHasCountWatcher bool // any watcher on member Count?
-
-	ExtDailyTrxHasWholeWatcher bool // any watcher on the whole record?
-	ExtDailyTrxHasAnyWatcher   bool // any watcher?
+	ExtDailyTrxRecordType       = reflect.TypeOf((*SoExtDailyTrx)(nil)).Elem()
+	ExtDailyTrxWatcherFlags     = make(map[uint32]ExtDailyTrxWatcherFlag)
+	ExtDailyTrxWatcherFlagsLock sync.RWMutex
 )
 
-func ExtDailyTrxRecordWatcherChanged() {
-	ExtDailyTrxHasWholeWatcher = HasTableRecordWatcher(ExtDailyTrxRecordType, "")
-	ExtDailyTrxHasAnyWatcher = ExtDailyTrxHasWholeWatcher
+func ExtDailyTrxWatcherFlagOfDb(dbSvcId uint32) ExtDailyTrxWatcherFlag {
+	ExtDailyTrxWatcherFlagsLock.RLock()
+	defer ExtDailyTrxWatcherFlagsLock.RUnlock()
+	return ExtDailyTrxWatcherFlags[dbSvcId]
+}
 
-	ExtDailyTrxHasCountWatcher = HasTableRecordWatcher(ExtDailyTrxRecordType, "Count")
-	ExtDailyTrxHasAnyWatcher = ExtDailyTrxHasAnyWatcher || ExtDailyTrxHasCountWatcher
+func ExtDailyTrxRecordWatcherChanged(dbSvcId uint32) {
+	var flag ExtDailyTrxWatcherFlag
+	flag.WholeWatcher = HasTableRecordWatcher(dbSvcId, ExtDailyTrxRecordType, "")
+	flag.AnyWatcher = flag.WholeWatcher
 
+	flag.HasCountWatcher = HasTableRecordWatcher(dbSvcId, ExtDailyTrxRecordType, "Count")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasCountWatcher
+
+	ExtDailyTrxWatcherFlagsLock.Lock()
+	ExtDailyTrxWatcherFlags[dbSvcId] = flag
+	ExtDailyTrxWatcherFlagsLock.Unlock()
 }
 
 func init() {

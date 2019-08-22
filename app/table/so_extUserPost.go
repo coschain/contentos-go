@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"sync"
 
 	"github.com/coschain/contentos-go/common/encoding/kope"
 	"github.com/coschain/contentos-go/iservices"
@@ -21,19 +22,21 @@ var (
 
 ////////////// SECTION Wrap Define ///////////////
 type SoExtUserPostWrap struct {
-	dba       iservices.IDatabaseRW
-	mainKey   *uint64
-	mKeyFlag  int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
-	mKeyBuf   []byte //the buffer after the main key is encoded with prefix
-	mBuf      []byte //the value after the main key is encoded
-	mdFuncMap map[string]interface{}
+	dba         iservices.IDatabaseRW
+	mainKey     *uint64
+	watcherFlag *ExtUserPostWatcherFlag
+	mKeyFlag    int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
+	mKeyBuf     []byte //the buffer after the main key is encoded with prefix
+	mBuf        []byte //the value after the main key is encoded
+	mdFuncMap   map[string]interface{}
 }
 
 func NewSoExtUserPostWrap(dba iservices.IDatabaseRW, key *uint64) *SoExtUserPostWrap {
 	if dba == nil || key == nil {
 		return nil
 	}
-	result := &SoExtUserPostWrap{dba, key, -1, nil, nil, nil}
+	result := &SoExtUserPostWrap{dba, key, nil, -1, nil, nil, nil}
+	result.initWatcherFlag()
 	return result
 }
 
@@ -77,6 +80,13 @@ func (s *SoExtUserPostWrap) MustNotExist(errMsgs ...interface{}) *SoExtUserPostW
 		panic(bindErrorInfo(fmt.Sprintf("SoExtUserPostWrap.MustNotExist: %v already exists", s.mainKey), errMsgs...))
 	}
 	return s
+}
+
+func (s *SoExtUserPostWrap) initWatcherFlag() {
+	if s.watcherFlag == nil {
+		s.watcherFlag = new(ExtUserPostWatcherFlag)
+		*(s.watcherFlag) = ExtUserPostWatcherFlagOfDb(s.dba.ServiceId())
+	}
 }
 
 func (s *SoExtUserPostWrap) create(f func(tInfo *SoExtUserPost)) error {
@@ -124,8 +134,9 @@ func (s *SoExtUserPostWrap) create(f func(tInfo *SoExtUserPost)) error {
 	s.mKeyFlag = 1
 
 	// call watchers
-	if ExtUserPostHasAnyWatcher {
-		ReportTableRecordInsert(s.mainKey, val)
+	s.initWatcherFlag()
+	if s.watcherFlag.AnyWatcher {
+		ReportTableRecordInsert(s.dba.ServiceId(), s.mainKey, val)
 	}
 
 	return nil
@@ -173,6 +184,7 @@ func (s *SoExtUserPostWrap) modify(f func(tInfo *SoExtUserPost)) error {
 		return errors.New("primary key does not support modification")
 	}
 
+	s.initWatcherFlag()
 	fieldSli, hasWatcher, err := s.getModifiedFields(oriTable, curTable)
 	if err != nil {
 		return err
@@ -214,7 +226,7 @@ func (s *SoExtUserPostWrap) modify(f func(tInfo *SoExtUserPost)) error {
 
 	// call watchers
 	if hasWatcher {
-		ReportTableRecordUpdate(s.mainKey, oriTable, curTable)
+		ReportTableRecordUpdate(s.dba.ServiceId(), s.mainKey, oriTable, curTable)
 	}
 
 	return nil
@@ -260,10 +272,10 @@ func (s *SoExtUserPostWrap) getModifiedFields(oriTable *SoExtUserPost, curTable 
 
 	if !reflect.DeepEqual(oriTable.PostCreatedOrder, curTable.PostCreatedOrder) {
 		fields["PostCreatedOrder"] = true
-		hasWatcher = hasWatcher || ExtUserPostHasPostCreatedOrderWatcher
+		hasWatcher = hasWatcher || s.watcherFlag.HasPostCreatedOrderWatcher
 	}
 
-	hasWatcher = hasWatcher || ExtUserPostHasWholeWatcher
+	hasWatcher = hasWatcher || s.watcherFlag.WholeWatcher
 	return fields, hasWatcher, nil
 }
 
@@ -377,8 +389,10 @@ func (s *SoExtUserPostWrap) removeExtUserPost() error {
 		return errors.New("database is nil")
 	}
 
+	s.initWatcherFlag()
+
 	var oldVal *SoExtUserPost
-	if ExtUserPostHasAnyWatcher {
+	if s.watcherFlag.AnyWatcher {
 		oldVal = s.getExtUserPost()
 	}
 
@@ -403,8 +417,8 @@ func (s *SoExtUserPostWrap) removeExtUserPost() error {
 		s.mKeyFlag = -1
 
 		// call watchers
-		if ExtUserPostHasAnyWatcher && oldVal != nil {
-			ReportTableRecordDelete(s.mainKey, oldVal)
+		if s.watcherFlag.AnyWatcher && oldVal != nil {
+			ReportTableRecordDelete(s.dba.ServiceId(), s.mainKey, oldVal)
 		}
 		return nil
 	} else {
@@ -927,22 +941,37 @@ func (s *UniExtUserPostPostIdWrap) UniQueryPostId(start *uint64) *SoExtUserPostW
 }
 
 ////////////// SECTION Watchers ///////////////
+
+type ExtUserPostWatcherFlag struct {
+	HasPostCreatedOrderWatcher bool
+
+	WholeWatcher bool
+	AnyWatcher   bool
+}
+
 var (
-	ExtUserPostRecordType = reflect.TypeOf((*SoExtUserPost)(nil)).Elem() // table record type
-
-	ExtUserPostHasPostCreatedOrderWatcher bool // any watcher on member PostCreatedOrder?
-
-	ExtUserPostHasWholeWatcher bool // any watcher on the whole record?
-	ExtUserPostHasAnyWatcher   bool // any watcher?
+	ExtUserPostRecordType       = reflect.TypeOf((*SoExtUserPost)(nil)).Elem()
+	ExtUserPostWatcherFlags     = make(map[uint32]ExtUserPostWatcherFlag)
+	ExtUserPostWatcherFlagsLock sync.RWMutex
 )
 
-func ExtUserPostRecordWatcherChanged() {
-	ExtUserPostHasWholeWatcher = HasTableRecordWatcher(ExtUserPostRecordType, "")
-	ExtUserPostHasAnyWatcher = ExtUserPostHasWholeWatcher
+func ExtUserPostWatcherFlagOfDb(dbSvcId uint32) ExtUserPostWatcherFlag {
+	ExtUserPostWatcherFlagsLock.RLock()
+	defer ExtUserPostWatcherFlagsLock.RUnlock()
+	return ExtUserPostWatcherFlags[dbSvcId]
+}
 
-	ExtUserPostHasPostCreatedOrderWatcher = HasTableRecordWatcher(ExtUserPostRecordType, "PostCreatedOrder")
-	ExtUserPostHasAnyWatcher = ExtUserPostHasAnyWatcher || ExtUserPostHasPostCreatedOrderWatcher
+func ExtUserPostRecordWatcherChanged(dbSvcId uint32) {
+	var flag ExtUserPostWatcherFlag
+	flag.WholeWatcher = HasTableRecordWatcher(dbSvcId, ExtUserPostRecordType, "")
+	flag.AnyWatcher = flag.WholeWatcher
 
+	flag.HasPostCreatedOrderWatcher = HasTableRecordWatcher(dbSvcId, ExtUserPostRecordType, "PostCreatedOrder")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasPostCreatedOrderWatcher
+
+	ExtUserPostWatcherFlagsLock.Lock()
+	ExtUserPostWatcherFlags[dbSvcId] = flag
+	ExtUserPostWatcherFlagsLock.Unlock()
 }
 
 func init() {

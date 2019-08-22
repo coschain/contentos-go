@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"sync"
 
 	"github.com/coschain/contentos-go/common/encoding/kope"
 	"github.com/coschain/contentos-go/iservices"
@@ -22,19 +23,21 @@ var (
 
 ////////////// SECTION Wrap Define ///////////////
 type SoGiftTicketWrap struct {
-	dba       iservices.IDatabaseRW
-	mainKey   *prototype.GiftTicketKeyType
-	mKeyFlag  int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
-	mKeyBuf   []byte //the buffer after the main key is encoded with prefix
-	mBuf      []byte //the value after the main key is encoded
-	mdFuncMap map[string]interface{}
+	dba         iservices.IDatabaseRW
+	mainKey     *prototype.GiftTicketKeyType
+	watcherFlag *GiftTicketWatcherFlag
+	mKeyFlag    int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
+	mKeyBuf     []byte //the buffer after the main key is encoded with prefix
+	mBuf        []byte //the value after the main key is encoded
+	mdFuncMap   map[string]interface{}
 }
 
 func NewSoGiftTicketWrap(dba iservices.IDatabaseRW, key *prototype.GiftTicketKeyType) *SoGiftTicketWrap {
 	if dba == nil || key == nil {
 		return nil
 	}
-	result := &SoGiftTicketWrap{dba, key, -1, nil, nil, nil}
+	result := &SoGiftTicketWrap{dba, key, nil, -1, nil, nil, nil}
+	result.initWatcherFlag()
 	return result
 }
 
@@ -78,6 +81,13 @@ func (s *SoGiftTicketWrap) MustNotExist(errMsgs ...interface{}) *SoGiftTicketWra
 		panic(bindErrorInfo(fmt.Sprintf("SoGiftTicketWrap.MustNotExist: %v already exists", s.mainKey), errMsgs...))
 	}
 	return s
+}
+
+func (s *SoGiftTicketWrap) initWatcherFlag() {
+	if s.watcherFlag == nil {
+		s.watcherFlag = new(GiftTicketWatcherFlag)
+		*(s.watcherFlag) = GiftTicketWatcherFlagOfDb(s.dba.ServiceId())
+	}
 }
 
 func (s *SoGiftTicketWrap) create(f func(tInfo *SoGiftTicket)) error {
@@ -128,8 +138,9 @@ func (s *SoGiftTicketWrap) create(f func(tInfo *SoGiftTicket)) error {
 	s.mKeyFlag = 1
 
 	// call watchers
-	if GiftTicketHasAnyWatcher {
-		ReportTableRecordInsert(s.mainKey, val)
+	s.initWatcherFlag()
+	if s.watcherFlag.AnyWatcher {
+		ReportTableRecordInsert(s.dba.ServiceId(), s.mainKey, val)
 	}
 
 	return nil
@@ -177,6 +188,7 @@ func (s *SoGiftTicketWrap) modify(f func(tInfo *SoGiftTicket)) error {
 		return errors.New("primary key does not support modification")
 	}
 
+	s.initWatcherFlag()
 	fieldSli, hasWatcher, err := s.getModifiedFields(oriTable, curTable)
 	if err != nil {
 		return err
@@ -218,7 +230,7 @@ func (s *SoGiftTicketWrap) modify(f func(tInfo *SoGiftTicket)) error {
 
 	// call watchers
 	if hasWatcher {
-		ReportTableRecordUpdate(s.mainKey, oriTable, curTable)
+		ReportTableRecordUpdate(s.dba.ServiceId(), s.mainKey, oriTable, curTable)
 	}
 
 	return nil
@@ -280,20 +292,20 @@ func (s *SoGiftTicketWrap) getModifiedFields(oriTable *SoGiftTicket, curTable *S
 
 	if !reflect.DeepEqual(oriTable.Count, curTable.Count) {
 		fields["Count"] = true
-		hasWatcher = hasWatcher || GiftTicketHasCountWatcher
+		hasWatcher = hasWatcher || s.watcherFlag.HasCountWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.Denom, curTable.Denom) {
 		fields["Denom"] = true
-		hasWatcher = hasWatcher || GiftTicketHasDenomWatcher
+		hasWatcher = hasWatcher || s.watcherFlag.HasDenomWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.ExpireBlock, curTable.ExpireBlock) {
 		fields["ExpireBlock"] = true
-		hasWatcher = hasWatcher || GiftTicketHasExpireBlockWatcher
+		hasWatcher = hasWatcher || s.watcherFlag.HasExpireBlockWatcher
 	}
 
-	hasWatcher = hasWatcher || GiftTicketHasWholeWatcher
+	hasWatcher = hasWatcher || s.watcherFlag.WholeWatcher
 	return fields, hasWatcher, nil
 }
 
@@ -488,8 +500,10 @@ func (s *SoGiftTicketWrap) removeGiftTicket() error {
 		return errors.New("database is nil")
 	}
 
+	s.initWatcherFlag()
+
 	var oldVal *SoGiftTicket
-	if GiftTicketHasAnyWatcher {
+	if s.watcherFlag.AnyWatcher {
 		oldVal = s.getGiftTicket()
 	}
 
@@ -514,8 +528,8 @@ func (s *SoGiftTicketWrap) removeGiftTicket() error {
 		s.mKeyFlag = -1
 
 		// call watchers
-		if GiftTicketHasAnyWatcher && oldVal != nil {
-			ReportTableRecordDelete(s.mainKey, oldVal)
+		if s.watcherFlag.AnyWatcher && oldVal != nil {
+			ReportTableRecordDelete(s.dba.ServiceId(), s.mainKey, oldVal)
 		}
 		return nil
 	} else {
@@ -1311,32 +1325,47 @@ func (s *UniGiftTicketTicketWrap) UniQueryTicket(start *prototype.GiftTicketKeyT
 }
 
 ////////////// SECTION Watchers ///////////////
+
+type GiftTicketWatcherFlag struct {
+	HasCountWatcher bool
+
+	HasDenomWatcher bool
+
+	HasExpireBlockWatcher bool
+
+	WholeWatcher bool
+	AnyWatcher   bool
+}
+
 var (
-	GiftTicketRecordType = reflect.TypeOf((*SoGiftTicket)(nil)).Elem() // table record type
-
-	GiftTicketHasCountWatcher bool // any watcher on member Count?
-
-	GiftTicketHasDenomWatcher bool // any watcher on member Denom?
-
-	GiftTicketHasExpireBlockWatcher bool // any watcher on member ExpireBlock?
-
-	GiftTicketHasWholeWatcher bool // any watcher on the whole record?
-	GiftTicketHasAnyWatcher   bool // any watcher?
+	GiftTicketRecordType       = reflect.TypeOf((*SoGiftTicket)(nil)).Elem()
+	GiftTicketWatcherFlags     = make(map[uint32]GiftTicketWatcherFlag)
+	GiftTicketWatcherFlagsLock sync.RWMutex
 )
 
-func GiftTicketRecordWatcherChanged() {
-	GiftTicketHasWholeWatcher = HasTableRecordWatcher(GiftTicketRecordType, "")
-	GiftTicketHasAnyWatcher = GiftTicketHasWholeWatcher
+func GiftTicketWatcherFlagOfDb(dbSvcId uint32) GiftTicketWatcherFlag {
+	GiftTicketWatcherFlagsLock.RLock()
+	defer GiftTicketWatcherFlagsLock.RUnlock()
+	return GiftTicketWatcherFlags[dbSvcId]
+}
 
-	GiftTicketHasCountWatcher = HasTableRecordWatcher(GiftTicketRecordType, "Count")
-	GiftTicketHasAnyWatcher = GiftTicketHasAnyWatcher || GiftTicketHasCountWatcher
+func GiftTicketRecordWatcherChanged(dbSvcId uint32) {
+	var flag GiftTicketWatcherFlag
+	flag.WholeWatcher = HasTableRecordWatcher(dbSvcId, GiftTicketRecordType, "")
+	flag.AnyWatcher = flag.WholeWatcher
 
-	GiftTicketHasDenomWatcher = HasTableRecordWatcher(GiftTicketRecordType, "Denom")
-	GiftTicketHasAnyWatcher = GiftTicketHasAnyWatcher || GiftTicketHasDenomWatcher
+	flag.HasCountWatcher = HasTableRecordWatcher(dbSvcId, GiftTicketRecordType, "Count")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasCountWatcher
 
-	GiftTicketHasExpireBlockWatcher = HasTableRecordWatcher(GiftTicketRecordType, "ExpireBlock")
-	GiftTicketHasAnyWatcher = GiftTicketHasAnyWatcher || GiftTicketHasExpireBlockWatcher
+	flag.HasDenomWatcher = HasTableRecordWatcher(dbSvcId, GiftTicketRecordType, "Denom")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasDenomWatcher
 
+	flag.HasExpireBlockWatcher = HasTableRecordWatcher(dbSvcId, GiftTicketRecordType, "ExpireBlock")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasExpireBlockWatcher
+
+	GiftTicketWatcherFlagsLock.Lock()
+	GiftTicketWatcherFlags[dbSvcId] = flag
+	GiftTicketWatcherFlagsLock.Unlock()
 }
 
 func init() {

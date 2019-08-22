@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"sync"
 
 	"github.com/coschain/contentos-go/common/encoding/kope"
 	"github.com/coschain/contentos-go/iservices"
@@ -22,19 +23,21 @@ var (
 
 ////////////// SECTION Wrap Define ///////////////
 type SoStakeRecordWrap struct {
-	dba       iservices.IDatabaseRW
-	mainKey   *prototype.StakeRecord
-	mKeyFlag  int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
-	mKeyBuf   []byte //the buffer after the main key is encoded with prefix
-	mBuf      []byte //the value after the main key is encoded
-	mdFuncMap map[string]interface{}
+	dba         iservices.IDatabaseRW
+	mainKey     *prototype.StakeRecord
+	watcherFlag *StakeRecordWatcherFlag
+	mKeyFlag    int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
+	mKeyBuf     []byte //the buffer after the main key is encoded with prefix
+	mBuf        []byte //the value after the main key is encoded
+	mdFuncMap   map[string]interface{}
 }
 
 func NewSoStakeRecordWrap(dba iservices.IDatabaseRW, key *prototype.StakeRecord) *SoStakeRecordWrap {
 	if dba == nil || key == nil {
 		return nil
 	}
-	result := &SoStakeRecordWrap{dba, key, -1, nil, nil, nil}
+	result := &SoStakeRecordWrap{dba, key, nil, -1, nil, nil, nil}
+	result.initWatcherFlag()
 	return result
 }
 
@@ -78,6 +81,13 @@ func (s *SoStakeRecordWrap) MustNotExist(errMsgs ...interface{}) *SoStakeRecordW
 		panic(bindErrorInfo(fmt.Sprintf("SoStakeRecordWrap.MustNotExist: %v already exists", s.mainKey), errMsgs...))
 	}
 	return s
+}
+
+func (s *SoStakeRecordWrap) initWatcherFlag() {
+	if s.watcherFlag == nil {
+		s.watcherFlag = new(StakeRecordWatcherFlag)
+		*(s.watcherFlag) = StakeRecordWatcherFlagOfDb(s.dba.ServiceId())
+	}
 }
 
 func (s *SoStakeRecordWrap) create(f func(tInfo *SoStakeRecord)) error {
@@ -128,8 +138,9 @@ func (s *SoStakeRecordWrap) create(f func(tInfo *SoStakeRecord)) error {
 	s.mKeyFlag = 1
 
 	// call watchers
-	if StakeRecordHasAnyWatcher {
-		ReportTableRecordInsert(s.mainKey, val)
+	s.initWatcherFlag()
+	if s.watcherFlag.AnyWatcher {
+		ReportTableRecordInsert(s.dba.ServiceId(), s.mainKey, val)
 	}
 
 	return nil
@@ -177,6 +188,7 @@ func (s *SoStakeRecordWrap) modify(f func(tInfo *SoStakeRecord)) error {
 		return errors.New("primary key does not support modification")
 	}
 
+	s.initWatcherFlag()
 	fieldSli, hasWatcher, err := s.getModifiedFields(oriTable, curTable)
 	if err != nil {
 		return err
@@ -218,7 +230,7 @@ func (s *SoStakeRecordWrap) modify(f func(tInfo *SoStakeRecord)) error {
 
 	// call watchers
 	if hasWatcher {
-		ReportTableRecordUpdate(s.mainKey, oriTable, curTable)
+		ReportTableRecordUpdate(s.dba.ServiceId(), s.mainKey, oriTable, curTable)
 	}
 
 	return nil
@@ -284,20 +296,20 @@ func (s *SoStakeRecordWrap) getModifiedFields(oriTable *SoStakeRecord, curTable 
 
 	if !reflect.DeepEqual(oriTable.LastStakeTime, curTable.LastStakeTime) {
 		fields["LastStakeTime"] = true
-		hasWatcher = hasWatcher || StakeRecordHasLastStakeTimeWatcher
+		hasWatcher = hasWatcher || s.watcherFlag.HasLastStakeTimeWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.RecordReverse, curTable.RecordReverse) {
 		fields["RecordReverse"] = true
-		hasWatcher = hasWatcher || StakeRecordHasRecordReverseWatcher
+		hasWatcher = hasWatcher || s.watcherFlag.HasRecordReverseWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.StakeAmount, curTable.StakeAmount) {
 		fields["StakeAmount"] = true
-		hasWatcher = hasWatcher || StakeRecordHasStakeAmountWatcher
+		hasWatcher = hasWatcher || s.watcherFlag.HasStakeAmountWatcher
 	}
 
-	hasWatcher = hasWatcher || StakeRecordHasWholeWatcher
+	hasWatcher = hasWatcher || s.watcherFlag.WholeWatcher
 	return fields, hasWatcher, nil
 }
 
@@ -492,8 +504,10 @@ func (s *SoStakeRecordWrap) removeStakeRecord() error {
 		return errors.New("database is nil")
 	}
 
+	s.initWatcherFlag()
+
 	var oldVal *SoStakeRecord
-	if StakeRecordHasAnyWatcher {
+	if s.watcherFlag.AnyWatcher {
 		oldVal = s.getStakeRecord()
 	}
 
@@ -518,8 +532,8 @@ func (s *SoStakeRecordWrap) removeStakeRecord() error {
 		s.mKeyFlag = -1
 
 		// call watchers
-		if StakeRecordHasAnyWatcher && oldVal != nil {
-			ReportTableRecordDelete(s.mainKey, oldVal)
+		if s.watcherFlag.AnyWatcher && oldVal != nil {
+			ReportTableRecordDelete(s.dba.ServiceId(), s.mainKey, oldVal)
 		}
 		return nil
 	} else {
@@ -1269,32 +1283,47 @@ func (s *UniStakeRecordRecordWrap) UniQueryRecord(start *prototype.StakeRecord) 
 }
 
 ////////////// SECTION Watchers ///////////////
+
+type StakeRecordWatcherFlag struct {
+	HasLastStakeTimeWatcher bool
+
+	HasRecordReverseWatcher bool
+
+	HasStakeAmountWatcher bool
+
+	WholeWatcher bool
+	AnyWatcher   bool
+}
+
 var (
-	StakeRecordRecordType = reflect.TypeOf((*SoStakeRecord)(nil)).Elem() // table record type
-
-	StakeRecordHasLastStakeTimeWatcher bool // any watcher on member LastStakeTime?
-
-	StakeRecordHasRecordReverseWatcher bool // any watcher on member RecordReverse?
-
-	StakeRecordHasStakeAmountWatcher bool // any watcher on member StakeAmount?
-
-	StakeRecordHasWholeWatcher bool // any watcher on the whole record?
-	StakeRecordHasAnyWatcher   bool // any watcher?
+	StakeRecordRecordType       = reflect.TypeOf((*SoStakeRecord)(nil)).Elem()
+	StakeRecordWatcherFlags     = make(map[uint32]StakeRecordWatcherFlag)
+	StakeRecordWatcherFlagsLock sync.RWMutex
 )
 
-func StakeRecordRecordWatcherChanged() {
-	StakeRecordHasWholeWatcher = HasTableRecordWatcher(StakeRecordRecordType, "")
-	StakeRecordHasAnyWatcher = StakeRecordHasWholeWatcher
+func StakeRecordWatcherFlagOfDb(dbSvcId uint32) StakeRecordWatcherFlag {
+	StakeRecordWatcherFlagsLock.RLock()
+	defer StakeRecordWatcherFlagsLock.RUnlock()
+	return StakeRecordWatcherFlags[dbSvcId]
+}
 
-	StakeRecordHasLastStakeTimeWatcher = HasTableRecordWatcher(StakeRecordRecordType, "LastStakeTime")
-	StakeRecordHasAnyWatcher = StakeRecordHasAnyWatcher || StakeRecordHasLastStakeTimeWatcher
+func StakeRecordRecordWatcherChanged(dbSvcId uint32) {
+	var flag StakeRecordWatcherFlag
+	flag.WholeWatcher = HasTableRecordWatcher(dbSvcId, StakeRecordRecordType, "")
+	flag.AnyWatcher = flag.WholeWatcher
 
-	StakeRecordHasRecordReverseWatcher = HasTableRecordWatcher(StakeRecordRecordType, "RecordReverse")
-	StakeRecordHasAnyWatcher = StakeRecordHasAnyWatcher || StakeRecordHasRecordReverseWatcher
+	flag.HasLastStakeTimeWatcher = HasTableRecordWatcher(dbSvcId, StakeRecordRecordType, "LastStakeTime")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasLastStakeTimeWatcher
 
-	StakeRecordHasStakeAmountWatcher = HasTableRecordWatcher(StakeRecordRecordType, "StakeAmount")
-	StakeRecordHasAnyWatcher = StakeRecordHasAnyWatcher || StakeRecordHasStakeAmountWatcher
+	flag.HasRecordReverseWatcher = HasTableRecordWatcher(dbSvcId, StakeRecordRecordType, "RecordReverse")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasRecordReverseWatcher
 
+	flag.HasStakeAmountWatcher = HasTableRecordWatcher(dbSvcId, StakeRecordRecordType, "StakeAmount")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasStakeAmountWatcher
+
+	StakeRecordWatcherFlagsLock.Lock()
+	StakeRecordWatcherFlags[dbSvcId] = flag
+	StakeRecordWatcherFlagsLock.Unlock()
 }
 
 func init() {

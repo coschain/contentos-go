@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"sync"
 
 	"github.com/coschain/contentos-go/common/encoding/kope"
 	"github.com/coschain/contentos-go/iservices"
@@ -19,19 +20,21 @@ var (
 
 ////////////// SECTION Wrap Define ///////////////
 type SoBlocktrxsWrap struct {
-	dba       iservices.IDatabaseRW
-	mainKey   *uint64
-	mKeyFlag  int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
-	mKeyBuf   []byte //the buffer after the main key is encoded with prefix
-	mBuf      []byte //the value after the main key is encoded
-	mdFuncMap map[string]interface{}
+	dba         iservices.IDatabaseRW
+	mainKey     *uint64
+	watcherFlag *BlocktrxsWatcherFlag
+	mKeyFlag    int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
+	mKeyBuf     []byte //the buffer after the main key is encoded with prefix
+	mBuf        []byte //the value after the main key is encoded
+	mdFuncMap   map[string]interface{}
 }
 
 func NewSoBlocktrxsWrap(dba iservices.IDatabaseRW, key *uint64) *SoBlocktrxsWrap {
 	if dba == nil || key == nil {
 		return nil
 	}
-	result := &SoBlocktrxsWrap{dba, key, -1, nil, nil, nil}
+	result := &SoBlocktrxsWrap{dba, key, nil, -1, nil, nil, nil}
+	result.initWatcherFlag()
 	return result
 }
 
@@ -75,6 +78,13 @@ func (s *SoBlocktrxsWrap) MustNotExist(errMsgs ...interface{}) *SoBlocktrxsWrap 
 		panic(bindErrorInfo(fmt.Sprintf("SoBlocktrxsWrap.MustNotExist: %v already exists", s.mainKey), errMsgs...))
 	}
 	return s
+}
+
+func (s *SoBlocktrxsWrap) initWatcherFlag() {
+	if s.watcherFlag == nil {
+		s.watcherFlag = new(BlocktrxsWatcherFlag)
+		*(s.watcherFlag) = BlocktrxsWatcherFlagOfDb(s.dba.ServiceId())
+	}
 }
 
 func (s *SoBlocktrxsWrap) create(f func(tInfo *SoBlocktrxs)) error {
@@ -122,8 +132,9 @@ func (s *SoBlocktrxsWrap) create(f func(tInfo *SoBlocktrxs)) error {
 	s.mKeyFlag = 1
 
 	// call watchers
-	if BlocktrxsHasAnyWatcher {
-		ReportTableRecordInsert(s.mainKey, val)
+	s.initWatcherFlag()
+	if s.watcherFlag.AnyWatcher {
+		ReportTableRecordInsert(s.dba.ServiceId(), s.mainKey, val)
 	}
 
 	return nil
@@ -171,6 +182,7 @@ func (s *SoBlocktrxsWrap) modify(f func(tInfo *SoBlocktrxs)) error {
 		return errors.New("primary key does not support modification")
 	}
 
+	s.initWatcherFlag()
 	fieldSli, hasWatcher, err := s.getModifiedFields(oriTable, curTable)
 	if err != nil {
 		return err
@@ -212,7 +224,7 @@ func (s *SoBlocktrxsWrap) modify(f func(tInfo *SoBlocktrxs)) error {
 
 	// call watchers
 	if hasWatcher {
-		ReportTableRecordUpdate(s.mainKey, oriTable, curTable)
+		ReportTableRecordUpdate(s.dba.ServiceId(), s.mainKey, oriTable, curTable)
 	}
 
 	return nil
@@ -254,10 +266,10 @@ func (s *SoBlocktrxsWrap) getModifiedFields(oriTable *SoBlocktrxs, curTable *SoB
 
 	if !reflect.DeepEqual(oriTable.Trxs, curTable.Trxs) {
 		fields["Trxs"] = true
-		hasWatcher = hasWatcher || BlocktrxsHasTrxsWatcher
+		hasWatcher = hasWatcher || s.watcherFlag.HasTrxsWatcher
 	}
 
-	hasWatcher = hasWatcher || BlocktrxsHasWholeWatcher
+	hasWatcher = hasWatcher || s.watcherFlag.WholeWatcher
 	return fields, hasWatcher, nil
 }
 
@@ -322,8 +334,10 @@ func (s *SoBlocktrxsWrap) removeBlocktrxs() error {
 		return errors.New("database is nil")
 	}
 
+	s.initWatcherFlag()
+
 	var oldVal *SoBlocktrxs
-	if BlocktrxsHasAnyWatcher {
+	if s.watcherFlag.AnyWatcher {
 		oldVal = s.getBlocktrxs()
 	}
 
@@ -348,8 +362,8 @@ func (s *SoBlocktrxsWrap) removeBlocktrxs() error {
 		s.mKeyFlag = -1
 
 		// call watchers
-		if BlocktrxsHasAnyWatcher && oldVal != nil {
-			ReportTableRecordDelete(s.mainKey, oldVal)
+		if s.watcherFlag.AnyWatcher && oldVal != nil {
+			ReportTableRecordDelete(s.dba.ServiceId(), s.mainKey, oldVal)
 		}
 		return nil
 	} else {
@@ -702,22 +716,37 @@ func (s *UniBlocktrxsBlockWrap) UniQueryBlock(start *uint64) *SoBlocktrxsWrap {
 }
 
 ////////////// SECTION Watchers ///////////////
+
+type BlocktrxsWatcherFlag struct {
+	HasTrxsWatcher bool
+
+	WholeWatcher bool
+	AnyWatcher   bool
+}
+
 var (
-	BlocktrxsRecordType = reflect.TypeOf((*SoBlocktrxs)(nil)).Elem() // table record type
-
-	BlocktrxsHasTrxsWatcher bool // any watcher on member Trxs?
-
-	BlocktrxsHasWholeWatcher bool // any watcher on the whole record?
-	BlocktrxsHasAnyWatcher   bool // any watcher?
+	BlocktrxsRecordType       = reflect.TypeOf((*SoBlocktrxs)(nil)).Elem()
+	BlocktrxsWatcherFlags     = make(map[uint32]BlocktrxsWatcherFlag)
+	BlocktrxsWatcherFlagsLock sync.RWMutex
 )
 
-func BlocktrxsRecordWatcherChanged() {
-	BlocktrxsHasWholeWatcher = HasTableRecordWatcher(BlocktrxsRecordType, "")
-	BlocktrxsHasAnyWatcher = BlocktrxsHasWholeWatcher
+func BlocktrxsWatcherFlagOfDb(dbSvcId uint32) BlocktrxsWatcherFlag {
+	BlocktrxsWatcherFlagsLock.RLock()
+	defer BlocktrxsWatcherFlagsLock.RUnlock()
+	return BlocktrxsWatcherFlags[dbSvcId]
+}
 
-	BlocktrxsHasTrxsWatcher = HasTableRecordWatcher(BlocktrxsRecordType, "Trxs")
-	BlocktrxsHasAnyWatcher = BlocktrxsHasAnyWatcher || BlocktrxsHasTrxsWatcher
+func BlocktrxsRecordWatcherChanged(dbSvcId uint32) {
+	var flag BlocktrxsWatcherFlag
+	flag.WholeWatcher = HasTableRecordWatcher(dbSvcId, BlocktrxsRecordType, "")
+	flag.AnyWatcher = flag.WholeWatcher
 
+	flag.HasTrxsWatcher = HasTableRecordWatcher(dbSvcId, BlocktrxsRecordType, "Trxs")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasTrxsWatcher
+
+	BlocktrxsWatcherFlagsLock.Lock()
+	BlocktrxsWatcherFlags[dbSvcId] = flag
+	BlocktrxsWatcherFlagsLock.Unlock()
 }
 
 func init() {

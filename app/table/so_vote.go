@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"sync"
 
 	"github.com/coschain/contentos-go/common/encoding/kope"
 	"github.com/coschain/contentos-go/iservices"
@@ -23,19 +24,21 @@ var (
 
 ////////////// SECTION Wrap Define ///////////////
 type SoVoteWrap struct {
-	dba       iservices.IDatabaseRW
-	mainKey   *prototype.VoterId
-	mKeyFlag  int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
-	mKeyBuf   []byte //the buffer after the main key is encoded with prefix
-	mBuf      []byte //the value after the main key is encoded
-	mdFuncMap map[string]interface{}
+	dba         iservices.IDatabaseRW
+	mainKey     *prototype.VoterId
+	watcherFlag *VoteWatcherFlag
+	mKeyFlag    int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
+	mKeyBuf     []byte //the buffer after the main key is encoded with prefix
+	mBuf        []byte //the value after the main key is encoded
+	mdFuncMap   map[string]interface{}
 }
 
 func NewSoVoteWrap(dba iservices.IDatabaseRW, key *prototype.VoterId) *SoVoteWrap {
 	if dba == nil || key == nil {
 		return nil
 	}
-	result := &SoVoteWrap{dba, key, -1, nil, nil, nil}
+	result := &SoVoteWrap{dba, key, nil, -1, nil, nil, nil}
+	result.initWatcherFlag()
 	return result
 }
 
@@ -79,6 +82,13 @@ func (s *SoVoteWrap) MustNotExist(errMsgs ...interface{}) *SoVoteWrap {
 		panic(bindErrorInfo(fmt.Sprintf("SoVoteWrap.MustNotExist: %v already exists", s.mainKey), errMsgs...))
 	}
 	return s
+}
+
+func (s *SoVoteWrap) initWatcherFlag() {
+	if s.watcherFlag == nil {
+		s.watcherFlag = new(VoteWatcherFlag)
+		*(s.watcherFlag) = VoteWatcherFlagOfDb(s.dba.ServiceId())
+	}
 }
 
 func (s *SoVoteWrap) create(f func(tInfo *SoVote)) error {
@@ -129,8 +139,9 @@ func (s *SoVoteWrap) create(f func(tInfo *SoVote)) error {
 	s.mKeyFlag = 1
 
 	// call watchers
-	if VoteHasAnyWatcher {
-		ReportTableRecordInsert(s.mainKey, val)
+	s.initWatcherFlag()
+	if s.watcherFlag.AnyWatcher {
+		ReportTableRecordInsert(s.dba.ServiceId(), s.mainKey, val)
 	}
 
 	return nil
@@ -178,6 +189,7 @@ func (s *SoVoteWrap) modify(f func(tInfo *SoVote)) error {
 		return errors.New("primary key does not support modification")
 	}
 
+	s.initWatcherFlag()
 	fieldSli, hasWatcher, err := s.getModifiedFields(oriTable, curTable)
 	if err != nil {
 		return err
@@ -219,7 +231,7 @@ func (s *SoVoteWrap) modify(f func(tInfo *SoVote)) error {
 
 	// call watchers
 	if hasWatcher {
-		ReportTableRecordUpdate(s.mainKey, oriTable, curTable)
+		ReportTableRecordUpdate(s.dba.ServiceId(), s.mainKey, oriTable, curTable)
 	}
 
 	return nil
@@ -295,25 +307,25 @@ func (s *SoVoteWrap) getModifiedFields(oriTable *SoVote, curTable *SoVote) (map[
 
 	if !reflect.DeepEqual(oriTable.PostId, curTable.PostId) {
 		fields["PostId"] = true
-		hasWatcher = hasWatcher || VoteHasPostIdWatcher
+		hasWatcher = hasWatcher || s.watcherFlag.HasPostIdWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.Upvote, curTable.Upvote) {
 		fields["Upvote"] = true
-		hasWatcher = hasWatcher || VoteHasUpvoteWatcher
+		hasWatcher = hasWatcher || s.watcherFlag.HasUpvoteWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.VoteTime, curTable.VoteTime) {
 		fields["VoteTime"] = true
-		hasWatcher = hasWatcher || VoteHasVoteTimeWatcher
+		hasWatcher = hasWatcher || s.watcherFlag.HasVoteTimeWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.WeightedVp, curTable.WeightedVp) {
 		fields["WeightedVp"] = true
-		hasWatcher = hasWatcher || VoteHasWeightedVpWatcher
+		hasWatcher = hasWatcher || s.watcherFlag.HasWeightedVpWatcher
 	}
 
-	hasWatcher = hasWatcher || VoteHasWholeWatcher
+	hasWatcher = hasWatcher || s.watcherFlag.WholeWatcher
 	return fields, hasWatcher, nil
 }
 
@@ -575,8 +587,10 @@ func (s *SoVoteWrap) removeVote() error {
 		return errors.New("database is nil")
 	}
 
+	s.initWatcherFlag()
+
 	var oldVal *SoVote
-	if VoteHasAnyWatcher {
+	if s.watcherFlag.AnyWatcher {
 		oldVal = s.getVote()
 	}
 
@@ -601,8 +615,8 @@ func (s *SoVoteWrap) removeVote() error {
 		s.mKeyFlag = -1
 
 		// call watchers
-		if VoteHasAnyWatcher && oldVal != nil {
-			ReportTableRecordDelete(s.mainKey, oldVal)
+		if s.watcherFlag.AnyWatcher && oldVal != nil {
+			ReportTableRecordDelete(s.dba.ServiceId(), s.mainKey, oldVal)
 		}
 		return nil
 	} else {
@@ -1549,37 +1563,52 @@ func (s *UniVoteVoterWrap) UniQueryVoter(start *prototype.VoterId) *SoVoteWrap {
 }
 
 ////////////// SECTION Watchers ///////////////
+
+type VoteWatcherFlag struct {
+	HasPostIdWatcher bool
+
+	HasUpvoteWatcher bool
+
+	HasVoteTimeWatcher bool
+
+	HasWeightedVpWatcher bool
+
+	WholeWatcher bool
+	AnyWatcher   bool
+}
+
 var (
-	VoteRecordType = reflect.TypeOf((*SoVote)(nil)).Elem() // table record type
-
-	VoteHasPostIdWatcher bool // any watcher on member PostId?
-
-	VoteHasUpvoteWatcher bool // any watcher on member Upvote?
-
-	VoteHasVoteTimeWatcher bool // any watcher on member VoteTime?
-
-	VoteHasWeightedVpWatcher bool // any watcher on member WeightedVp?
-
-	VoteHasWholeWatcher bool // any watcher on the whole record?
-	VoteHasAnyWatcher   bool // any watcher?
+	VoteRecordType       = reflect.TypeOf((*SoVote)(nil)).Elem()
+	VoteWatcherFlags     = make(map[uint32]VoteWatcherFlag)
+	VoteWatcherFlagsLock sync.RWMutex
 )
 
-func VoteRecordWatcherChanged() {
-	VoteHasWholeWatcher = HasTableRecordWatcher(VoteRecordType, "")
-	VoteHasAnyWatcher = VoteHasWholeWatcher
+func VoteWatcherFlagOfDb(dbSvcId uint32) VoteWatcherFlag {
+	VoteWatcherFlagsLock.RLock()
+	defer VoteWatcherFlagsLock.RUnlock()
+	return VoteWatcherFlags[dbSvcId]
+}
 
-	VoteHasPostIdWatcher = HasTableRecordWatcher(VoteRecordType, "PostId")
-	VoteHasAnyWatcher = VoteHasAnyWatcher || VoteHasPostIdWatcher
+func VoteRecordWatcherChanged(dbSvcId uint32) {
+	var flag VoteWatcherFlag
+	flag.WholeWatcher = HasTableRecordWatcher(dbSvcId, VoteRecordType, "")
+	flag.AnyWatcher = flag.WholeWatcher
 
-	VoteHasUpvoteWatcher = HasTableRecordWatcher(VoteRecordType, "Upvote")
-	VoteHasAnyWatcher = VoteHasAnyWatcher || VoteHasUpvoteWatcher
+	flag.HasPostIdWatcher = HasTableRecordWatcher(dbSvcId, VoteRecordType, "PostId")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasPostIdWatcher
 
-	VoteHasVoteTimeWatcher = HasTableRecordWatcher(VoteRecordType, "VoteTime")
-	VoteHasAnyWatcher = VoteHasAnyWatcher || VoteHasVoteTimeWatcher
+	flag.HasUpvoteWatcher = HasTableRecordWatcher(dbSvcId, VoteRecordType, "Upvote")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasUpvoteWatcher
 
-	VoteHasWeightedVpWatcher = HasTableRecordWatcher(VoteRecordType, "WeightedVp")
-	VoteHasAnyWatcher = VoteHasAnyWatcher || VoteHasWeightedVpWatcher
+	flag.HasVoteTimeWatcher = HasTableRecordWatcher(dbSvcId, VoteRecordType, "VoteTime")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasVoteTimeWatcher
 
+	flag.HasWeightedVpWatcher = HasTableRecordWatcher(dbSvcId, VoteRecordType, "WeightedVp")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasWeightedVpWatcher
+
+	VoteWatcherFlagsLock.Lock()
+	VoteWatcherFlags[dbSvcId] = flag
+	VoteWatcherFlagsLock.Unlock()
 }
 
 func init() {

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"sync"
 
 	"github.com/coschain/contentos-go/common/encoding/kope"
 	"github.com/coschain/contentos-go/iservices"
@@ -20,19 +21,21 @@ var (
 
 ////////////// SECTION Wrap Define ///////////////
 type SoReportListWrap struct {
-	dba       iservices.IDatabaseRW
-	mainKey   *uint64
-	mKeyFlag  int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
-	mKeyBuf   []byte //the buffer after the main key is encoded with prefix
-	mBuf      []byte //the value after the main key is encoded
-	mdFuncMap map[string]interface{}
+	dba         iservices.IDatabaseRW
+	mainKey     *uint64
+	watcherFlag *ReportListWatcherFlag
+	mKeyFlag    int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
+	mKeyBuf     []byte //the buffer after the main key is encoded with prefix
+	mBuf        []byte //the value after the main key is encoded
+	mdFuncMap   map[string]interface{}
 }
 
 func NewSoReportListWrap(dba iservices.IDatabaseRW, key *uint64) *SoReportListWrap {
 	if dba == nil || key == nil {
 		return nil
 	}
-	result := &SoReportListWrap{dba, key, -1, nil, nil, nil}
+	result := &SoReportListWrap{dba, key, nil, -1, nil, nil, nil}
+	result.initWatcherFlag()
 	return result
 }
 
@@ -76,6 +79,13 @@ func (s *SoReportListWrap) MustNotExist(errMsgs ...interface{}) *SoReportListWra
 		panic(bindErrorInfo(fmt.Sprintf("SoReportListWrap.MustNotExist: %v already exists", s.mainKey), errMsgs...))
 	}
 	return s
+}
+
+func (s *SoReportListWrap) initWatcherFlag() {
+	if s.watcherFlag == nil {
+		s.watcherFlag = new(ReportListWatcherFlag)
+		*(s.watcherFlag) = ReportListWatcherFlagOfDb(s.dba.ServiceId())
+	}
 }
 
 func (s *SoReportListWrap) create(f func(tInfo *SoReportList)) error {
@@ -123,8 +133,9 @@ func (s *SoReportListWrap) create(f func(tInfo *SoReportList)) error {
 	s.mKeyFlag = 1
 
 	// call watchers
-	if ReportListHasAnyWatcher {
-		ReportTableRecordInsert(s.mainKey, val)
+	s.initWatcherFlag()
+	if s.watcherFlag.AnyWatcher {
+		ReportTableRecordInsert(s.dba.ServiceId(), s.mainKey, val)
 	}
 
 	return nil
@@ -172,6 +183,7 @@ func (s *SoReportListWrap) modify(f func(tInfo *SoReportList)) error {
 		return errors.New("primary key does not support modification")
 	}
 
+	s.initWatcherFlag()
 	fieldSli, hasWatcher, err := s.getModifiedFields(oriTable, curTable)
 	if err != nil {
 		return err
@@ -213,7 +225,7 @@ func (s *SoReportListWrap) modify(f func(tInfo *SoReportList)) error {
 
 	// call watchers
 	if hasWatcher {
-		ReportTableRecordUpdate(s.mainKey, oriTable, curTable)
+		ReportTableRecordUpdate(s.dba.ServiceId(), s.mainKey, oriTable, curTable)
 	}
 
 	return nil
@@ -275,20 +287,20 @@ func (s *SoReportListWrap) getModifiedFields(oriTable *SoReportList, curTable *S
 
 	if !reflect.DeepEqual(oriTable.IsArbitrated, curTable.IsArbitrated) {
 		fields["IsArbitrated"] = true
-		hasWatcher = hasWatcher || ReportListHasIsArbitratedWatcher
+		hasWatcher = hasWatcher || s.watcherFlag.HasIsArbitratedWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.ReportedTimes, curTable.ReportedTimes) {
 		fields["ReportedTimes"] = true
-		hasWatcher = hasWatcher || ReportListHasReportedTimesWatcher
+		hasWatcher = hasWatcher || s.watcherFlag.HasReportedTimesWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.Tags, curTable.Tags) {
 		fields["Tags"] = true
-		hasWatcher = hasWatcher || ReportListHasTagsWatcher
+		hasWatcher = hasWatcher || s.watcherFlag.HasTagsWatcher
 	}
 
-	hasWatcher = hasWatcher || ReportListHasWholeWatcher
+	hasWatcher = hasWatcher || s.watcherFlag.WholeWatcher
 	return fields, hasWatcher, nil
 }
 
@@ -436,8 +448,10 @@ func (s *SoReportListWrap) removeReportList() error {
 		return errors.New("database is nil")
 	}
 
+	s.initWatcherFlag()
+
 	var oldVal *SoReportList
-	if ReportListHasAnyWatcher {
+	if s.watcherFlag.AnyWatcher {
 		oldVal = s.getReportList()
 	}
 
@@ -462,8 +476,8 @@ func (s *SoReportListWrap) removeReportList() error {
 		s.mKeyFlag = -1
 
 		// call watchers
-		if ReportListHasAnyWatcher && oldVal != nil {
-			ReportTableRecordDelete(s.mainKey, oldVal)
+		if s.watcherFlag.AnyWatcher && oldVal != nil {
+			ReportTableRecordDelete(s.dba.ServiceId(), s.mainKey, oldVal)
 		}
 		return nil
 	} else {
@@ -1094,32 +1108,47 @@ func (s *UniReportListUuidWrap) UniQueryUuid(start *uint64) *SoReportListWrap {
 }
 
 ////////////// SECTION Watchers ///////////////
+
+type ReportListWatcherFlag struct {
+	HasIsArbitratedWatcher bool
+
+	HasReportedTimesWatcher bool
+
+	HasTagsWatcher bool
+
+	WholeWatcher bool
+	AnyWatcher   bool
+}
+
 var (
-	ReportListRecordType = reflect.TypeOf((*SoReportList)(nil)).Elem() // table record type
-
-	ReportListHasIsArbitratedWatcher bool // any watcher on member IsArbitrated?
-
-	ReportListHasReportedTimesWatcher bool // any watcher on member ReportedTimes?
-
-	ReportListHasTagsWatcher bool // any watcher on member Tags?
-
-	ReportListHasWholeWatcher bool // any watcher on the whole record?
-	ReportListHasAnyWatcher   bool // any watcher?
+	ReportListRecordType       = reflect.TypeOf((*SoReportList)(nil)).Elem()
+	ReportListWatcherFlags     = make(map[uint32]ReportListWatcherFlag)
+	ReportListWatcherFlagsLock sync.RWMutex
 )
 
-func ReportListRecordWatcherChanged() {
-	ReportListHasWholeWatcher = HasTableRecordWatcher(ReportListRecordType, "")
-	ReportListHasAnyWatcher = ReportListHasWholeWatcher
+func ReportListWatcherFlagOfDb(dbSvcId uint32) ReportListWatcherFlag {
+	ReportListWatcherFlagsLock.RLock()
+	defer ReportListWatcherFlagsLock.RUnlock()
+	return ReportListWatcherFlags[dbSvcId]
+}
 
-	ReportListHasIsArbitratedWatcher = HasTableRecordWatcher(ReportListRecordType, "IsArbitrated")
-	ReportListHasAnyWatcher = ReportListHasAnyWatcher || ReportListHasIsArbitratedWatcher
+func ReportListRecordWatcherChanged(dbSvcId uint32) {
+	var flag ReportListWatcherFlag
+	flag.WholeWatcher = HasTableRecordWatcher(dbSvcId, ReportListRecordType, "")
+	flag.AnyWatcher = flag.WholeWatcher
 
-	ReportListHasReportedTimesWatcher = HasTableRecordWatcher(ReportListRecordType, "ReportedTimes")
-	ReportListHasAnyWatcher = ReportListHasAnyWatcher || ReportListHasReportedTimesWatcher
+	flag.HasIsArbitratedWatcher = HasTableRecordWatcher(dbSvcId, ReportListRecordType, "IsArbitrated")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasIsArbitratedWatcher
 
-	ReportListHasTagsWatcher = HasTableRecordWatcher(ReportListRecordType, "Tags")
-	ReportListHasAnyWatcher = ReportListHasAnyWatcher || ReportListHasTagsWatcher
+	flag.HasReportedTimesWatcher = HasTableRecordWatcher(dbSvcId, ReportListRecordType, "ReportedTimes")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasReportedTimesWatcher
 
+	flag.HasTagsWatcher = HasTableRecordWatcher(dbSvcId, ReportListRecordType, "Tags")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasTagsWatcher
+
+	ReportListWatcherFlagsLock.Lock()
+	ReportListWatcherFlags[dbSvcId] = flag
+	ReportListWatcherFlagsLock.Unlock()
 }
 
 func init() {

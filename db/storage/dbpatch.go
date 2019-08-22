@@ -3,17 +3,23 @@ package storage
 import "github.com/coschain/contentos-go/iservices"
 
 type DatabasePatch struct {
+	sid uint32
 	s *dbSession
 }
 
-func NewDatabasePatch(db Database) *DatabasePatch {
+func NewDatabasePatch(serviceId uint32, db Database) *DatabasePatch {
 	return &DatabasePatch{
+		sid: serviceId,
 		s: &dbSession{
 			db: db,
 			mem: NewMemoryDatabase(),
 			removals: make(map[string]bool),
 		},
 	}
+}
+
+func (p *DatabasePatch) ServiceId() uint32 {
+	return p.sid
 }
 
 func (p *DatabasePatch) Has(key []byte) (bool, error) {
@@ -49,5 +55,5 @@ func (p *DatabasePatch) Apply() error {
 }
 
 func (p *DatabasePatch) NewPatch() iservices.IDatabasePatch {
-	return NewDatabasePatch(p.s)
+	return NewDatabasePatch(p.sid, p.s)
 }

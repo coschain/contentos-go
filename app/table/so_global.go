@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"sync"
 
 	"github.com/coschain/contentos-go/common/encoding/kope"
 	"github.com/coschain/contentos-go/iservices"
@@ -20,19 +21,21 @@ var (
 
 ////////////// SECTION Wrap Define ///////////////
 type SoGlobalWrap struct {
-	dba       iservices.IDatabaseRW
-	mainKey   *int32
-	mKeyFlag  int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
-	mKeyBuf   []byte //the buffer after the main key is encoded with prefix
-	mBuf      []byte //the value after the main key is encoded
-	mdFuncMap map[string]interface{}
+	dba         iservices.IDatabaseRW
+	mainKey     *int32
+	watcherFlag *GlobalWatcherFlag
+	mKeyFlag    int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
+	mKeyBuf     []byte //the buffer after the main key is encoded with prefix
+	mBuf        []byte //the value after the main key is encoded
+	mdFuncMap   map[string]interface{}
 }
 
 func NewSoGlobalWrap(dba iservices.IDatabaseRW, key *int32) *SoGlobalWrap {
 	if dba == nil || key == nil {
 		return nil
 	}
-	result := &SoGlobalWrap{dba, key, -1, nil, nil, nil}
+	result := &SoGlobalWrap{dba, key, nil, -1, nil, nil, nil}
+	result.initWatcherFlag()
 	return result
 }
 
@@ -76,6 +79,13 @@ func (s *SoGlobalWrap) MustNotExist(errMsgs ...interface{}) *SoGlobalWrap {
 		panic(bindErrorInfo(fmt.Sprintf("SoGlobalWrap.MustNotExist: %v already exists", s.mainKey), errMsgs...))
 	}
 	return s
+}
+
+func (s *SoGlobalWrap) initWatcherFlag() {
+	if s.watcherFlag == nil {
+		s.watcherFlag = new(GlobalWatcherFlag)
+		*(s.watcherFlag) = GlobalWatcherFlagOfDb(s.dba.ServiceId())
+	}
 }
 
 func (s *SoGlobalWrap) create(f func(tInfo *SoGlobal)) error {
@@ -123,8 +133,9 @@ func (s *SoGlobalWrap) create(f func(tInfo *SoGlobal)) error {
 	s.mKeyFlag = 1
 
 	// call watchers
-	if GlobalHasAnyWatcher {
-		ReportTableRecordInsert(s.mainKey, val)
+	s.initWatcherFlag()
+	if s.watcherFlag.AnyWatcher {
+		ReportTableRecordInsert(s.dba.ServiceId(), s.mainKey, val)
 	}
 
 	return nil
@@ -172,6 +183,7 @@ func (s *SoGlobalWrap) modify(f func(tInfo *SoGlobal)) error {
 		return errors.New("primary key does not support modification")
 	}
 
+	s.initWatcherFlag()
 	fieldSli, hasWatcher, err := s.getModifiedFields(oriTable, curTable)
 	if err != nil {
 		return err
@@ -213,7 +225,7 @@ func (s *SoGlobalWrap) modify(f func(tInfo *SoGlobal)) error {
 
 	// call watchers
 	if hasWatcher {
-		ReportTableRecordUpdate(s.mainKey, oriTable, curTable)
+		ReportTableRecordUpdate(s.dba.ServiceId(), s.mainKey, oriTable, curTable)
 	}
 
 	return nil
@@ -255,10 +267,10 @@ func (s *SoGlobalWrap) getModifiedFields(oriTable *SoGlobal, curTable *SoGlobal)
 
 	if !reflect.DeepEqual(oriTable.Props, curTable.Props) {
 		fields["Props"] = true
-		hasWatcher = hasWatcher || GlobalHasPropsWatcher
+		hasWatcher = hasWatcher || s.watcherFlag.HasPropsWatcher
 	}
 
-	hasWatcher = hasWatcher || GlobalHasWholeWatcher
+	hasWatcher = hasWatcher || s.watcherFlag.WholeWatcher
 	return fields, hasWatcher, nil
 }
 
@@ -323,8 +335,10 @@ func (s *SoGlobalWrap) removeGlobal() error {
 		return errors.New("database is nil")
 	}
 
+	s.initWatcherFlag()
+
 	var oldVal *SoGlobal
-	if GlobalHasAnyWatcher {
+	if s.watcherFlag.AnyWatcher {
 		oldVal = s.getGlobal()
 	}
 
@@ -349,8 +363,8 @@ func (s *SoGlobalWrap) removeGlobal() error {
 		s.mKeyFlag = -1
 
 		// call watchers
-		if GlobalHasAnyWatcher && oldVal != nil {
-			ReportTableRecordDelete(s.mainKey, oldVal)
+		if s.watcherFlag.AnyWatcher && oldVal != nil {
+			ReportTableRecordDelete(s.dba.ServiceId(), s.mainKey, oldVal)
 		}
 		return nil
 	} else {
@@ -703,22 +717,37 @@ func (s *UniGlobalIdWrap) UniQueryId(start *int32) *SoGlobalWrap {
 }
 
 ////////////// SECTION Watchers ///////////////
+
+type GlobalWatcherFlag struct {
+	HasPropsWatcher bool
+
+	WholeWatcher bool
+	AnyWatcher   bool
+}
+
 var (
-	GlobalRecordType = reflect.TypeOf((*SoGlobal)(nil)).Elem() // table record type
-
-	GlobalHasPropsWatcher bool // any watcher on member Props?
-
-	GlobalHasWholeWatcher bool // any watcher on the whole record?
-	GlobalHasAnyWatcher   bool // any watcher?
+	GlobalRecordType       = reflect.TypeOf((*SoGlobal)(nil)).Elem()
+	GlobalWatcherFlags     = make(map[uint32]GlobalWatcherFlag)
+	GlobalWatcherFlagsLock sync.RWMutex
 )
 
-func GlobalRecordWatcherChanged() {
-	GlobalHasWholeWatcher = HasTableRecordWatcher(GlobalRecordType, "")
-	GlobalHasAnyWatcher = GlobalHasWholeWatcher
+func GlobalWatcherFlagOfDb(dbSvcId uint32) GlobalWatcherFlag {
+	GlobalWatcherFlagsLock.RLock()
+	defer GlobalWatcherFlagsLock.RUnlock()
+	return GlobalWatcherFlags[dbSvcId]
+}
 
-	GlobalHasPropsWatcher = HasTableRecordWatcher(GlobalRecordType, "Props")
-	GlobalHasAnyWatcher = GlobalHasAnyWatcher || GlobalHasPropsWatcher
+func GlobalRecordWatcherChanged(dbSvcId uint32) {
+	var flag GlobalWatcherFlag
+	flag.WholeWatcher = HasTableRecordWatcher(dbSvcId, GlobalRecordType, "")
+	flag.AnyWatcher = flag.WholeWatcher
 
+	flag.HasPropsWatcher = HasTableRecordWatcher(dbSvcId, GlobalRecordType, "Props")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasPropsWatcher
+
+	GlobalWatcherFlagsLock.Lock()
+	GlobalWatcherFlags[dbSvcId] = flag
+	GlobalWatcherFlagsLock.Unlock()
 }
 
 func init() {

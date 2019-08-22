@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"sync"
 
 	"github.com/coschain/contentos-go/common/encoding/kope"
 	"github.com/coschain/contentos-go/iservices"
@@ -29,19 +30,21 @@ var (
 
 ////////////// SECTION Wrap Define ///////////////
 type SoDemoWrap struct {
-	dba       iservices.IDatabaseRW
-	mainKey   *prototype.AccountName
-	mKeyFlag  int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
-	mKeyBuf   []byte //the buffer after the main key is encoded with prefix
-	mBuf      []byte //the value after the main key is encoded
-	mdFuncMap map[string]interface{}
+	dba         iservices.IDatabaseRW
+	mainKey     *prototype.AccountName
+	watcherFlag *DemoWatcherFlag
+	mKeyFlag    int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
+	mKeyBuf     []byte //the buffer after the main key is encoded with prefix
+	mBuf        []byte //the value after the main key is encoded
+	mdFuncMap   map[string]interface{}
 }
 
 func NewSoDemoWrap(dba iservices.IDatabaseRW, key *prototype.AccountName) *SoDemoWrap {
 	if dba == nil || key == nil {
 		return nil
 	}
-	result := &SoDemoWrap{dba, key, -1, nil, nil, nil}
+	result := &SoDemoWrap{dba, key, nil, -1, nil, nil, nil}
+	result.initWatcherFlag()
 	return result
 }
 
@@ -85,6 +88,13 @@ func (s *SoDemoWrap) MustNotExist(errMsgs ...interface{}) *SoDemoWrap {
 		panic(bindErrorInfo(fmt.Sprintf("SoDemoWrap.MustNotExist: %v already exists", s.mainKey), errMsgs...))
 	}
 	return s
+}
+
+func (s *SoDemoWrap) initWatcherFlag() {
+	if s.watcherFlag == nil {
+		s.watcherFlag = new(DemoWatcherFlag)
+		*(s.watcherFlag) = DemoWatcherFlagOfDb(s.dba.ServiceId())
+	}
 }
 
 func (s *SoDemoWrap) create(f func(tInfo *SoDemo)) error {
@@ -135,8 +145,9 @@ func (s *SoDemoWrap) create(f func(tInfo *SoDemo)) error {
 	s.mKeyFlag = 1
 
 	// call watchers
-	if DemoHasAnyWatcher {
-		ReportTableRecordInsert(s.mainKey, val)
+	s.initWatcherFlag()
+	if s.watcherFlag.AnyWatcher {
+		ReportTableRecordInsert(s.dba.ServiceId(), s.mainKey, val)
 	}
 
 	return nil
@@ -184,6 +195,7 @@ func (s *SoDemoWrap) modify(f func(tInfo *SoDemo)) error {
 		return errors.New("primary key does not support modification")
 	}
 
+	s.initWatcherFlag()
 	fieldSli, hasWatcher, err := s.getModifiedFields(oriTable, curTable)
 	if err != nil {
 		return err
@@ -225,7 +237,7 @@ func (s *SoDemoWrap) modify(f func(tInfo *SoDemo)) error {
 
 	// call watchers
 	if hasWatcher {
-		ReportTableRecordUpdate(s.mainKey, oriTable, curTable)
+		ReportTableRecordUpdate(s.dba.ServiceId(), s.mainKey, oriTable, curTable)
 	}
 
 	return nil
@@ -355,50 +367,50 @@ func (s *SoDemoWrap) getModifiedFields(oriTable *SoDemo, curTable *SoDemo) (map[
 
 	if !reflect.DeepEqual(oriTable.Content, curTable.Content) {
 		fields["Content"] = true
-		hasWatcher = hasWatcher || DemoHasContentWatcher
+		hasWatcher = hasWatcher || s.watcherFlag.HasContentWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.Idx, curTable.Idx) {
 		fields["Idx"] = true
-		hasWatcher = hasWatcher || DemoHasIdxWatcher
+		hasWatcher = hasWatcher || s.watcherFlag.HasIdxWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.LikeCount, curTable.LikeCount) {
 		fields["LikeCount"] = true
-		hasWatcher = hasWatcher || DemoHasLikeCountWatcher
+		hasWatcher = hasWatcher || s.watcherFlag.HasLikeCountWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.NickName, curTable.NickName) {
 		fields["NickName"] = true
-		hasWatcher = hasWatcher || DemoHasNickNameWatcher
+		hasWatcher = hasWatcher || s.watcherFlag.HasNickNameWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.PostTime, curTable.PostTime) {
 		fields["PostTime"] = true
-		hasWatcher = hasWatcher || DemoHasPostTimeWatcher
+		hasWatcher = hasWatcher || s.watcherFlag.HasPostTimeWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.RegistTime, curTable.RegistTime) {
 		fields["RegistTime"] = true
-		hasWatcher = hasWatcher || DemoHasRegistTimeWatcher
+		hasWatcher = hasWatcher || s.watcherFlag.HasRegistTimeWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.ReplayCount, curTable.ReplayCount) {
 		fields["ReplayCount"] = true
-		hasWatcher = hasWatcher || DemoHasReplayCountWatcher
+		hasWatcher = hasWatcher || s.watcherFlag.HasReplayCountWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.Taglist, curTable.Taglist) {
 		fields["Taglist"] = true
-		hasWatcher = hasWatcher || DemoHasTaglistWatcher
+		hasWatcher = hasWatcher || s.watcherFlag.HasTaglistWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.Title, curTable.Title) {
 		fields["Title"] = true
-		hasWatcher = hasWatcher || DemoHasTitleWatcher
+		hasWatcher = hasWatcher || s.watcherFlag.HasTitleWatcher
 	}
 
-	hasWatcher = hasWatcher || DemoHasWholeWatcher
+	hasWatcher = hasWatcher || s.watcherFlag.WholeWatcher
 	return fields, hasWatcher, nil
 }
 
@@ -895,8 +907,10 @@ func (s *SoDemoWrap) removeDemo() error {
 		return errors.New("database is nil")
 	}
 
+	s.initWatcherFlag()
+
 	var oldVal *SoDemo
-	if DemoHasAnyWatcher {
+	if s.watcherFlag.AnyWatcher {
 		oldVal = s.getDemo()
 	}
 
@@ -921,8 +935,8 @@ func (s *SoDemoWrap) removeDemo() error {
 		s.mKeyFlag = -1
 
 		// call watchers
-		if DemoHasAnyWatcher && oldVal != nil {
-			ReportTableRecordDelete(s.mainKey, oldVal)
+		if s.watcherFlag.AnyWatcher && oldVal != nil {
+			ReportTableRecordDelete(s.dba.ServiceId(), s.mainKey, oldVal)
 		}
 		return nil
 	} else {
@@ -3022,62 +3036,77 @@ func (s *UniDemoOwnerWrap) UniQueryOwner(start *prototype.AccountName) *SoDemoWr
 }
 
 ////////////// SECTION Watchers ///////////////
+
+type DemoWatcherFlag struct {
+	HasContentWatcher bool
+
+	HasIdxWatcher bool
+
+	HasLikeCountWatcher bool
+
+	HasNickNameWatcher bool
+
+	HasPostTimeWatcher bool
+
+	HasRegistTimeWatcher bool
+
+	HasReplayCountWatcher bool
+
+	HasTaglistWatcher bool
+
+	HasTitleWatcher bool
+
+	WholeWatcher bool
+	AnyWatcher   bool
+}
+
 var (
-	DemoRecordType = reflect.TypeOf((*SoDemo)(nil)).Elem() // table record type
-
-	DemoHasContentWatcher bool // any watcher on member Content?
-
-	DemoHasIdxWatcher bool // any watcher on member Idx?
-
-	DemoHasLikeCountWatcher bool // any watcher on member LikeCount?
-
-	DemoHasNickNameWatcher bool // any watcher on member NickName?
-
-	DemoHasPostTimeWatcher bool // any watcher on member PostTime?
-
-	DemoHasRegistTimeWatcher bool // any watcher on member RegistTime?
-
-	DemoHasReplayCountWatcher bool // any watcher on member ReplayCount?
-
-	DemoHasTaglistWatcher bool // any watcher on member Taglist?
-
-	DemoHasTitleWatcher bool // any watcher on member Title?
-
-	DemoHasWholeWatcher bool // any watcher on the whole record?
-	DemoHasAnyWatcher   bool // any watcher?
+	DemoRecordType       = reflect.TypeOf((*SoDemo)(nil)).Elem()
+	DemoWatcherFlags     = make(map[uint32]DemoWatcherFlag)
+	DemoWatcherFlagsLock sync.RWMutex
 )
 
-func DemoRecordWatcherChanged() {
-	DemoHasWholeWatcher = HasTableRecordWatcher(DemoRecordType, "")
-	DemoHasAnyWatcher = DemoHasWholeWatcher
+func DemoWatcherFlagOfDb(dbSvcId uint32) DemoWatcherFlag {
+	DemoWatcherFlagsLock.RLock()
+	defer DemoWatcherFlagsLock.RUnlock()
+	return DemoWatcherFlags[dbSvcId]
+}
 
-	DemoHasContentWatcher = HasTableRecordWatcher(DemoRecordType, "Content")
-	DemoHasAnyWatcher = DemoHasAnyWatcher || DemoHasContentWatcher
+func DemoRecordWatcherChanged(dbSvcId uint32) {
+	var flag DemoWatcherFlag
+	flag.WholeWatcher = HasTableRecordWatcher(dbSvcId, DemoRecordType, "")
+	flag.AnyWatcher = flag.WholeWatcher
 
-	DemoHasIdxWatcher = HasTableRecordWatcher(DemoRecordType, "Idx")
-	DemoHasAnyWatcher = DemoHasAnyWatcher || DemoHasIdxWatcher
+	flag.HasContentWatcher = HasTableRecordWatcher(dbSvcId, DemoRecordType, "Content")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasContentWatcher
 
-	DemoHasLikeCountWatcher = HasTableRecordWatcher(DemoRecordType, "LikeCount")
-	DemoHasAnyWatcher = DemoHasAnyWatcher || DemoHasLikeCountWatcher
+	flag.HasIdxWatcher = HasTableRecordWatcher(dbSvcId, DemoRecordType, "Idx")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasIdxWatcher
 
-	DemoHasNickNameWatcher = HasTableRecordWatcher(DemoRecordType, "NickName")
-	DemoHasAnyWatcher = DemoHasAnyWatcher || DemoHasNickNameWatcher
+	flag.HasLikeCountWatcher = HasTableRecordWatcher(dbSvcId, DemoRecordType, "LikeCount")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasLikeCountWatcher
 
-	DemoHasPostTimeWatcher = HasTableRecordWatcher(DemoRecordType, "PostTime")
-	DemoHasAnyWatcher = DemoHasAnyWatcher || DemoHasPostTimeWatcher
+	flag.HasNickNameWatcher = HasTableRecordWatcher(dbSvcId, DemoRecordType, "NickName")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasNickNameWatcher
 
-	DemoHasRegistTimeWatcher = HasTableRecordWatcher(DemoRecordType, "RegistTime")
-	DemoHasAnyWatcher = DemoHasAnyWatcher || DemoHasRegistTimeWatcher
+	flag.HasPostTimeWatcher = HasTableRecordWatcher(dbSvcId, DemoRecordType, "PostTime")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasPostTimeWatcher
 
-	DemoHasReplayCountWatcher = HasTableRecordWatcher(DemoRecordType, "ReplayCount")
-	DemoHasAnyWatcher = DemoHasAnyWatcher || DemoHasReplayCountWatcher
+	flag.HasRegistTimeWatcher = HasTableRecordWatcher(dbSvcId, DemoRecordType, "RegistTime")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasRegistTimeWatcher
 
-	DemoHasTaglistWatcher = HasTableRecordWatcher(DemoRecordType, "Taglist")
-	DemoHasAnyWatcher = DemoHasAnyWatcher || DemoHasTaglistWatcher
+	flag.HasReplayCountWatcher = HasTableRecordWatcher(dbSvcId, DemoRecordType, "ReplayCount")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasReplayCountWatcher
 
-	DemoHasTitleWatcher = HasTableRecordWatcher(DemoRecordType, "Title")
-	DemoHasAnyWatcher = DemoHasAnyWatcher || DemoHasTitleWatcher
+	flag.HasTaglistWatcher = HasTableRecordWatcher(dbSvcId, DemoRecordType, "Taglist")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasTaglistWatcher
 
+	flag.HasTitleWatcher = HasTableRecordWatcher(dbSvcId, DemoRecordType, "Title")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasTitleWatcher
+
+	DemoWatcherFlagsLock.Lock()
+	DemoWatcherFlags[dbSvcId] = flag
+	DemoWatcherFlagsLock.Unlock()
 }
 
 func init() {

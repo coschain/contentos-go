@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"sync"
 
 	"github.com/coschain/contentos-go/common/encoding/kope"
 	"github.com/coschain/contentos-go/iservices"
@@ -22,19 +23,21 @@ var (
 
 ////////////// SECTION Wrap Define ///////////////
 type SoContractWrap struct {
-	dba       iservices.IDatabaseRW
-	mainKey   *prototype.ContractId
-	mKeyFlag  int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
-	mKeyBuf   []byte //the buffer after the main key is encoded with prefix
-	mBuf      []byte //the value after the main key is encoded
-	mdFuncMap map[string]interface{}
+	dba         iservices.IDatabaseRW
+	mainKey     *prototype.ContractId
+	watcherFlag *ContractWatcherFlag
+	mKeyFlag    int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
+	mKeyBuf     []byte //the buffer after the main key is encoded with prefix
+	mBuf        []byte //the value after the main key is encoded
+	mdFuncMap   map[string]interface{}
 }
 
 func NewSoContractWrap(dba iservices.IDatabaseRW, key *prototype.ContractId) *SoContractWrap {
 	if dba == nil || key == nil {
 		return nil
 	}
-	result := &SoContractWrap{dba, key, -1, nil, nil, nil}
+	result := &SoContractWrap{dba, key, nil, -1, nil, nil, nil}
+	result.initWatcherFlag()
 	return result
 }
 
@@ -78,6 +81,13 @@ func (s *SoContractWrap) MustNotExist(errMsgs ...interface{}) *SoContractWrap {
 		panic(bindErrorInfo(fmt.Sprintf("SoContractWrap.MustNotExist: %v already exists", s.mainKey), errMsgs...))
 	}
 	return s
+}
+
+func (s *SoContractWrap) initWatcherFlag() {
+	if s.watcherFlag == nil {
+		s.watcherFlag = new(ContractWatcherFlag)
+		*(s.watcherFlag) = ContractWatcherFlagOfDb(s.dba.ServiceId())
+	}
 }
 
 func (s *SoContractWrap) create(f func(tInfo *SoContract)) error {
@@ -128,8 +138,9 @@ func (s *SoContractWrap) create(f func(tInfo *SoContract)) error {
 	s.mKeyFlag = 1
 
 	// call watchers
-	if ContractHasAnyWatcher {
-		ReportTableRecordInsert(s.mainKey, val)
+	s.initWatcherFlag()
+	if s.watcherFlag.AnyWatcher {
+		ReportTableRecordInsert(s.dba.ServiceId(), s.mainKey, val)
 	}
 
 	return nil
@@ -177,6 +188,7 @@ func (s *SoContractWrap) modify(f func(tInfo *SoContract)) error {
 		return errors.New("primary key does not support modification")
 	}
 
+	s.initWatcherFlag()
 	fieldSli, hasWatcher, err := s.getModifiedFields(oriTable, curTable)
 	if err != nil {
 		return err
@@ -218,7 +230,7 @@ func (s *SoContractWrap) modify(f func(tInfo *SoContract)) error {
 
 	// call watchers
 	if hasWatcher {
-		ReportTableRecordUpdate(s.mainKey, oriTable, curTable)
+		ReportTableRecordUpdate(s.dba.ServiceId(), s.mainKey, oriTable, curTable)
 	}
 
 	return nil
@@ -344,50 +356,50 @@ func (s *SoContractWrap) getModifiedFields(oriTable *SoContract, curTable *SoCon
 
 	if !reflect.DeepEqual(oriTable.Abi, curTable.Abi) {
 		fields["Abi"] = true
-		hasWatcher = hasWatcher || ContractHasAbiWatcher
+		hasWatcher = hasWatcher || s.watcherFlag.HasAbiWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.ApplyCount, curTable.ApplyCount) {
 		fields["ApplyCount"] = true
-		hasWatcher = hasWatcher || ContractHasApplyCountWatcher
+		hasWatcher = hasWatcher || s.watcherFlag.HasApplyCountWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.Balance, curTable.Balance) {
 		fields["Balance"] = true
-		hasWatcher = hasWatcher || ContractHasBalanceWatcher
+		hasWatcher = hasWatcher || s.watcherFlag.HasBalanceWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.Code, curTable.Code) {
 		fields["Code"] = true
-		hasWatcher = hasWatcher || ContractHasCodeWatcher
+		hasWatcher = hasWatcher || s.watcherFlag.HasCodeWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.CreatedTime, curTable.CreatedTime) {
 		fields["CreatedTime"] = true
-		hasWatcher = hasWatcher || ContractHasCreatedTimeWatcher
+		hasWatcher = hasWatcher || s.watcherFlag.HasCreatedTimeWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.Describe, curTable.Describe) {
 		fields["Describe"] = true
-		hasWatcher = hasWatcher || ContractHasDescribeWatcher
+		hasWatcher = hasWatcher || s.watcherFlag.HasDescribeWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.Hash, curTable.Hash) {
 		fields["Hash"] = true
-		hasWatcher = hasWatcher || ContractHasHashWatcher
+		hasWatcher = hasWatcher || s.watcherFlag.HasHashWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.Upgradeable, curTable.Upgradeable) {
 		fields["Upgradeable"] = true
-		hasWatcher = hasWatcher || ContractHasUpgradeableWatcher
+		hasWatcher = hasWatcher || s.watcherFlag.HasUpgradeableWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.Url, curTable.Url) {
 		fields["Url"] = true
-		hasWatcher = hasWatcher || ContractHasUrlWatcher
+		hasWatcher = hasWatcher || s.watcherFlag.HasUrlWatcher
 	}
 
-	hasWatcher = hasWatcher || ContractHasWholeWatcher
+	hasWatcher = hasWatcher || s.watcherFlag.WholeWatcher
 	return fields, hasWatcher, nil
 }
 
@@ -688,8 +700,10 @@ func (s *SoContractWrap) removeContract() error {
 		return errors.New("database is nil")
 	}
 
+	s.initWatcherFlag()
+
 	var oldVal *SoContract
-	if ContractHasAnyWatcher {
+	if s.watcherFlag.AnyWatcher {
 		oldVal = s.getContract()
 	}
 
@@ -714,8 +728,8 @@ func (s *SoContractWrap) removeContract() error {
 		s.mKeyFlag = -1
 
 		// call watchers
-		if ContractHasAnyWatcher && oldVal != nil {
-			ReportTableRecordDelete(s.mainKey, oldVal)
+		if s.watcherFlag.AnyWatcher && oldVal != nil {
+			ReportTableRecordDelete(s.dba.ServiceId(), s.mainKey, oldVal)
 		}
 		return nil
 	} else {
@@ -2017,62 +2031,77 @@ func (s *UniContractIdWrap) UniQueryId(start *prototype.ContractId) *SoContractW
 }
 
 ////////////// SECTION Watchers ///////////////
+
+type ContractWatcherFlag struct {
+	HasAbiWatcher bool
+
+	HasApplyCountWatcher bool
+
+	HasBalanceWatcher bool
+
+	HasCodeWatcher bool
+
+	HasCreatedTimeWatcher bool
+
+	HasDescribeWatcher bool
+
+	HasHashWatcher bool
+
+	HasUpgradeableWatcher bool
+
+	HasUrlWatcher bool
+
+	WholeWatcher bool
+	AnyWatcher   bool
+}
+
 var (
-	ContractRecordType = reflect.TypeOf((*SoContract)(nil)).Elem() // table record type
-
-	ContractHasAbiWatcher bool // any watcher on member Abi?
-
-	ContractHasApplyCountWatcher bool // any watcher on member ApplyCount?
-
-	ContractHasBalanceWatcher bool // any watcher on member Balance?
-
-	ContractHasCodeWatcher bool // any watcher on member Code?
-
-	ContractHasCreatedTimeWatcher bool // any watcher on member CreatedTime?
-
-	ContractHasDescribeWatcher bool // any watcher on member Describe?
-
-	ContractHasHashWatcher bool // any watcher on member Hash?
-
-	ContractHasUpgradeableWatcher bool // any watcher on member Upgradeable?
-
-	ContractHasUrlWatcher bool // any watcher on member Url?
-
-	ContractHasWholeWatcher bool // any watcher on the whole record?
-	ContractHasAnyWatcher   bool // any watcher?
+	ContractRecordType       = reflect.TypeOf((*SoContract)(nil)).Elem()
+	ContractWatcherFlags     = make(map[uint32]ContractWatcherFlag)
+	ContractWatcherFlagsLock sync.RWMutex
 )
 
-func ContractRecordWatcherChanged() {
-	ContractHasWholeWatcher = HasTableRecordWatcher(ContractRecordType, "")
-	ContractHasAnyWatcher = ContractHasWholeWatcher
+func ContractWatcherFlagOfDb(dbSvcId uint32) ContractWatcherFlag {
+	ContractWatcherFlagsLock.RLock()
+	defer ContractWatcherFlagsLock.RUnlock()
+	return ContractWatcherFlags[dbSvcId]
+}
 
-	ContractHasAbiWatcher = HasTableRecordWatcher(ContractRecordType, "Abi")
-	ContractHasAnyWatcher = ContractHasAnyWatcher || ContractHasAbiWatcher
+func ContractRecordWatcherChanged(dbSvcId uint32) {
+	var flag ContractWatcherFlag
+	flag.WholeWatcher = HasTableRecordWatcher(dbSvcId, ContractRecordType, "")
+	flag.AnyWatcher = flag.WholeWatcher
 
-	ContractHasApplyCountWatcher = HasTableRecordWatcher(ContractRecordType, "ApplyCount")
-	ContractHasAnyWatcher = ContractHasAnyWatcher || ContractHasApplyCountWatcher
+	flag.HasAbiWatcher = HasTableRecordWatcher(dbSvcId, ContractRecordType, "Abi")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasAbiWatcher
 
-	ContractHasBalanceWatcher = HasTableRecordWatcher(ContractRecordType, "Balance")
-	ContractHasAnyWatcher = ContractHasAnyWatcher || ContractHasBalanceWatcher
+	flag.HasApplyCountWatcher = HasTableRecordWatcher(dbSvcId, ContractRecordType, "ApplyCount")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasApplyCountWatcher
 
-	ContractHasCodeWatcher = HasTableRecordWatcher(ContractRecordType, "Code")
-	ContractHasAnyWatcher = ContractHasAnyWatcher || ContractHasCodeWatcher
+	flag.HasBalanceWatcher = HasTableRecordWatcher(dbSvcId, ContractRecordType, "Balance")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasBalanceWatcher
 
-	ContractHasCreatedTimeWatcher = HasTableRecordWatcher(ContractRecordType, "CreatedTime")
-	ContractHasAnyWatcher = ContractHasAnyWatcher || ContractHasCreatedTimeWatcher
+	flag.HasCodeWatcher = HasTableRecordWatcher(dbSvcId, ContractRecordType, "Code")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasCodeWatcher
 
-	ContractHasDescribeWatcher = HasTableRecordWatcher(ContractRecordType, "Describe")
-	ContractHasAnyWatcher = ContractHasAnyWatcher || ContractHasDescribeWatcher
+	flag.HasCreatedTimeWatcher = HasTableRecordWatcher(dbSvcId, ContractRecordType, "CreatedTime")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasCreatedTimeWatcher
 
-	ContractHasHashWatcher = HasTableRecordWatcher(ContractRecordType, "Hash")
-	ContractHasAnyWatcher = ContractHasAnyWatcher || ContractHasHashWatcher
+	flag.HasDescribeWatcher = HasTableRecordWatcher(dbSvcId, ContractRecordType, "Describe")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasDescribeWatcher
 
-	ContractHasUpgradeableWatcher = HasTableRecordWatcher(ContractRecordType, "Upgradeable")
-	ContractHasAnyWatcher = ContractHasAnyWatcher || ContractHasUpgradeableWatcher
+	flag.HasHashWatcher = HasTableRecordWatcher(dbSvcId, ContractRecordType, "Hash")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasHashWatcher
 
-	ContractHasUrlWatcher = HasTableRecordWatcher(ContractRecordType, "Url")
-	ContractHasAnyWatcher = ContractHasAnyWatcher || ContractHasUrlWatcher
+	flag.HasUpgradeableWatcher = HasTableRecordWatcher(dbSvcId, ContractRecordType, "Upgradeable")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasUpgradeableWatcher
 
+	flag.HasUrlWatcher = HasTableRecordWatcher(dbSvcId, ContractRecordType, "Url")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasUrlWatcher
+
+	ContractWatcherFlagsLock.Lock()
+	ContractWatcherFlags[dbSvcId] = flag
+	ContractWatcherFlagsLock.Unlock()
 }
 
 func init() {

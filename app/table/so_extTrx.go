@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"sync"
 
 	"github.com/coschain/contentos-go/common/encoding/kope"
 	"github.com/coschain/contentos-go/iservices"
@@ -24,19 +25,21 @@ var (
 
 ////////////// SECTION Wrap Define ///////////////
 type SoExtTrxWrap struct {
-	dba       iservices.IDatabaseRW
-	mainKey   *prototype.Sha256
-	mKeyFlag  int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
-	mKeyBuf   []byte //the buffer after the main key is encoded with prefix
-	mBuf      []byte //the value after the main key is encoded
-	mdFuncMap map[string]interface{}
+	dba         iservices.IDatabaseRW
+	mainKey     *prototype.Sha256
+	watcherFlag *ExtTrxWatcherFlag
+	mKeyFlag    int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
+	mKeyBuf     []byte //the buffer after the main key is encoded with prefix
+	mBuf        []byte //the value after the main key is encoded
+	mdFuncMap   map[string]interface{}
 }
 
 func NewSoExtTrxWrap(dba iservices.IDatabaseRW, key *prototype.Sha256) *SoExtTrxWrap {
 	if dba == nil || key == nil {
 		return nil
 	}
-	result := &SoExtTrxWrap{dba, key, -1, nil, nil, nil}
+	result := &SoExtTrxWrap{dba, key, nil, -1, nil, nil, nil}
+	result.initWatcherFlag()
 	return result
 }
 
@@ -80,6 +83,13 @@ func (s *SoExtTrxWrap) MustNotExist(errMsgs ...interface{}) *SoExtTrxWrap {
 		panic(bindErrorInfo(fmt.Sprintf("SoExtTrxWrap.MustNotExist: %v already exists", s.mainKey), errMsgs...))
 	}
 	return s
+}
+
+func (s *SoExtTrxWrap) initWatcherFlag() {
+	if s.watcherFlag == nil {
+		s.watcherFlag = new(ExtTrxWatcherFlag)
+		*(s.watcherFlag) = ExtTrxWatcherFlagOfDb(s.dba.ServiceId())
+	}
 }
 
 func (s *SoExtTrxWrap) create(f func(tInfo *SoExtTrx)) error {
@@ -130,8 +140,9 @@ func (s *SoExtTrxWrap) create(f func(tInfo *SoExtTrx)) error {
 	s.mKeyFlag = 1
 
 	// call watchers
-	if ExtTrxHasAnyWatcher {
-		ReportTableRecordInsert(s.mainKey, val)
+	s.initWatcherFlag()
+	if s.watcherFlag.AnyWatcher {
+		ReportTableRecordInsert(s.dba.ServiceId(), s.mainKey, val)
 	}
 
 	return nil
@@ -179,6 +190,7 @@ func (s *SoExtTrxWrap) modify(f func(tInfo *SoExtTrx)) error {
 		return errors.New("primary key does not support modification")
 	}
 
+	s.initWatcherFlag()
 	fieldSli, hasWatcher, err := s.getModifiedFields(oriTable, curTable)
 	if err != nil {
 		return err
@@ -220,7 +232,7 @@ func (s *SoExtTrxWrap) modify(f func(tInfo *SoExtTrx)) error {
 
 	// call watchers
 	if hasWatcher {
-		ReportTableRecordUpdate(s.mainKey, oriTable, curTable)
+		ReportTableRecordUpdate(s.dba.ServiceId(), s.mainKey, oriTable, curTable)
 	}
 
 	return nil
@@ -310,30 +322,30 @@ func (s *SoExtTrxWrap) getModifiedFields(oriTable *SoExtTrx, curTable *SoExtTrx)
 
 	if !reflect.DeepEqual(oriTable.BlockHeight, curTable.BlockHeight) {
 		fields["BlockHeight"] = true
-		hasWatcher = hasWatcher || ExtTrxHasBlockHeightWatcher
+		hasWatcher = hasWatcher || s.watcherFlag.HasBlockHeightWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.BlockId, curTable.BlockId) {
 		fields["BlockId"] = true
-		hasWatcher = hasWatcher || ExtTrxHasBlockIdWatcher
+		hasWatcher = hasWatcher || s.watcherFlag.HasBlockIdWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.BlockTime, curTable.BlockTime) {
 		fields["BlockTime"] = true
-		hasWatcher = hasWatcher || ExtTrxHasBlockTimeWatcher
+		hasWatcher = hasWatcher || s.watcherFlag.HasBlockTimeWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.TrxCreateOrder, curTable.TrxCreateOrder) {
 		fields["TrxCreateOrder"] = true
-		hasWatcher = hasWatcher || ExtTrxHasTrxCreateOrderWatcher
+		hasWatcher = hasWatcher || s.watcherFlag.HasTrxCreateOrderWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.TrxWrap, curTable.TrxWrap) {
 		fields["TrxWrap"] = true
-		hasWatcher = hasWatcher || ExtTrxHasTrxWrapWatcher
+		hasWatcher = hasWatcher || s.watcherFlag.HasTrxWrapWatcher
 	}
 
-	hasWatcher = hasWatcher || ExtTrxHasWholeWatcher
+	hasWatcher = hasWatcher || s.watcherFlag.WholeWatcher
 	return fields, hasWatcher, nil
 }
 
@@ -662,8 +674,10 @@ func (s *SoExtTrxWrap) removeExtTrx() error {
 		return errors.New("database is nil")
 	}
 
+	s.initWatcherFlag()
+
 	var oldVal *SoExtTrx
-	if ExtTrxHasAnyWatcher {
+	if s.watcherFlag.AnyWatcher {
 		oldVal = s.getExtTrx()
 	}
 
@@ -688,8 +702,8 @@ func (s *SoExtTrxWrap) removeExtTrx() error {
 		s.mKeyFlag = -1
 
 		// call watchers
-		if ExtTrxHasAnyWatcher && oldVal != nil {
-			ReportTableRecordDelete(s.mainKey, oldVal)
+		if s.watcherFlag.AnyWatcher && oldVal != nil {
+			ReportTableRecordDelete(s.dba.ServiceId(), s.mainKey, oldVal)
 		}
 		return nil
 	} else {
@@ -1943,42 +1957,57 @@ func (s *UniExtTrxTrxIdWrap) UniQueryTrxId(start *prototype.Sha256) *SoExtTrxWra
 }
 
 ////////////// SECTION Watchers ///////////////
+
+type ExtTrxWatcherFlag struct {
+	HasBlockHeightWatcher bool
+
+	HasBlockIdWatcher bool
+
+	HasBlockTimeWatcher bool
+
+	HasTrxCreateOrderWatcher bool
+
+	HasTrxWrapWatcher bool
+
+	WholeWatcher bool
+	AnyWatcher   bool
+}
+
 var (
-	ExtTrxRecordType = reflect.TypeOf((*SoExtTrx)(nil)).Elem() // table record type
-
-	ExtTrxHasBlockHeightWatcher bool // any watcher on member BlockHeight?
-
-	ExtTrxHasBlockIdWatcher bool // any watcher on member BlockId?
-
-	ExtTrxHasBlockTimeWatcher bool // any watcher on member BlockTime?
-
-	ExtTrxHasTrxCreateOrderWatcher bool // any watcher on member TrxCreateOrder?
-
-	ExtTrxHasTrxWrapWatcher bool // any watcher on member TrxWrap?
-
-	ExtTrxHasWholeWatcher bool // any watcher on the whole record?
-	ExtTrxHasAnyWatcher   bool // any watcher?
+	ExtTrxRecordType       = reflect.TypeOf((*SoExtTrx)(nil)).Elem()
+	ExtTrxWatcherFlags     = make(map[uint32]ExtTrxWatcherFlag)
+	ExtTrxWatcherFlagsLock sync.RWMutex
 )
 
-func ExtTrxRecordWatcherChanged() {
-	ExtTrxHasWholeWatcher = HasTableRecordWatcher(ExtTrxRecordType, "")
-	ExtTrxHasAnyWatcher = ExtTrxHasWholeWatcher
+func ExtTrxWatcherFlagOfDb(dbSvcId uint32) ExtTrxWatcherFlag {
+	ExtTrxWatcherFlagsLock.RLock()
+	defer ExtTrxWatcherFlagsLock.RUnlock()
+	return ExtTrxWatcherFlags[dbSvcId]
+}
 
-	ExtTrxHasBlockHeightWatcher = HasTableRecordWatcher(ExtTrxRecordType, "BlockHeight")
-	ExtTrxHasAnyWatcher = ExtTrxHasAnyWatcher || ExtTrxHasBlockHeightWatcher
+func ExtTrxRecordWatcherChanged(dbSvcId uint32) {
+	var flag ExtTrxWatcherFlag
+	flag.WholeWatcher = HasTableRecordWatcher(dbSvcId, ExtTrxRecordType, "")
+	flag.AnyWatcher = flag.WholeWatcher
 
-	ExtTrxHasBlockIdWatcher = HasTableRecordWatcher(ExtTrxRecordType, "BlockId")
-	ExtTrxHasAnyWatcher = ExtTrxHasAnyWatcher || ExtTrxHasBlockIdWatcher
+	flag.HasBlockHeightWatcher = HasTableRecordWatcher(dbSvcId, ExtTrxRecordType, "BlockHeight")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasBlockHeightWatcher
 
-	ExtTrxHasBlockTimeWatcher = HasTableRecordWatcher(ExtTrxRecordType, "BlockTime")
-	ExtTrxHasAnyWatcher = ExtTrxHasAnyWatcher || ExtTrxHasBlockTimeWatcher
+	flag.HasBlockIdWatcher = HasTableRecordWatcher(dbSvcId, ExtTrxRecordType, "BlockId")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasBlockIdWatcher
 
-	ExtTrxHasTrxCreateOrderWatcher = HasTableRecordWatcher(ExtTrxRecordType, "TrxCreateOrder")
-	ExtTrxHasAnyWatcher = ExtTrxHasAnyWatcher || ExtTrxHasTrxCreateOrderWatcher
+	flag.HasBlockTimeWatcher = HasTableRecordWatcher(dbSvcId, ExtTrxRecordType, "BlockTime")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasBlockTimeWatcher
 
-	ExtTrxHasTrxWrapWatcher = HasTableRecordWatcher(ExtTrxRecordType, "TrxWrap")
-	ExtTrxHasAnyWatcher = ExtTrxHasAnyWatcher || ExtTrxHasTrxWrapWatcher
+	flag.HasTrxCreateOrderWatcher = HasTableRecordWatcher(dbSvcId, ExtTrxRecordType, "TrxCreateOrder")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasTrxCreateOrderWatcher
 
+	flag.HasTrxWrapWatcher = HasTableRecordWatcher(dbSvcId, ExtTrxRecordType, "TrxWrap")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasTrxWrapWatcher
+
+	ExtTrxWatcherFlagsLock.Lock()
+	ExtTrxWatcherFlags[dbSvcId] = flag
+	ExtTrxWatcherFlagsLock.Unlock()
 }
 
 func init() {

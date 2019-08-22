@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"sync"
 
 	"github.com/coschain/contentos-go/common/encoding/kope"
 	"github.com/coschain/contentos-go/iservices"
@@ -22,19 +23,21 @@ var (
 
 ////////////// SECTION Wrap Define ///////////////
 type SoExtHourTrxWrap struct {
-	dba       iservices.IDatabaseRW
-	mainKey   *prototype.TimePointSec
-	mKeyFlag  int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
-	mKeyBuf   []byte //the buffer after the main key is encoded with prefix
-	mBuf      []byte //the value after the main key is encoded
-	mdFuncMap map[string]interface{}
+	dba         iservices.IDatabaseRW
+	mainKey     *prototype.TimePointSec
+	watcherFlag *ExtHourTrxWatcherFlag
+	mKeyFlag    int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
+	mKeyBuf     []byte //the buffer after the main key is encoded with prefix
+	mBuf        []byte //the value after the main key is encoded
+	mdFuncMap   map[string]interface{}
 }
 
 func NewSoExtHourTrxWrap(dba iservices.IDatabaseRW, key *prototype.TimePointSec) *SoExtHourTrxWrap {
 	if dba == nil || key == nil {
 		return nil
 	}
-	result := &SoExtHourTrxWrap{dba, key, -1, nil, nil, nil}
+	result := &SoExtHourTrxWrap{dba, key, nil, -1, nil, nil, nil}
+	result.initWatcherFlag()
 	return result
 }
 
@@ -78,6 +81,13 @@ func (s *SoExtHourTrxWrap) MustNotExist(errMsgs ...interface{}) *SoExtHourTrxWra
 		panic(bindErrorInfo(fmt.Sprintf("SoExtHourTrxWrap.MustNotExist: %v already exists", s.mainKey), errMsgs...))
 	}
 	return s
+}
+
+func (s *SoExtHourTrxWrap) initWatcherFlag() {
+	if s.watcherFlag == nil {
+		s.watcherFlag = new(ExtHourTrxWatcherFlag)
+		*(s.watcherFlag) = ExtHourTrxWatcherFlagOfDb(s.dba.ServiceId())
+	}
 }
 
 func (s *SoExtHourTrxWrap) create(f func(tInfo *SoExtHourTrx)) error {
@@ -128,8 +138,9 @@ func (s *SoExtHourTrxWrap) create(f func(tInfo *SoExtHourTrx)) error {
 	s.mKeyFlag = 1
 
 	// call watchers
-	if ExtHourTrxHasAnyWatcher {
-		ReportTableRecordInsert(s.mainKey, val)
+	s.initWatcherFlag()
+	if s.watcherFlag.AnyWatcher {
+		ReportTableRecordInsert(s.dba.ServiceId(), s.mainKey, val)
 	}
 
 	return nil
@@ -177,6 +188,7 @@ func (s *SoExtHourTrxWrap) modify(f func(tInfo *SoExtHourTrx)) error {
 		return errors.New("primary key does not support modification")
 	}
 
+	s.initWatcherFlag()
 	fieldSli, hasWatcher, err := s.getModifiedFields(oriTable, curTable)
 	if err != nil {
 		return err
@@ -218,7 +230,7 @@ func (s *SoExtHourTrxWrap) modify(f func(tInfo *SoExtHourTrx)) error {
 
 	// call watchers
 	if hasWatcher {
-		ReportTableRecordUpdate(s.mainKey, oriTable, curTable)
+		ReportTableRecordUpdate(s.dba.ServiceId(), s.mainKey, oriTable, curTable)
 	}
 
 	return nil
@@ -260,10 +272,10 @@ func (s *SoExtHourTrxWrap) getModifiedFields(oriTable *SoExtHourTrx, curTable *S
 
 	if !reflect.DeepEqual(oriTable.Count, curTable.Count) {
 		fields["Count"] = true
-		hasWatcher = hasWatcher || ExtHourTrxHasCountWatcher
+		hasWatcher = hasWatcher || s.watcherFlag.HasCountWatcher
 	}
 
-	hasWatcher = hasWatcher || ExtHourTrxHasWholeWatcher
+	hasWatcher = hasWatcher || s.watcherFlag.WholeWatcher
 	return fields, hasWatcher, nil
 }
 
@@ -424,8 +436,10 @@ func (s *SoExtHourTrxWrap) removeExtHourTrx() error {
 		return errors.New("database is nil")
 	}
 
+	s.initWatcherFlag()
+
 	var oldVal *SoExtHourTrx
-	if ExtHourTrxHasAnyWatcher {
+	if s.watcherFlag.AnyWatcher {
 		oldVal = s.getExtHourTrx()
 	}
 
@@ -450,8 +464,8 @@ func (s *SoExtHourTrxWrap) removeExtHourTrx() error {
 		s.mKeyFlag = -1
 
 		// call watchers
-		if ExtHourTrxHasAnyWatcher && oldVal != nil {
-			ReportTableRecordDelete(s.mainKey, oldVal)
+		if s.watcherFlag.AnyWatcher && oldVal != nil {
+			ReportTableRecordDelete(s.dba.ServiceId(), s.mainKey, oldVal)
 		}
 		return nil
 	} else {
@@ -1035,22 +1049,37 @@ func (s *UniExtHourTrxHourWrap) UniQueryHour(start *prototype.TimePointSec) *SoE
 }
 
 ////////////// SECTION Watchers ///////////////
+
+type ExtHourTrxWatcherFlag struct {
+	HasCountWatcher bool
+
+	WholeWatcher bool
+	AnyWatcher   bool
+}
+
 var (
-	ExtHourTrxRecordType = reflect.TypeOf((*SoExtHourTrx)(nil)).Elem() // table record type
-
-	ExtHourTrxHasCountWatcher bool // any watcher on member Count?
-
-	ExtHourTrxHasWholeWatcher bool // any watcher on the whole record?
-	ExtHourTrxHasAnyWatcher   bool // any watcher?
+	ExtHourTrxRecordType       = reflect.TypeOf((*SoExtHourTrx)(nil)).Elem()
+	ExtHourTrxWatcherFlags     = make(map[uint32]ExtHourTrxWatcherFlag)
+	ExtHourTrxWatcherFlagsLock sync.RWMutex
 )
 
-func ExtHourTrxRecordWatcherChanged() {
-	ExtHourTrxHasWholeWatcher = HasTableRecordWatcher(ExtHourTrxRecordType, "")
-	ExtHourTrxHasAnyWatcher = ExtHourTrxHasWholeWatcher
+func ExtHourTrxWatcherFlagOfDb(dbSvcId uint32) ExtHourTrxWatcherFlag {
+	ExtHourTrxWatcherFlagsLock.RLock()
+	defer ExtHourTrxWatcherFlagsLock.RUnlock()
+	return ExtHourTrxWatcherFlags[dbSvcId]
+}
 
-	ExtHourTrxHasCountWatcher = HasTableRecordWatcher(ExtHourTrxRecordType, "Count")
-	ExtHourTrxHasAnyWatcher = ExtHourTrxHasAnyWatcher || ExtHourTrxHasCountWatcher
+func ExtHourTrxRecordWatcherChanged(dbSvcId uint32) {
+	var flag ExtHourTrxWatcherFlag
+	flag.WholeWatcher = HasTableRecordWatcher(dbSvcId, ExtHourTrxRecordType, "")
+	flag.AnyWatcher = flag.WholeWatcher
 
+	flag.HasCountWatcher = HasTableRecordWatcher(dbSvcId, ExtHourTrxRecordType, "Count")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasCountWatcher
+
+	ExtHourTrxWatcherFlagsLock.Lock()
+	ExtHourTrxWatcherFlags[dbSvcId] = flag
+	ExtHourTrxWatcherFlagsLock.Unlock()
 }
 
 func init() {

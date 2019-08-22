@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"sync"
 
 	"github.com/coschain/contentos-go/common/encoding/kope"
 	"github.com/coschain/contentos-go/iservices"
@@ -21,19 +22,21 @@ var (
 
 ////////////// SECTION Wrap Define ///////////////
 type SoExtRewardWrap struct {
-	dba       iservices.IDatabaseRW
-	mainKey   *prototype.RewardCashoutId
-	mKeyFlag  int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
-	mKeyBuf   []byte //the buffer after the main key is encoded with prefix
-	mBuf      []byte //the value after the main key is encoded
-	mdFuncMap map[string]interface{}
+	dba         iservices.IDatabaseRW
+	mainKey     *prototype.RewardCashoutId
+	watcherFlag *ExtRewardWatcherFlag
+	mKeyFlag    int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
+	mKeyBuf     []byte //the buffer after the main key is encoded with prefix
+	mBuf        []byte //the value after the main key is encoded
+	mdFuncMap   map[string]interface{}
 }
 
 func NewSoExtRewardWrap(dba iservices.IDatabaseRW, key *prototype.RewardCashoutId) *SoExtRewardWrap {
 	if dba == nil || key == nil {
 		return nil
 	}
-	result := &SoExtRewardWrap{dba, key, -1, nil, nil, nil}
+	result := &SoExtRewardWrap{dba, key, nil, -1, nil, nil, nil}
+	result.initWatcherFlag()
 	return result
 }
 
@@ -77,6 +80,13 @@ func (s *SoExtRewardWrap) MustNotExist(errMsgs ...interface{}) *SoExtRewardWrap 
 		panic(bindErrorInfo(fmt.Sprintf("SoExtRewardWrap.MustNotExist: %v already exists", s.mainKey), errMsgs...))
 	}
 	return s
+}
+
+func (s *SoExtRewardWrap) initWatcherFlag() {
+	if s.watcherFlag == nil {
+		s.watcherFlag = new(ExtRewardWatcherFlag)
+		*(s.watcherFlag) = ExtRewardWatcherFlagOfDb(s.dba.ServiceId())
+	}
 }
 
 func (s *SoExtRewardWrap) create(f func(tInfo *SoExtReward)) error {
@@ -127,8 +137,9 @@ func (s *SoExtRewardWrap) create(f func(tInfo *SoExtReward)) error {
 	s.mKeyFlag = 1
 
 	// call watchers
-	if ExtRewardHasAnyWatcher {
-		ReportTableRecordInsert(s.mainKey, val)
+	s.initWatcherFlag()
+	if s.watcherFlag.AnyWatcher {
+		ReportTableRecordInsert(s.dba.ServiceId(), s.mainKey, val)
 	}
 
 	return nil
@@ -176,6 +187,7 @@ func (s *SoExtRewardWrap) modify(f func(tInfo *SoExtReward)) error {
 		return errors.New("primary key does not support modification")
 	}
 
+	s.initWatcherFlag()
 	fieldSli, hasWatcher, err := s.getModifiedFields(oriTable, curTable)
 	if err != nil {
 		return err
@@ -217,7 +229,7 @@ func (s *SoExtRewardWrap) modify(f func(tInfo *SoExtReward)) error {
 
 	// call watchers
 	if hasWatcher {
-		ReportTableRecordUpdate(s.mainKey, oriTable, curTable)
+		ReportTableRecordUpdate(s.dba.ServiceId(), s.mainKey, oriTable, curTable)
 	}
 
 	return nil
@@ -269,15 +281,15 @@ func (s *SoExtRewardWrap) getModifiedFields(oriTable *SoExtReward, curTable *SoE
 
 	if !reflect.DeepEqual(oriTable.BlockHeight, curTable.BlockHeight) {
 		fields["BlockHeight"] = true
-		hasWatcher = hasWatcher || ExtRewardHasBlockHeightWatcher
+		hasWatcher = hasWatcher || s.watcherFlag.HasBlockHeightWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.Reward, curTable.Reward) {
 		fields["Reward"] = true
-		hasWatcher = hasWatcher || ExtRewardHasRewardWatcher
+		hasWatcher = hasWatcher || s.watcherFlag.HasRewardWatcher
 	}
 
-	hasWatcher = hasWatcher || ExtRewardHasWholeWatcher
+	hasWatcher = hasWatcher || s.watcherFlag.WholeWatcher
 	return fields, hasWatcher, nil
 }
 
@@ -409,8 +421,10 @@ func (s *SoExtRewardWrap) removeExtReward() error {
 		return errors.New("database is nil")
 	}
 
+	s.initWatcherFlag()
+
 	var oldVal *SoExtReward
-	if ExtRewardHasAnyWatcher {
+	if s.watcherFlag.AnyWatcher {
 		oldVal = s.getExtReward()
 	}
 
@@ -435,8 +449,8 @@ func (s *SoExtRewardWrap) removeExtReward() error {
 		s.mKeyFlag = -1
 
 		// call watchers
-		if ExtRewardHasAnyWatcher && oldVal != nil {
-			ReportTableRecordDelete(s.mainKey, oldVal)
+		if s.watcherFlag.AnyWatcher && oldVal != nil {
+			ReportTableRecordDelete(s.dba.ServiceId(), s.mainKey, oldVal)
 		}
 		return nil
 	} else {
@@ -1047,27 +1061,42 @@ func (s *UniExtRewardIdWrap) UniQueryId(start *prototype.RewardCashoutId) *SoExt
 }
 
 ////////////// SECTION Watchers ///////////////
+
+type ExtRewardWatcherFlag struct {
+	HasBlockHeightWatcher bool
+
+	HasRewardWatcher bool
+
+	WholeWatcher bool
+	AnyWatcher   bool
+}
+
 var (
-	ExtRewardRecordType = reflect.TypeOf((*SoExtReward)(nil)).Elem() // table record type
-
-	ExtRewardHasBlockHeightWatcher bool // any watcher on member BlockHeight?
-
-	ExtRewardHasRewardWatcher bool // any watcher on member Reward?
-
-	ExtRewardHasWholeWatcher bool // any watcher on the whole record?
-	ExtRewardHasAnyWatcher   bool // any watcher?
+	ExtRewardRecordType       = reflect.TypeOf((*SoExtReward)(nil)).Elem()
+	ExtRewardWatcherFlags     = make(map[uint32]ExtRewardWatcherFlag)
+	ExtRewardWatcherFlagsLock sync.RWMutex
 )
 
-func ExtRewardRecordWatcherChanged() {
-	ExtRewardHasWholeWatcher = HasTableRecordWatcher(ExtRewardRecordType, "")
-	ExtRewardHasAnyWatcher = ExtRewardHasWholeWatcher
+func ExtRewardWatcherFlagOfDb(dbSvcId uint32) ExtRewardWatcherFlag {
+	ExtRewardWatcherFlagsLock.RLock()
+	defer ExtRewardWatcherFlagsLock.RUnlock()
+	return ExtRewardWatcherFlags[dbSvcId]
+}
 
-	ExtRewardHasBlockHeightWatcher = HasTableRecordWatcher(ExtRewardRecordType, "BlockHeight")
-	ExtRewardHasAnyWatcher = ExtRewardHasAnyWatcher || ExtRewardHasBlockHeightWatcher
+func ExtRewardRecordWatcherChanged(dbSvcId uint32) {
+	var flag ExtRewardWatcherFlag
+	flag.WholeWatcher = HasTableRecordWatcher(dbSvcId, ExtRewardRecordType, "")
+	flag.AnyWatcher = flag.WholeWatcher
 
-	ExtRewardHasRewardWatcher = HasTableRecordWatcher(ExtRewardRecordType, "Reward")
-	ExtRewardHasAnyWatcher = ExtRewardHasAnyWatcher || ExtRewardHasRewardWatcher
+	flag.HasBlockHeightWatcher = HasTableRecordWatcher(dbSvcId, ExtRewardRecordType, "BlockHeight")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasBlockHeightWatcher
 
+	flag.HasRewardWatcher = HasTableRecordWatcher(dbSvcId, ExtRewardRecordType, "Reward")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasRewardWatcher
+
+	ExtRewardWatcherFlagsLock.Lock()
+	ExtRewardWatcherFlags[dbSvcId] = flag
+	ExtRewardWatcherFlagsLock.Unlock()
 }
 
 func init() {

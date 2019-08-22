@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"sync"
 
 	"github.com/coschain/contentos-go/common/encoding/kope"
 	"github.com/coschain/contentos-go/iservices"
@@ -20,19 +21,21 @@ var (
 
 ////////////// SECTION Wrap Define ///////////////
 type SoExtFollowCountWrap struct {
-	dba       iservices.IDatabaseRW
-	mainKey   *prototype.AccountName
-	mKeyFlag  int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
-	mKeyBuf   []byte //the buffer after the main key is encoded with prefix
-	mBuf      []byte //the value after the main key is encoded
-	mdFuncMap map[string]interface{}
+	dba         iservices.IDatabaseRW
+	mainKey     *prototype.AccountName
+	watcherFlag *ExtFollowCountWatcherFlag
+	mKeyFlag    int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
+	mKeyBuf     []byte //the buffer after the main key is encoded with prefix
+	mBuf        []byte //the value after the main key is encoded
+	mdFuncMap   map[string]interface{}
 }
 
 func NewSoExtFollowCountWrap(dba iservices.IDatabaseRW, key *prototype.AccountName) *SoExtFollowCountWrap {
 	if dba == nil || key == nil {
 		return nil
 	}
-	result := &SoExtFollowCountWrap{dba, key, -1, nil, nil, nil}
+	result := &SoExtFollowCountWrap{dba, key, nil, -1, nil, nil, nil}
+	result.initWatcherFlag()
 	return result
 }
 
@@ -76,6 +79,13 @@ func (s *SoExtFollowCountWrap) MustNotExist(errMsgs ...interface{}) *SoExtFollow
 		panic(bindErrorInfo(fmt.Sprintf("SoExtFollowCountWrap.MustNotExist: %v already exists", s.mainKey), errMsgs...))
 	}
 	return s
+}
+
+func (s *SoExtFollowCountWrap) initWatcherFlag() {
+	if s.watcherFlag == nil {
+		s.watcherFlag = new(ExtFollowCountWatcherFlag)
+		*(s.watcherFlag) = ExtFollowCountWatcherFlagOfDb(s.dba.ServiceId())
+	}
 }
 
 func (s *SoExtFollowCountWrap) create(f func(tInfo *SoExtFollowCount)) error {
@@ -126,8 +136,9 @@ func (s *SoExtFollowCountWrap) create(f func(tInfo *SoExtFollowCount)) error {
 	s.mKeyFlag = 1
 
 	// call watchers
-	if ExtFollowCountHasAnyWatcher {
-		ReportTableRecordInsert(s.mainKey, val)
+	s.initWatcherFlag()
+	if s.watcherFlag.AnyWatcher {
+		ReportTableRecordInsert(s.dba.ServiceId(), s.mainKey, val)
 	}
 
 	return nil
@@ -175,6 +186,7 @@ func (s *SoExtFollowCountWrap) modify(f func(tInfo *SoExtFollowCount)) error {
 		return errors.New("primary key does not support modification")
 	}
 
+	s.initWatcherFlag()
 	fieldSli, hasWatcher, err := s.getModifiedFields(oriTable, curTable)
 	if err != nil {
 		return err
@@ -216,7 +228,7 @@ func (s *SoExtFollowCountWrap) modify(f func(tInfo *SoExtFollowCount)) error {
 
 	// call watchers
 	if hasWatcher {
-		ReportTableRecordUpdate(s.mainKey, oriTable, curTable)
+		ReportTableRecordUpdate(s.dba.ServiceId(), s.mainKey, oriTable, curTable)
 	}
 
 	return nil
@@ -278,20 +290,20 @@ func (s *SoExtFollowCountWrap) getModifiedFields(oriTable *SoExtFollowCount, cur
 
 	if !reflect.DeepEqual(oriTable.FollowerCnt, curTable.FollowerCnt) {
 		fields["FollowerCnt"] = true
-		hasWatcher = hasWatcher || ExtFollowCountHasFollowerCntWatcher
+		hasWatcher = hasWatcher || s.watcherFlag.HasFollowerCntWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.FollowingCnt, curTable.FollowingCnt) {
 		fields["FollowingCnt"] = true
-		hasWatcher = hasWatcher || ExtFollowCountHasFollowingCntWatcher
+		hasWatcher = hasWatcher || s.watcherFlag.HasFollowingCntWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.UpdateTime, curTable.UpdateTime) {
 		fields["UpdateTime"] = true
-		hasWatcher = hasWatcher || ExtFollowCountHasUpdateTimeWatcher
+		hasWatcher = hasWatcher || s.watcherFlag.HasUpdateTimeWatcher
 	}
 
-	hasWatcher = hasWatcher || ExtFollowCountHasWholeWatcher
+	hasWatcher = hasWatcher || s.watcherFlag.WholeWatcher
 	return fields, hasWatcher, nil
 }
 
@@ -390,8 +402,10 @@ func (s *SoExtFollowCountWrap) removeExtFollowCount() error {
 		return errors.New("database is nil")
 	}
 
+	s.initWatcherFlag()
+
 	var oldVal *SoExtFollowCount
-	if ExtFollowCountHasAnyWatcher {
+	if s.watcherFlag.AnyWatcher {
 		oldVal = s.getExtFollowCount()
 	}
 
@@ -416,8 +430,8 @@ func (s *SoExtFollowCountWrap) removeExtFollowCount() error {
 		s.mKeyFlag = -1
 
 		// call watchers
-		if ExtFollowCountHasAnyWatcher && oldVal != nil {
-			ReportTableRecordDelete(s.mainKey, oldVal)
+		if s.watcherFlag.AnyWatcher && oldVal != nil {
+			ReportTableRecordDelete(s.dba.ServiceId(), s.mainKey, oldVal)
 		}
 		return nil
 	} else {
@@ -941,32 +955,47 @@ func (s *UniExtFollowCountAccountWrap) UniQueryAccount(start *prototype.AccountN
 }
 
 ////////////// SECTION Watchers ///////////////
+
+type ExtFollowCountWatcherFlag struct {
+	HasFollowerCntWatcher bool
+
+	HasFollowingCntWatcher bool
+
+	HasUpdateTimeWatcher bool
+
+	WholeWatcher bool
+	AnyWatcher   bool
+}
+
 var (
-	ExtFollowCountRecordType = reflect.TypeOf((*SoExtFollowCount)(nil)).Elem() // table record type
-
-	ExtFollowCountHasFollowerCntWatcher bool // any watcher on member FollowerCnt?
-
-	ExtFollowCountHasFollowingCntWatcher bool // any watcher on member FollowingCnt?
-
-	ExtFollowCountHasUpdateTimeWatcher bool // any watcher on member UpdateTime?
-
-	ExtFollowCountHasWholeWatcher bool // any watcher on the whole record?
-	ExtFollowCountHasAnyWatcher   bool // any watcher?
+	ExtFollowCountRecordType       = reflect.TypeOf((*SoExtFollowCount)(nil)).Elem()
+	ExtFollowCountWatcherFlags     = make(map[uint32]ExtFollowCountWatcherFlag)
+	ExtFollowCountWatcherFlagsLock sync.RWMutex
 )
 
-func ExtFollowCountRecordWatcherChanged() {
-	ExtFollowCountHasWholeWatcher = HasTableRecordWatcher(ExtFollowCountRecordType, "")
-	ExtFollowCountHasAnyWatcher = ExtFollowCountHasWholeWatcher
+func ExtFollowCountWatcherFlagOfDb(dbSvcId uint32) ExtFollowCountWatcherFlag {
+	ExtFollowCountWatcherFlagsLock.RLock()
+	defer ExtFollowCountWatcherFlagsLock.RUnlock()
+	return ExtFollowCountWatcherFlags[dbSvcId]
+}
 
-	ExtFollowCountHasFollowerCntWatcher = HasTableRecordWatcher(ExtFollowCountRecordType, "FollowerCnt")
-	ExtFollowCountHasAnyWatcher = ExtFollowCountHasAnyWatcher || ExtFollowCountHasFollowerCntWatcher
+func ExtFollowCountRecordWatcherChanged(dbSvcId uint32) {
+	var flag ExtFollowCountWatcherFlag
+	flag.WholeWatcher = HasTableRecordWatcher(dbSvcId, ExtFollowCountRecordType, "")
+	flag.AnyWatcher = flag.WholeWatcher
 
-	ExtFollowCountHasFollowingCntWatcher = HasTableRecordWatcher(ExtFollowCountRecordType, "FollowingCnt")
-	ExtFollowCountHasAnyWatcher = ExtFollowCountHasAnyWatcher || ExtFollowCountHasFollowingCntWatcher
+	flag.HasFollowerCntWatcher = HasTableRecordWatcher(dbSvcId, ExtFollowCountRecordType, "FollowerCnt")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasFollowerCntWatcher
 
-	ExtFollowCountHasUpdateTimeWatcher = HasTableRecordWatcher(ExtFollowCountRecordType, "UpdateTime")
-	ExtFollowCountHasAnyWatcher = ExtFollowCountHasAnyWatcher || ExtFollowCountHasUpdateTimeWatcher
+	flag.HasFollowingCntWatcher = HasTableRecordWatcher(dbSvcId, ExtFollowCountRecordType, "FollowingCnt")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasFollowingCntWatcher
 
+	flag.HasUpdateTimeWatcher = HasTableRecordWatcher(dbSvcId, ExtFollowCountRecordType, "UpdateTime")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasUpdateTimeWatcher
+
+	ExtFollowCountWatcherFlagsLock.Lock()
+	ExtFollowCountWatcherFlags[dbSvcId] = flag
+	ExtFollowCountWatcherFlagsLock.Unlock()
 }
 
 func init() {

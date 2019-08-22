@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"sync"
 
 	"github.com/coschain/contentos-go/common/encoding/kope"
 	"github.com/coschain/contentos-go/iservices"
@@ -20,19 +21,21 @@ var (
 
 ////////////// SECTION Wrap Define ///////////////
 type SoBlockSummaryObjectWrap struct {
-	dba       iservices.IDatabaseRW
-	mainKey   *uint32
-	mKeyFlag  int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
-	mKeyBuf   []byte //the buffer after the main key is encoded with prefix
-	mBuf      []byte //the value after the main key is encoded
-	mdFuncMap map[string]interface{}
+	dba         iservices.IDatabaseRW
+	mainKey     *uint32
+	watcherFlag *BlockSummaryObjectWatcherFlag
+	mKeyFlag    int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
+	mKeyBuf     []byte //the buffer after the main key is encoded with prefix
+	mBuf        []byte //the value after the main key is encoded
+	mdFuncMap   map[string]interface{}
 }
 
 func NewSoBlockSummaryObjectWrap(dba iservices.IDatabaseRW, key *uint32) *SoBlockSummaryObjectWrap {
 	if dba == nil || key == nil {
 		return nil
 	}
-	result := &SoBlockSummaryObjectWrap{dba, key, -1, nil, nil, nil}
+	result := &SoBlockSummaryObjectWrap{dba, key, nil, -1, nil, nil, nil}
+	result.initWatcherFlag()
 	return result
 }
 
@@ -76,6 +79,13 @@ func (s *SoBlockSummaryObjectWrap) MustNotExist(errMsgs ...interface{}) *SoBlock
 		panic(bindErrorInfo(fmt.Sprintf("SoBlockSummaryObjectWrap.MustNotExist: %v already exists", s.mainKey), errMsgs...))
 	}
 	return s
+}
+
+func (s *SoBlockSummaryObjectWrap) initWatcherFlag() {
+	if s.watcherFlag == nil {
+		s.watcherFlag = new(BlockSummaryObjectWatcherFlag)
+		*(s.watcherFlag) = BlockSummaryObjectWatcherFlagOfDb(s.dba.ServiceId())
+	}
 }
 
 func (s *SoBlockSummaryObjectWrap) create(f func(tInfo *SoBlockSummaryObject)) error {
@@ -123,8 +133,9 @@ func (s *SoBlockSummaryObjectWrap) create(f func(tInfo *SoBlockSummaryObject)) e
 	s.mKeyFlag = 1
 
 	// call watchers
-	if BlockSummaryObjectHasAnyWatcher {
-		ReportTableRecordInsert(s.mainKey, val)
+	s.initWatcherFlag()
+	if s.watcherFlag.AnyWatcher {
+		ReportTableRecordInsert(s.dba.ServiceId(), s.mainKey, val)
 	}
 
 	return nil
@@ -172,6 +183,7 @@ func (s *SoBlockSummaryObjectWrap) modify(f func(tInfo *SoBlockSummaryObject)) e
 		return errors.New("primary key does not support modification")
 	}
 
+	s.initWatcherFlag()
 	fieldSli, hasWatcher, err := s.getModifiedFields(oriTable, curTable)
 	if err != nil {
 		return err
@@ -213,7 +225,7 @@ func (s *SoBlockSummaryObjectWrap) modify(f func(tInfo *SoBlockSummaryObject)) e
 
 	// call watchers
 	if hasWatcher {
-		ReportTableRecordUpdate(s.mainKey, oriTable, curTable)
+		ReportTableRecordUpdate(s.dba.ServiceId(), s.mainKey, oriTable, curTable)
 	}
 
 	return nil
@@ -255,10 +267,10 @@ func (s *SoBlockSummaryObjectWrap) getModifiedFields(oriTable *SoBlockSummaryObj
 
 	if !reflect.DeepEqual(oriTable.BlockId, curTable.BlockId) {
 		fields["BlockId"] = true
-		hasWatcher = hasWatcher || BlockSummaryObjectHasBlockIdWatcher
+		hasWatcher = hasWatcher || s.watcherFlag.HasBlockIdWatcher
 	}
 
-	hasWatcher = hasWatcher || BlockSummaryObjectHasWholeWatcher
+	hasWatcher = hasWatcher || s.watcherFlag.WholeWatcher
 	return fields, hasWatcher, nil
 }
 
@@ -323,8 +335,10 @@ func (s *SoBlockSummaryObjectWrap) removeBlockSummaryObject() error {
 		return errors.New("database is nil")
 	}
 
+	s.initWatcherFlag()
+
 	var oldVal *SoBlockSummaryObject
-	if BlockSummaryObjectHasAnyWatcher {
+	if s.watcherFlag.AnyWatcher {
 		oldVal = s.getBlockSummaryObject()
 	}
 
@@ -349,8 +363,8 @@ func (s *SoBlockSummaryObjectWrap) removeBlockSummaryObject() error {
 		s.mKeyFlag = -1
 
 		// call watchers
-		if BlockSummaryObjectHasAnyWatcher && oldVal != nil {
-			ReportTableRecordDelete(s.mainKey, oldVal)
+		if s.watcherFlag.AnyWatcher && oldVal != nil {
+			ReportTableRecordDelete(s.dba.ServiceId(), s.mainKey, oldVal)
 		}
 		return nil
 	} else {
@@ -703,22 +717,37 @@ func (s *UniBlockSummaryObjectIdWrap) UniQueryId(start *uint32) *SoBlockSummaryO
 }
 
 ////////////// SECTION Watchers ///////////////
+
+type BlockSummaryObjectWatcherFlag struct {
+	HasBlockIdWatcher bool
+
+	WholeWatcher bool
+	AnyWatcher   bool
+}
+
 var (
-	BlockSummaryObjectRecordType = reflect.TypeOf((*SoBlockSummaryObject)(nil)).Elem() // table record type
-
-	BlockSummaryObjectHasBlockIdWatcher bool // any watcher on member BlockId?
-
-	BlockSummaryObjectHasWholeWatcher bool // any watcher on the whole record?
-	BlockSummaryObjectHasAnyWatcher   bool // any watcher?
+	BlockSummaryObjectRecordType       = reflect.TypeOf((*SoBlockSummaryObject)(nil)).Elem()
+	BlockSummaryObjectWatcherFlags     = make(map[uint32]BlockSummaryObjectWatcherFlag)
+	BlockSummaryObjectWatcherFlagsLock sync.RWMutex
 )
 
-func BlockSummaryObjectRecordWatcherChanged() {
-	BlockSummaryObjectHasWholeWatcher = HasTableRecordWatcher(BlockSummaryObjectRecordType, "")
-	BlockSummaryObjectHasAnyWatcher = BlockSummaryObjectHasWholeWatcher
+func BlockSummaryObjectWatcherFlagOfDb(dbSvcId uint32) BlockSummaryObjectWatcherFlag {
+	BlockSummaryObjectWatcherFlagsLock.RLock()
+	defer BlockSummaryObjectWatcherFlagsLock.RUnlock()
+	return BlockSummaryObjectWatcherFlags[dbSvcId]
+}
 
-	BlockSummaryObjectHasBlockIdWatcher = HasTableRecordWatcher(BlockSummaryObjectRecordType, "BlockId")
-	BlockSummaryObjectHasAnyWatcher = BlockSummaryObjectHasAnyWatcher || BlockSummaryObjectHasBlockIdWatcher
+func BlockSummaryObjectRecordWatcherChanged(dbSvcId uint32) {
+	var flag BlockSummaryObjectWatcherFlag
+	flag.WholeWatcher = HasTableRecordWatcher(dbSvcId, BlockSummaryObjectRecordType, "")
+	flag.AnyWatcher = flag.WholeWatcher
 
+	flag.HasBlockIdWatcher = HasTableRecordWatcher(dbSvcId, BlockSummaryObjectRecordType, "BlockId")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasBlockIdWatcher
+
+	BlockSummaryObjectWatcherFlagsLock.Lock()
+	BlockSummaryObjectWatcherFlags[dbSvcId] = flag
+	BlockSummaryObjectWatcherFlagsLock.Unlock()
 }
 
 func init() {

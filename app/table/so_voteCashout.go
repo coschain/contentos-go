@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"sync"
 
 	"github.com/coschain/contentos-go/common/encoding/kope"
 	"github.com/coschain/contentos-go/iservices"
@@ -20,19 +21,21 @@ var (
 
 ////////////// SECTION Wrap Define ///////////////
 type SoVoteCashoutWrap struct {
-	dba       iservices.IDatabaseRW
-	mainKey   *uint64
-	mKeyFlag  int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
-	mKeyBuf   []byte //the buffer after the main key is encoded with prefix
-	mBuf      []byte //the value after the main key is encoded
-	mdFuncMap map[string]interface{}
+	dba         iservices.IDatabaseRW
+	mainKey     *uint64
+	watcherFlag *VoteCashoutWatcherFlag
+	mKeyFlag    int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
+	mKeyBuf     []byte //the buffer after the main key is encoded with prefix
+	mBuf        []byte //the value after the main key is encoded
+	mdFuncMap   map[string]interface{}
 }
 
 func NewSoVoteCashoutWrap(dba iservices.IDatabaseRW, key *uint64) *SoVoteCashoutWrap {
 	if dba == nil || key == nil {
 		return nil
 	}
-	result := &SoVoteCashoutWrap{dba, key, -1, nil, nil, nil}
+	result := &SoVoteCashoutWrap{dba, key, nil, -1, nil, nil, nil}
+	result.initWatcherFlag()
 	return result
 }
 
@@ -76,6 +79,13 @@ func (s *SoVoteCashoutWrap) MustNotExist(errMsgs ...interface{}) *SoVoteCashoutW
 		panic(bindErrorInfo(fmt.Sprintf("SoVoteCashoutWrap.MustNotExist: %v already exists", s.mainKey), errMsgs...))
 	}
 	return s
+}
+
+func (s *SoVoteCashoutWrap) initWatcherFlag() {
+	if s.watcherFlag == nil {
+		s.watcherFlag = new(VoteCashoutWatcherFlag)
+		*(s.watcherFlag) = VoteCashoutWatcherFlagOfDb(s.dba.ServiceId())
+	}
 }
 
 func (s *SoVoteCashoutWrap) create(f func(tInfo *SoVoteCashout)) error {
@@ -123,8 +133,9 @@ func (s *SoVoteCashoutWrap) create(f func(tInfo *SoVoteCashout)) error {
 	s.mKeyFlag = 1
 
 	// call watchers
-	if VoteCashoutHasAnyWatcher {
-		ReportTableRecordInsert(s.mainKey, val)
+	s.initWatcherFlag()
+	if s.watcherFlag.AnyWatcher {
+		ReportTableRecordInsert(s.dba.ServiceId(), s.mainKey, val)
 	}
 
 	return nil
@@ -172,6 +183,7 @@ func (s *SoVoteCashoutWrap) modify(f func(tInfo *SoVoteCashout)) error {
 		return errors.New("primary key does not support modification")
 	}
 
+	s.initWatcherFlag()
 	fieldSli, hasWatcher, err := s.getModifiedFields(oriTable, curTable)
 	if err != nil {
 		return err
@@ -213,7 +225,7 @@ func (s *SoVoteCashoutWrap) modify(f func(tInfo *SoVoteCashout)) error {
 
 	// call watchers
 	if hasWatcher {
-		ReportTableRecordUpdate(s.mainKey, oriTable, curTable)
+		ReportTableRecordUpdate(s.dba.ServiceId(), s.mainKey, oriTable, curTable)
 	}
 
 	return nil
@@ -255,10 +267,10 @@ func (s *SoVoteCashoutWrap) getModifiedFields(oriTable *SoVoteCashout, curTable 
 
 	if !reflect.DeepEqual(oriTable.VoterIds, curTable.VoterIds) {
 		fields["VoterIds"] = true
-		hasWatcher = hasWatcher || VoteCashoutHasVoterIdsWatcher
+		hasWatcher = hasWatcher || s.watcherFlag.HasVoterIdsWatcher
 	}
 
-	hasWatcher = hasWatcher || VoteCashoutHasWholeWatcher
+	hasWatcher = hasWatcher || s.watcherFlag.WholeWatcher
 	return fields, hasWatcher, nil
 }
 
@@ -323,8 +335,10 @@ func (s *SoVoteCashoutWrap) removeVoteCashout() error {
 		return errors.New("database is nil")
 	}
 
+	s.initWatcherFlag()
+
 	var oldVal *SoVoteCashout
-	if VoteCashoutHasAnyWatcher {
+	if s.watcherFlag.AnyWatcher {
 		oldVal = s.getVoteCashout()
 	}
 
@@ -349,8 +363,8 @@ func (s *SoVoteCashoutWrap) removeVoteCashout() error {
 		s.mKeyFlag = -1
 
 		// call watchers
-		if VoteCashoutHasAnyWatcher && oldVal != nil {
-			ReportTableRecordDelete(s.mainKey, oldVal)
+		if s.watcherFlag.AnyWatcher && oldVal != nil {
+			ReportTableRecordDelete(s.dba.ServiceId(), s.mainKey, oldVal)
 		}
 		return nil
 	} else {
@@ -703,22 +717,37 @@ func (s *UniVoteCashoutCashoutBlockWrap) UniQueryCashoutBlock(start *uint64) *So
 }
 
 ////////////// SECTION Watchers ///////////////
+
+type VoteCashoutWatcherFlag struct {
+	HasVoterIdsWatcher bool
+
+	WholeWatcher bool
+	AnyWatcher   bool
+}
+
 var (
-	VoteCashoutRecordType = reflect.TypeOf((*SoVoteCashout)(nil)).Elem() // table record type
-
-	VoteCashoutHasVoterIdsWatcher bool // any watcher on member VoterIds?
-
-	VoteCashoutHasWholeWatcher bool // any watcher on the whole record?
-	VoteCashoutHasAnyWatcher   bool // any watcher?
+	VoteCashoutRecordType       = reflect.TypeOf((*SoVoteCashout)(nil)).Elem()
+	VoteCashoutWatcherFlags     = make(map[uint32]VoteCashoutWatcherFlag)
+	VoteCashoutWatcherFlagsLock sync.RWMutex
 )
 
-func VoteCashoutRecordWatcherChanged() {
-	VoteCashoutHasWholeWatcher = HasTableRecordWatcher(VoteCashoutRecordType, "")
-	VoteCashoutHasAnyWatcher = VoteCashoutHasWholeWatcher
+func VoteCashoutWatcherFlagOfDb(dbSvcId uint32) VoteCashoutWatcherFlag {
+	VoteCashoutWatcherFlagsLock.RLock()
+	defer VoteCashoutWatcherFlagsLock.RUnlock()
+	return VoteCashoutWatcherFlags[dbSvcId]
+}
 
-	VoteCashoutHasVoterIdsWatcher = HasTableRecordWatcher(VoteCashoutRecordType, "VoterIds")
-	VoteCashoutHasAnyWatcher = VoteCashoutHasAnyWatcher || VoteCashoutHasVoterIdsWatcher
+func VoteCashoutRecordWatcherChanged(dbSvcId uint32) {
+	var flag VoteCashoutWatcherFlag
+	flag.WholeWatcher = HasTableRecordWatcher(dbSvcId, VoteCashoutRecordType, "")
+	flag.AnyWatcher = flag.WholeWatcher
 
+	flag.HasVoterIdsWatcher = HasTableRecordWatcher(dbSvcId, VoteCashoutRecordType, "VoterIds")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasVoterIdsWatcher
+
+	VoteCashoutWatcherFlagsLock.Lock()
+	VoteCashoutWatcherFlags[dbSvcId] = flag
+	VoteCashoutWatcherFlagsLock.Unlock()
 }
 
 func init() {

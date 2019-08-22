@@ -26,7 +26,13 @@ type IDatabaseBatch interface {
 	Reset()
 }
 
+type IDatabaseServiceId interface {
+	ServiceId() uint32
+}
+
 type IDatabaseRW interface {
+	IDatabaseServiceId
+
 	// check existence of the given key
 	Has(key []byte) (bool, error)
 

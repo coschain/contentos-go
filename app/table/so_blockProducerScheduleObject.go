@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"sync"
 
 	"github.com/coschain/contentos-go/common/encoding/kope"
 	"github.com/coschain/contentos-go/iservices"
@@ -20,19 +21,21 @@ var (
 
 ////////////// SECTION Wrap Define ///////////////
 type SoBlockProducerScheduleObjectWrap struct {
-	dba       iservices.IDatabaseRW
-	mainKey   *int32
-	mKeyFlag  int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
-	mKeyBuf   []byte //the buffer after the main key is encoded with prefix
-	mBuf      []byte //the value after the main key is encoded
-	mdFuncMap map[string]interface{}
+	dba         iservices.IDatabaseRW
+	mainKey     *int32
+	watcherFlag *BlockProducerScheduleObjectWatcherFlag
+	mKeyFlag    int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
+	mKeyBuf     []byte //the buffer after the main key is encoded with prefix
+	mBuf        []byte //the value after the main key is encoded
+	mdFuncMap   map[string]interface{}
 }
 
 func NewSoBlockProducerScheduleObjectWrap(dba iservices.IDatabaseRW, key *int32) *SoBlockProducerScheduleObjectWrap {
 	if dba == nil || key == nil {
 		return nil
 	}
-	result := &SoBlockProducerScheduleObjectWrap{dba, key, -1, nil, nil, nil}
+	result := &SoBlockProducerScheduleObjectWrap{dba, key, nil, -1, nil, nil, nil}
+	result.initWatcherFlag()
 	return result
 }
 
@@ -76,6 +79,13 @@ func (s *SoBlockProducerScheduleObjectWrap) MustNotExist(errMsgs ...interface{})
 		panic(bindErrorInfo(fmt.Sprintf("SoBlockProducerScheduleObjectWrap.MustNotExist: %v already exists", s.mainKey), errMsgs...))
 	}
 	return s
+}
+
+func (s *SoBlockProducerScheduleObjectWrap) initWatcherFlag() {
+	if s.watcherFlag == nil {
+		s.watcherFlag = new(BlockProducerScheduleObjectWatcherFlag)
+		*(s.watcherFlag) = BlockProducerScheduleObjectWatcherFlagOfDb(s.dba.ServiceId())
+	}
 }
 
 func (s *SoBlockProducerScheduleObjectWrap) create(f func(tInfo *SoBlockProducerScheduleObject)) error {
@@ -123,8 +133,9 @@ func (s *SoBlockProducerScheduleObjectWrap) create(f func(tInfo *SoBlockProducer
 	s.mKeyFlag = 1
 
 	// call watchers
-	if BlockProducerScheduleObjectHasAnyWatcher {
-		ReportTableRecordInsert(s.mainKey, val)
+	s.initWatcherFlag()
+	if s.watcherFlag.AnyWatcher {
+		ReportTableRecordInsert(s.dba.ServiceId(), s.mainKey, val)
 	}
 
 	return nil
@@ -172,6 +183,7 @@ func (s *SoBlockProducerScheduleObjectWrap) modify(f func(tInfo *SoBlockProducer
 		return errors.New("primary key does not support modification")
 	}
 
+	s.initWatcherFlag()
 	fieldSli, hasWatcher, err := s.getModifiedFields(oriTable, curTable)
 	if err != nil {
 		return err
@@ -213,7 +225,7 @@ func (s *SoBlockProducerScheduleObjectWrap) modify(f func(tInfo *SoBlockProducer
 
 	// call watchers
 	if hasWatcher {
-		ReportTableRecordUpdate(s.mainKey, oriTable, curTable)
+		ReportTableRecordUpdate(s.dba.ServiceId(), s.mainKey, oriTable, curTable)
 	}
 
 	return nil
@@ -265,15 +277,15 @@ func (s *SoBlockProducerScheduleObjectWrap) getModifiedFields(oriTable *SoBlockP
 
 	if !reflect.DeepEqual(oriTable.CurrentShuffledBlockProducer, curTable.CurrentShuffledBlockProducer) {
 		fields["CurrentShuffledBlockProducer"] = true
-		hasWatcher = hasWatcher || BlockProducerScheduleObjectHasCurrentShuffledBlockProducerWatcher
+		hasWatcher = hasWatcher || s.watcherFlag.HasCurrentShuffledBlockProducerWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.PubKey, curTable.PubKey) {
 		fields["PubKey"] = true
-		hasWatcher = hasWatcher || BlockProducerScheduleObjectHasPubKeyWatcher
+		hasWatcher = hasWatcher || s.watcherFlag.HasPubKeyWatcher
 	}
 
-	hasWatcher = hasWatcher || BlockProducerScheduleObjectHasWholeWatcher
+	hasWatcher = hasWatcher || s.watcherFlag.WholeWatcher
 	return fields, hasWatcher, nil
 }
 
@@ -355,8 +367,10 @@ func (s *SoBlockProducerScheduleObjectWrap) removeBlockProducerScheduleObject() 
 		return errors.New("database is nil")
 	}
 
+	s.initWatcherFlag()
+
 	var oldVal *SoBlockProducerScheduleObject
-	if BlockProducerScheduleObjectHasAnyWatcher {
+	if s.watcherFlag.AnyWatcher {
 		oldVal = s.getBlockProducerScheduleObject()
 	}
 
@@ -381,8 +395,8 @@ func (s *SoBlockProducerScheduleObjectWrap) removeBlockProducerScheduleObject() 
 		s.mKeyFlag = -1
 
 		// call watchers
-		if BlockProducerScheduleObjectHasAnyWatcher && oldVal != nil {
-			ReportTableRecordDelete(s.mainKey, oldVal)
+		if s.watcherFlag.AnyWatcher && oldVal != nil {
+			ReportTableRecordDelete(s.dba.ServiceId(), s.mainKey, oldVal)
 		}
 		return nil
 	} else {
@@ -817,27 +831,42 @@ func (s *UniBlockProducerScheduleObjectIdWrap) UniQueryId(start *int32) *SoBlock
 }
 
 ////////////// SECTION Watchers ///////////////
+
+type BlockProducerScheduleObjectWatcherFlag struct {
+	HasCurrentShuffledBlockProducerWatcher bool
+
+	HasPubKeyWatcher bool
+
+	WholeWatcher bool
+	AnyWatcher   bool
+}
+
 var (
-	BlockProducerScheduleObjectRecordType = reflect.TypeOf((*SoBlockProducerScheduleObject)(nil)).Elem() // table record type
-
-	BlockProducerScheduleObjectHasCurrentShuffledBlockProducerWatcher bool // any watcher on member CurrentShuffledBlockProducer?
-
-	BlockProducerScheduleObjectHasPubKeyWatcher bool // any watcher on member PubKey?
-
-	BlockProducerScheduleObjectHasWholeWatcher bool // any watcher on the whole record?
-	BlockProducerScheduleObjectHasAnyWatcher   bool // any watcher?
+	BlockProducerScheduleObjectRecordType       = reflect.TypeOf((*SoBlockProducerScheduleObject)(nil)).Elem()
+	BlockProducerScheduleObjectWatcherFlags     = make(map[uint32]BlockProducerScheduleObjectWatcherFlag)
+	BlockProducerScheduleObjectWatcherFlagsLock sync.RWMutex
 )
 
-func BlockProducerScheduleObjectRecordWatcherChanged() {
-	BlockProducerScheduleObjectHasWholeWatcher = HasTableRecordWatcher(BlockProducerScheduleObjectRecordType, "")
-	BlockProducerScheduleObjectHasAnyWatcher = BlockProducerScheduleObjectHasWholeWatcher
+func BlockProducerScheduleObjectWatcherFlagOfDb(dbSvcId uint32) BlockProducerScheduleObjectWatcherFlag {
+	BlockProducerScheduleObjectWatcherFlagsLock.RLock()
+	defer BlockProducerScheduleObjectWatcherFlagsLock.RUnlock()
+	return BlockProducerScheduleObjectWatcherFlags[dbSvcId]
+}
 
-	BlockProducerScheduleObjectHasCurrentShuffledBlockProducerWatcher = HasTableRecordWatcher(BlockProducerScheduleObjectRecordType, "CurrentShuffledBlockProducer")
-	BlockProducerScheduleObjectHasAnyWatcher = BlockProducerScheduleObjectHasAnyWatcher || BlockProducerScheduleObjectHasCurrentShuffledBlockProducerWatcher
+func BlockProducerScheduleObjectRecordWatcherChanged(dbSvcId uint32) {
+	var flag BlockProducerScheduleObjectWatcherFlag
+	flag.WholeWatcher = HasTableRecordWatcher(dbSvcId, BlockProducerScheduleObjectRecordType, "")
+	flag.AnyWatcher = flag.WholeWatcher
 
-	BlockProducerScheduleObjectHasPubKeyWatcher = HasTableRecordWatcher(BlockProducerScheduleObjectRecordType, "PubKey")
-	BlockProducerScheduleObjectHasAnyWatcher = BlockProducerScheduleObjectHasAnyWatcher || BlockProducerScheduleObjectHasPubKeyWatcher
+	flag.HasCurrentShuffledBlockProducerWatcher = HasTableRecordWatcher(dbSvcId, BlockProducerScheduleObjectRecordType, "CurrentShuffledBlockProducer")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasCurrentShuffledBlockProducerWatcher
 
+	flag.HasPubKeyWatcher = HasTableRecordWatcher(dbSvcId, BlockProducerScheduleObjectRecordType, "PubKey")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasPubKeyWatcher
+
+	BlockProducerScheduleObjectWatcherFlagsLock.Lock()
+	BlockProducerScheduleObjectWatcherFlags[dbSvcId] = flag
+	BlockProducerScheduleObjectWatcherFlagsLock.Unlock()
 }
 
 func init() {

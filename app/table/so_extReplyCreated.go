@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"sync"
 
 	"github.com/coschain/contentos-go/common/encoding/kope"
 	"github.com/coschain/contentos-go/iservices"
@@ -21,19 +22,21 @@ var (
 
 ////////////// SECTION Wrap Define ///////////////
 type SoExtReplyCreatedWrap struct {
-	dba       iservices.IDatabaseRW
-	mainKey   *uint64
-	mKeyFlag  int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
-	mKeyBuf   []byte //the buffer after the main key is encoded with prefix
-	mBuf      []byte //the value after the main key is encoded
-	mdFuncMap map[string]interface{}
+	dba         iservices.IDatabaseRW
+	mainKey     *uint64
+	watcherFlag *ExtReplyCreatedWatcherFlag
+	mKeyFlag    int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
+	mKeyBuf     []byte //the buffer after the main key is encoded with prefix
+	mBuf        []byte //the value after the main key is encoded
+	mdFuncMap   map[string]interface{}
 }
 
 func NewSoExtReplyCreatedWrap(dba iservices.IDatabaseRW, key *uint64) *SoExtReplyCreatedWrap {
 	if dba == nil || key == nil {
 		return nil
 	}
-	result := &SoExtReplyCreatedWrap{dba, key, -1, nil, nil, nil}
+	result := &SoExtReplyCreatedWrap{dba, key, nil, -1, nil, nil, nil}
+	result.initWatcherFlag()
 	return result
 }
 
@@ -77,6 +80,13 @@ func (s *SoExtReplyCreatedWrap) MustNotExist(errMsgs ...interface{}) *SoExtReply
 		panic(bindErrorInfo(fmt.Sprintf("SoExtReplyCreatedWrap.MustNotExist: %v already exists", s.mainKey), errMsgs...))
 	}
 	return s
+}
+
+func (s *SoExtReplyCreatedWrap) initWatcherFlag() {
+	if s.watcherFlag == nil {
+		s.watcherFlag = new(ExtReplyCreatedWatcherFlag)
+		*(s.watcherFlag) = ExtReplyCreatedWatcherFlagOfDb(s.dba.ServiceId())
+	}
 }
 
 func (s *SoExtReplyCreatedWrap) create(f func(tInfo *SoExtReplyCreated)) error {
@@ -124,8 +134,9 @@ func (s *SoExtReplyCreatedWrap) create(f func(tInfo *SoExtReplyCreated)) error {
 	s.mKeyFlag = 1
 
 	// call watchers
-	if ExtReplyCreatedHasAnyWatcher {
-		ReportTableRecordInsert(s.mainKey, val)
+	s.initWatcherFlag()
+	if s.watcherFlag.AnyWatcher {
+		ReportTableRecordInsert(s.dba.ServiceId(), s.mainKey, val)
 	}
 
 	return nil
@@ -173,6 +184,7 @@ func (s *SoExtReplyCreatedWrap) modify(f func(tInfo *SoExtReplyCreated)) error {
 		return errors.New("primary key does not support modification")
 	}
 
+	s.initWatcherFlag()
 	fieldSli, hasWatcher, err := s.getModifiedFields(oriTable, curTable)
 	if err != nil {
 		return err
@@ -214,7 +226,7 @@ func (s *SoExtReplyCreatedWrap) modify(f func(tInfo *SoExtReplyCreated)) error {
 
 	// call watchers
 	if hasWatcher {
-		ReportTableRecordUpdate(s.mainKey, oriTable, curTable)
+		ReportTableRecordUpdate(s.dba.ServiceId(), s.mainKey, oriTable, curTable)
 	}
 
 	return nil
@@ -260,10 +272,10 @@ func (s *SoExtReplyCreatedWrap) getModifiedFields(oriTable *SoExtReplyCreated, c
 
 	if !reflect.DeepEqual(oriTable.CreatedOrder, curTable.CreatedOrder) {
 		fields["CreatedOrder"] = true
-		hasWatcher = hasWatcher || ExtReplyCreatedHasCreatedOrderWatcher
+		hasWatcher = hasWatcher || s.watcherFlag.HasCreatedOrderWatcher
 	}
 
-	hasWatcher = hasWatcher || ExtReplyCreatedHasWholeWatcher
+	hasWatcher = hasWatcher || s.watcherFlag.WholeWatcher
 	return fields, hasWatcher, nil
 }
 
@@ -377,8 +389,10 @@ func (s *SoExtReplyCreatedWrap) removeExtReplyCreated() error {
 		return errors.New("database is nil")
 	}
 
+	s.initWatcherFlag()
+
 	var oldVal *SoExtReplyCreated
-	if ExtReplyCreatedHasAnyWatcher {
+	if s.watcherFlag.AnyWatcher {
 		oldVal = s.getExtReplyCreated()
 	}
 
@@ -403,8 +417,8 @@ func (s *SoExtReplyCreatedWrap) removeExtReplyCreated() error {
 		s.mKeyFlag = -1
 
 		// call watchers
-		if ExtReplyCreatedHasAnyWatcher && oldVal != nil {
-			ReportTableRecordDelete(s.mainKey, oldVal)
+		if s.watcherFlag.AnyWatcher && oldVal != nil {
+			ReportTableRecordDelete(s.dba.ServiceId(), s.mainKey, oldVal)
 		}
 		return nil
 	} else {
@@ -867,22 +881,37 @@ func (s *UniExtReplyCreatedPostIdWrap) UniQueryPostId(start *uint64) *SoExtReply
 }
 
 ////////////// SECTION Watchers ///////////////
+
+type ExtReplyCreatedWatcherFlag struct {
+	HasCreatedOrderWatcher bool
+
+	WholeWatcher bool
+	AnyWatcher   bool
+}
+
 var (
-	ExtReplyCreatedRecordType = reflect.TypeOf((*SoExtReplyCreated)(nil)).Elem() // table record type
-
-	ExtReplyCreatedHasCreatedOrderWatcher bool // any watcher on member CreatedOrder?
-
-	ExtReplyCreatedHasWholeWatcher bool // any watcher on the whole record?
-	ExtReplyCreatedHasAnyWatcher   bool // any watcher?
+	ExtReplyCreatedRecordType       = reflect.TypeOf((*SoExtReplyCreated)(nil)).Elem()
+	ExtReplyCreatedWatcherFlags     = make(map[uint32]ExtReplyCreatedWatcherFlag)
+	ExtReplyCreatedWatcherFlagsLock sync.RWMutex
 )
 
-func ExtReplyCreatedRecordWatcherChanged() {
-	ExtReplyCreatedHasWholeWatcher = HasTableRecordWatcher(ExtReplyCreatedRecordType, "")
-	ExtReplyCreatedHasAnyWatcher = ExtReplyCreatedHasWholeWatcher
+func ExtReplyCreatedWatcherFlagOfDb(dbSvcId uint32) ExtReplyCreatedWatcherFlag {
+	ExtReplyCreatedWatcherFlagsLock.RLock()
+	defer ExtReplyCreatedWatcherFlagsLock.RUnlock()
+	return ExtReplyCreatedWatcherFlags[dbSvcId]
+}
 
-	ExtReplyCreatedHasCreatedOrderWatcher = HasTableRecordWatcher(ExtReplyCreatedRecordType, "CreatedOrder")
-	ExtReplyCreatedHasAnyWatcher = ExtReplyCreatedHasAnyWatcher || ExtReplyCreatedHasCreatedOrderWatcher
+func ExtReplyCreatedRecordWatcherChanged(dbSvcId uint32) {
+	var flag ExtReplyCreatedWatcherFlag
+	flag.WholeWatcher = HasTableRecordWatcher(dbSvcId, ExtReplyCreatedRecordType, "")
+	flag.AnyWatcher = flag.WholeWatcher
 
+	flag.HasCreatedOrderWatcher = HasTableRecordWatcher(dbSvcId, ExtReplyCreatedRecordType, "CreatedOrder")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasCreatedOrderWatcher
+
+	ExtReplyCreatedWatcherFlagsLock.Lock()
+	ExtReplyCreatedWatcherFlags[dbSvcId] = flag
+	ExtReplyCreatedWatcherFlagsLock.Unlock()
 }
 
 func init() {

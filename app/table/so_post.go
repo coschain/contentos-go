@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"sync"
 
 	"github.com/coschain/contentos-go/common/encoding/kope"
 	"github.com/coschain/contentos-go/iservices"
@@ -23,19 +24,21 @@ var (
 
 ////////////// SECTION Wrap Define ///////////////
 type SoPostWrap struct {
-	dba       iservices.IDatabaseRW
-	mainKey   *uint64
-	mKeyFlag  int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
-	mKeyBuf   []byte //the buffer after the main key is encoded with prefix
-	mBuf      []byte //the value after the main key is encoded
-	mdFuncMap map[string]interface{}
+	dba         iservices.IDatabaseRW
+	mainKey     *uint64
+	watcherFlag *PostWatcherFlag
+	mKeyFlag    int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
+	mKeyBuf     []byte //the buffer after the main key is encoded with prefix
+	mBuf        []byte //the value after the main key is encoded
+	mdFuncMap   map[string]interface{}
 }
 
 func NewSoPostWrap(dba iservices.IDatabaseRW, key *uint64) *SoPostWrap {
 	if dba == nil || key == nil {
 		return nil
 	}
-	result := &SoPostWrap{dba, key, -1, nil, nil, nil}
+	result := &SoPostWrap{dba, key, nil, -1, nil, nil, nil}
+	result.initWatcherFlag()
 	return result
 }
 
@@ -79,6 +82,13 @@ func (s *SoPostWrap) MustNotExist(errMsgs ...interface{}) *SoPostWrap {
 		panic(bindErrorInfo(fmt.Sprintf("SoPostWrap.MustNotExist: %v already exists", s.mainKey), errMsgs...))
 	}
 	return s
+}
+
+func (s *SoPostWrap) initWatcherFlag() {
+	if s.watcherFlag == nil {
+		s.watcherFlag = new(PostWatcherFlag)
+		*(s.watcherFlag) = PostWatcherFlagOfDb(s.dba.ServiceId())
+	}
 }
 
 func (s *SoPostWrap) create(f func(tInfo *SoPost)) error {
@@ -126,8 +136,9 @@ func (s *SoPostWrap) create(f func(tInfo *SoPost)) error {
 	s.mKeyFlag = 1
 
 	// call watchers
-	if PostHasAnyWatcher {
-		ReportTableRecordInsert(s.mainKey, val)
+	s.initWatcherFlag()
+	if s.watcherFlag.AnyWatcher {
+		ReportTableRecordInsert(s.dba.ServiceId(), s.mainKey, val)
 	}
 
 	return nil
@@ -175,6 +186,7 @@ func (s *SoPostWrap) modify(f func(tInfo *SoPost)) error {
 		return errors.New("primary key does not support modification")
 	}
 
+	s.initWatcherFlag()
 	fieldSli, hasWatcher, err := s.getModifiedFields(oriTable, curTable)
 	if err != nil {
 		return err
@@ -216,7 +228,7 @@ func (s *SoPostWrap) modify(f func(tInfo *SoPost)) error {
 
 	// call watchers
 	if hasWatcher {
-		ReportTableRecordUpdate(s.mainKey, oriTable, curTable)
+		ReportTableRecordUpdate(s.dba.ServiceId(), s.mainKey, oriTable, curTable)
 	}
 
 	return nil
@@ -456,105 +468,105 @@ func (s *SoPostWrap) getModifiedFields(oriTable *SoPost, curTable *SoPost) (map[
 
 	if !reflect.DeepEqual(oriTable.Author, curTable.Author) {
 		fields["Author"] = true
-		hasWatcher = hasWatcher || PostHasAuthorWatcher
+		hasWatcher = hasWatcher || s.watcherFlag.HasAuthorWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.Beneficiaries, curTable.Beneficiaries) {
 		fields["Beneficiaries"] = true
-		hasWatcher = hasWatcher || PostHasBeneficiariesWatcher
+		hasWatcher = hasWatcher || s.watcherFlag.HasBeneficiariesWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.Body, curTable.Body) {
 		fields["Body"] = true
-		hasWatcher = hasWatcher || PostHasBodyWatcher
+		hasWatcher = hasWatcher || s.watcherFlag.HasBodyWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.CashoutBlockNum, curTable.CashoutBlockNum) {
 		fields["CashoutBlockNum"] = true
-		hasWatcher = hasWatcher || PostHasCashoutBlockNumWatcher
+		hasWatcher = hasWatcher || s.watcherFlag.HasCashoutBlockNumWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.Category, curTable.Category) {
 		fields["Category"] = true
-		hasWatcher = hasWatcher || PostHasCategoryWatcher
+		hasWatcher = hasWatcher || s.watcherFlag.HasCategoryWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.Children, curTable.Children) {
 		fields["Children"] = true
-		hasWatcher = hasWatcher || PostHasChildrenWatcher
+		hasWatcher = hasWatcher || s.watcherFlag.HasChildrenWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.Copyright, curTable.Copyright) {
 		fields["Copyright"] = true
-		hasWatcher = hasWatcher || PostHasCopyrightWatcher
+		hasWatcher = hasWatcher || s.watcherFlag.HasCopyrightWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.CopyrightMemo, curTable.CopyrightMemo) {
 		fields["CopyrightMemo"] = true
-		hasWatcher = hasWatcher || PostHasCopyrightMemoWatcher
+		hasWatcher = hasWatcher || s.watcherFlag.HasCopyrightMemoWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.Created, curTable.Created) {
 		fields["Created"] = true
-		hasWatcher = hasWatcher || PostHasCreatedWatcher
+		hasWatcher = hasWatcher || s.watcherFlag.HasCreatedWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.DappRewards, curTable.DappRewards) {
 		fields["DappRewards"] = true
-		hasWatcher = hasWatcher || PostHasDappRewardsWatcher
+		hasWatcher = hasWatcher || s.watcherFlag.HasDappRewardsWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.Depth, curTable.Depth) {
 		fields["Depth"] = true
-		hasWatcher = hasWatcher || PostHasDepthWatcher
+		hasWatcher = hasWatcher || s.watcherFlag.HasDepthWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.LastPayout, curTable.LastPayout) {
 		fields["LastPayout"] = true
-		hasWatcher = hasWatcher || PostHasLastPayoutWatcher
+		hasWatcher = hasWatcher || s.watcherFlag.HasLastPayoutWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.ParentId, curTable.ParentId) {
 		fields["ParentId"] = true
-		hasWatcher = hasWatcher || PostHasParentIdWatcher
+		hasWatcher = hasWatcher || s.watcherFlag.HasParentIdWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.Rewards, curTable.Rewards) {
 		fields["Rewards"] = true
-		hasWatcher = hasWatcher || PostHasRewardsWatcher
+		hasWatcher = hasWatcher || s.watcherFlag.HasRewardsWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.RootId, curTable.RootId) {
 		fields["RootId"] = true
-		hasWatcher = hasWatcher || PostHasRootIdWatcher
+		hasWatcher = hasWatcher || s.watcherFlag.HasRootIdWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.Tags, curTable.Tags) {
 		fields["Tags"] = true
-		hasWatcher = hasWatcher || PostHasTagsWatcher
+		hasWatcher = hasWatcher || s.watcherFlag.HasTagsWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.Ticket, curTable.Ticket) {
 		fields["Ticket"] = true
-		hasWatcher = hasWatcher || PostHasTicketWatcher
+		hasWatcher = hasWatcher || s.watcherFlag.HasTicketWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.Title, curTable.Title) {
 		fields["Title"] = true
-		hasWatcher = hasWatcher || PostHasTitleWatcher
+		hasWatcher = hasWatcher || s.watcherFlag.HasTitleWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.VoteCnt, curTable.VoteCnt) {
 		fields["VoteCnt"] = true
-		hasWatcher = hasWatcher || PostHasVoteCntWatcher
+		hasWatcher = hasWatcher || s.watcherFlag.HasVoteCntWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.WeightedVp, curTable.WeightedVp) {
 		fields["WeightedVp"] = true
-		hasWatcher = hasWatcher || PostHasWeightedVpWatcher
+		hasWatcher = hasWatcher || s.watcherFlag.HasWeightedVpWatcher
 	}
 
-	hasWatcher = hasWatcher || PostHasWholeWatcher
+	hasWatcher = hasWatcher || s.watcherFlag.WholeWatcher
 	return fields, hasWatcher, nil
 }
 
@@ -1089,8 +1101,10 @@ func (s *SoPostWrap) removePost() error {
 		return errors.New("database is nil")
 	}
 
+	s.initWatcherFlag()
+
 	var oldVal *SoPost
-	if PostHasAnyWatcher {
+	if s.watcherFlag.AnyWatcher {
 		oldVal = s.getPost()
 	}
 
@@ -1115,8 +1129,8 @@ func (s *SoPostWrap) removePost() error {
 		s.mKeyFlag = -1
 
 		// call watchers
-		if PostHasAnyWatcher && oldVal != nil {
-			ReportTableRecordDelete(s.mainKey, oldVal)
+		if s.watcherFlag.AnyWatcher && oldVal != nil {
+			ReportTableRecordDelete(s.dba.ServiceId(), s.mainKey, oldVal)
 		}
 		return nil
 	} else {
@@ -3421,117 +3435,132 @@ func (s *UniPostPostIdWrap) UniQueryPostId(start *uint64) *SoPostWrap {
 }
 
 ////////////// SECTION Watchers ///////////////
+
+type PostWatcherFlag struct {
+	HasAuthorWatcher bool
+
+	HasBeneficiariesWatcher bool
+
+	HasBodyWatcher bool
+
+	HasCashoutBlockNumWatcher bool
+
+	HasCategoryWatcher bool
+
+	HasChildrenWatcher bool
+
+	HasCopyrightWatcher bool
+
+	HasCopyrightMemoWatcher bool
+
+	HasCreatedWatcher bool
+
+	HasDappRewardsWatcher bool
+
+	HasDepthWatcher bool
+
+	HasLastPayoutWatcher bool
+
+	HasParentIdWatcher bool
+
+	HasRewardsWatcher bool
+
+	HasRootIdWatcher bool
+
+	HasTagsWatcher bool
+
+	HasTicketWatcher bool
+
+	HasTitleWatcher bool
+
+	HasVoteCntWatcher bool
+
+	HasWeightedVpWatcher bool
+
+	WholeWatcher bool
+	AnyWatcher   bool
+}
+
 var (
-	PostRecordType = reflect.TypeOf((*SoPost)(nil)).Elem() // table record type
-
-	PostHasAuthorWatcher bool // any watcher on member Author?
-
-	PostHasBeneficiariesWatcher bool // any watcher on member Beneficiaries?
-
-	PostHasBodyWatcher bool // any watcher on member Body?
-
-	PostHasCashoutBlockNumWatcher bool // any watcher on member CashoutBlockNum?
-
-	PostHasCategoryWatcher bool // any watcher on member Category?
-
-	PostHasChildrenWatcher bool // any watcher on member Children?
-
-	PostHasCopyrightWatcher bool // any watcher on member Copyright?
-
-	PostHasCopyrightMemoWatcher bool // any watcher on member CopyrightMemo?
-
-	PostHasCreatedWatcher bool // any watcher on member Created?
-
-	PostHasDappRewardsWatcher bool // any watcher on member DappRewards?
-
-	PostHasDepthWatcher bool // any watcher on member Depth?
-
-	PostHasLastPayoutWatcher bool // any watcher on member LastPayout?
-
-	PostHasParentIdWatcher bool // any watcher on member ParentId?
-
-	PostHasRewardsWatcher bool // any watcher on member Rewards?
-
-	PostHasRootIdWatcher bool // any watcher on member RootId?
-
-	PostHasTagsWatcher bool // any watcher on member Tags?
-
-	PostHasTicketWatcher bool // any watcher on member Ticket?
-
-	PostHasTitleWatcher bool // any watcher on member Title?
-
-	PostHasVoteCntWatcher bool // any watcher on member VoteCnt?
-
-	PostHasWeightedVpWatcher bool // any watcher on member WeightedVp?
-
-	PostHasWholeWatcher bool // any watcher on the whole record?
-	PostHasAnyWatcher   bool // any watcher?
+	PostRecordType       = reflect.TypeOf((*SoPost)(nil)).Elem()
+	PostWatcherFlags     = make(map[uint32]PostWatcherFlag)
+	PostWatcherFlagsLock sync.RWMutex
 )
 
-func PostRecordWatcherChanged() {
-	PostHasWholeWatcher = HasTableRecordWatcher(PostRecordType, "")
-	PostHasAnyWatcher = PostHasWholeWatcher
+func PostWatcherFlagOfDb(dbSvcId uint32) PostWatcherFlag {
+	PostWatcherFlagsLock.RLock()
+	defer PostWatcherFlagsLock.RUnlock()
+	return PostWatcherFlags[dbSvcId]
+}
 
-	PostHasAuthorWatcher = HasTableRecordWatcher(PostRecordType, "Author")
-	PostHasAnyWatcher = PostHasAnyWatcher || PostHasAuthorWatcher
+func PostRecordWatcherChanged(dbSvcId uint32) {
+	var flag PostWatcherFlag
+	flag.WholeWatcher = HasTableRecordWatcher(dbSvcId, PostRecordType, "")
+	flag.AnyWatcher = flag.WholeWatcher
 
-	PostHasBeneficiariesWatcher = HasTableRecordWatcher(PostRecordType, "Beneficiaries")
-	PostHasAnyWatcher = PostHasAnyWatcher || PostHasBeneficiariesWatcher
+	flag.HasAuthorWatcher = HasTableRecordWatcher(dbSvcId, PostRecordType, "Author")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasAuthorWatcher
 
-	PostHasBodyWatcher = HasTableRecordWatcher(PostRecordType, "Body")
-	PostHasAnyWatcher = PostHasAnyWatcher || PostHasBodyWatcher
+	flag.HasBeneficiariesWatcher = HasTableRecordWatcher(dbSvcId, PostRecordType, "Beneficiaries")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasBeneficiariesWatcher
 
-	PostHasCashoutBlockNumWatcher = HasTableRecordWatcher(PostRecordType, "CashoutBlockNum")
-	PostHasAnyWatcher = PostHasAnyWatcher || PostHasCashoutBlockNumWatcher
+	flag.HasBodyWatcher = HasTableRecordWatcher(dbSvcId, PostRecordType, "Body")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasBodyWatcher
 
-	PostHasCategoryWatcher = HasTableRecordWatcher(PostRecordType, "Category")
-	PostHasAnyWatcher = PostHasAnyWatcher || PostHasCategoryWatcher
+	flag.HasCashoutBlockNumWatcher = HasTableRecordWatcher(dbSvcId, PostRecordType, "CashoutBlockNum")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasCashoutBlockNumWatcher
 
-	PostHasChildrenWatcher = HasTableRecordWatcher(PostRecordType, "Children")
-	PostHasAnyWatcher = PostHasAnyWatcher || PostHasChildrenWatcher
+	flag.HasCategoryWatcher = HasTableRecordWatcher(dbSvcId, PostRecordType, "Category")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasCategoryWatcher
 
-	PostHasCopyrightWatcher = HasTableRecordWatcher(PostRecordType, "Copyright")
-	PostHasAnyWatcher = PostHasAnyWatcher || PostHasCopyrightWatcher
+	flag.HasChildrenWatcher = HasTableRecordWatcher(dbSvcId, PostRecordType, "Children")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasChildrenWatcher
 
-	PostHasCopyrightMemoWatcher = HasTableRecordWatcher(PostRecordType, "CopyrightMemo")
-	PostHasAnyWatcher = PostHasAnyWatcher || PostHasCopyrightMemoWatcher
+	flag.HasCopyrightWatcher = HasTableRecordWatcher(dbSvcId, PostRecordType, "Copyright")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasCopyrightWatcher
 
-	PostHasCreatedWatcher = HasTableRecordWatcher(PostRecordType, "Created")
-	PostHasAnyWatcher = PostHasAnyWatcher || PostHasCreatedWatcher
+	flag.HasCopyrightMemoWatcher = HasTableRecordWatcher(dbSvcId, PostRecordType, "CopyrightMemo")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasCopyrightMemoWatcher
 
-	PostHasDappRewardsWatcher = HasTableRecordWatcher(PostRecordType, "DappRewards")
-	PostHasAnyWatcher = PostHasAnyWatcher || PostHasDappRewardsWatcher
+	flag.HasCreatedWatcher = HasTableRecordWatcher(dbSvcId, PostRecordType, "Created")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasCreatedWatcher
 
-	PostHasDepthWatcher = HasTableRecordWatcher(PostRecordType, "Depth")
-	PostHasAnyWatcher = PostHasAnyWatcher || PostHasDepthWatcher
+	flag.HasDappRewardsWatcher = HasTableRecordWatcher(dbSvcId, PostRecordType, "DappRewards")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasDappRewardsWatcher
 
-	PostHasLastPayoutWatcher = HasTableRecordWatcher(PostRecordType, "LastPayout")
-	PostHasAnyWatcher = PostHasAnyWatcher || PostHasLastPayoutWatcher
+	flag.HasDepthWatcher = HasTableRecordWatcher(dbSvcId, PostRecordType, "Depth")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasDepthWatcher
 
-	PostHasParentIdWatcher = HasTableRecordWatcher(PostRecordType, "ParentId")
-	PostHasAnyWatcher = PostHasAnyWatcher || PostHasParentIdWatcher
+	flag.HasLastPayoutWatcher = HasTableRecordWatcher(dbSvcId, PostRecordType, "LastPayout")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasLastPayoutWatcher
 
-	PostHasRewardsWatcher = HasTableRecordWatcher(PostRecordType, "Rewards")
-	PostHasAnyWatcher = PostHasAnyWatcher || PostHasRewardsWatcher
+	flag.HasParentIdWatcher = HasTableRecordWatcher(dbSvcId, PostRecordType, "ParentId")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasParentIdWatcher
 
-	PostHasRootIdWatcher = HasTableRecordWatcher(PostRecordType, "RootId")
-	PostHasAnyWatcher = PostHasAnyWatcher || PostHasRootIdWatcher
+	flag.HasRewardsWatcher = HasTableRecordWatcher(dbSvcId, PostRecordType, "Rewards")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasRewardsWatcher
 
-	PostHasTagsWatcher = HasTableRecordWatcher(PostRecordType, "Tags")
-	PostHasAnyWatcher = PostHasAnyWatcher || PostHasTagsWatcher
+	flag.HasRootIdWatcher = HasTableRecordWatcher(dbSvcId, PostRecordType, "RootId")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasRootIdWatcher
 
-	PostHasTicketWatcher = HasTableRecordWatcher(PostRecordType, "Ticket")
-	PostHasAnyWatcher = PostHasAnyWatcher || PostHasTicketWatcher
+	flag.HasTagsWatcher = HasTableRecordWatcher(dbSvcId, PostRecordType, "Tags")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasTagsWatcher
 
-	PostHasTitleWatcher = HasTableRecordWatcher(PostRecordType, "Title")
-	PostHasAnyWatcher = PostHasAnyWatcher || PostHasTitleWatcher
+	flag.HasTicketWatcher = HasTableRecordWatcher(dbSvcId, PostRecordType, "Ticket")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasTicketWatcher
 
-	PostHasVoteCntWatcher = HasTableRecordWatcher(PostRecordType, "VoteCnt")
-	PostHasAnyWatcher = PostHasAnyWatcher || PostHasVoteCntWatcher
+	flag.HasTitleWatcher = HasTableRecordWatcher(dbSvcId, PostRecordType, "Title")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasTitleWatcher
 
-	PostHasWeightedVpWatcher = HasTableRecordWatcher(PostRecordType, "WeightedVp")
-	PostHasAnyWatcher = PostHasAnyWatcher || PostHasWeightedVpWatcher
+	flag.HasVoteCntWatcher = HasTableRecordWatcher(dbSvcId, PostRecordType, "VoteCnt")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasVoteCntWatcher
 
+	flag.HasWeightedVpWatcher = HasTableRecordWatcher(dbSvcId, PostRecordType, "WeightedVp")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasWeightedVpWatcher
+
+	PostWatcherFlagsLock.Lock()
+	PostWatcherFlags[dbSvcId] = flag
+	PostWatcherFlagsLock.Unlock()
 }
 
 func init() {

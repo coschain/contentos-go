@@ -3,6 +3,7 @@ package table
 import (
 	"fmt"
 	"reflect"
+	"sync"
 )
 
 const (
@@ -23,20 +24,31 @@ type tableWatcher struct {
 	callback reflect.Value
 }
 
-var sTableWatchers = make(map[reflect.Type][]*tableWatcher)
-var sTableWatcherChangeCallbacks = make(map[reflect.Type]func())
+var (
+	sTableWatchers = make(map[uint32]map[reflect.Type][]*tableWatcher)	// db -> { record_type -> []watchers }
+	sTableWatchersLock sync.RWMutex
 
-func RegisterTableWatcherChangedCallback(recordType reflect.Type, callback func()) {
+	sTableWatcherChangeCallbacks = make(map[reflect.Type]func(uint32))
+	sTableWatcherChangeCallbacksLock sync.RWMutex
+)
+
+func RegisterTableWatcherChangedCallback(recordType reflect.Type, callback func(uint32)) {
+	sTableWatcherChangeCallbacksLock.Lock()
+	defer sTableWatcherChangeCallbacksLock.Unlock()
+
 	sTableWatcherChangeCallbacks[recordType] = callback
 }
 
-func notifyWatcherChanged(recordType reflect.Type) {
+func notifyWatcherChanged(dbSvcId uint32, recordType reflect.Type) {
+	sTableWatcherChangeCallbacksLock.RLock()
+	defer sTableWatcherChangeCallbacksLock.RUnlock()
+
 	if callback, ok := sTableWatcherChangeCallbacks[recordType]; ok {
-		callback()
+		callback(dbSvcId)
 	}
 }
 
-func AddTableRecordFieldWatcher(recordType reflect.Type, primaryField, watchingField string, fn interface{}) {
+func AddTableRecordFieldWatcher(dbSvcId uint32, recordType reflect.Type, primaryField, watchingField string, fn interface{}) {
 	if recordType == nil || recordType.Kind() != reflect.Struct {
 		panic(fmt.Sprintf("record type %v is not a struct", recordType))
 	}
@@ -60,29 +72,22 @@ func AddTableRecordFieldWatcher(recordType reflect.Type, primaryField, watchingF
 		watcherType.In(3) != valType {
 		panic(fmt.Sprintf("watcher function type must be func(event int, key %v, before, after %v)", keyType, valType))
 	}
-	sTableWatchers[recordType] = append(sTableWatchers[recordType], &tableWatcher{
+
+	sTableWatchersLock.Lock()
+	dbWatchers := sTableWatchers[dbSvcId]
+	if dbWatchers == nil {
+		dbWatchers = make(map[reflect.Type][]*tableWatcher)
+		sTableWatchers[dbSvcId] = dbWatchers
+	}
+	dbWatchers[recordType] = append(dbWatchers[recordType], &tableWatcher{
 		field: watchingField,
 		keyType: keyType,
 		dataType: valType,
 		callback: watcher,
 	})
-	notifyWatcherChanged(recordType)
-}
+	sTableWatchersLock.Unlock()
 
-func AddTableRecordWatcher(recordType reflect.Type, primaryField string, fn interface{}) {
-	AddTableRecordFieldWatcher(recordType, primaryField, "", fn)
-}
-
-func HasTableRecordWatcher(recordType reflect.Type, field string) (result bool) {
-	if watchers, ok := sTableWatchers[recordType]; ok {
-		for _, w := range watchers {
-			if len(w.field) == 0 || w.field == field {
-				result = true
-				break
-			}
-		}
-	}
-	return
+	notifyWatcherChanged(dbSvcId, recordType)
 }
 
 func getStructMemberType(recordType reflect.Type, member string) reflect.Type {
@@ -93,60 +98,95 @@ func getStructMemberType(recordType reflect.Type, member string) reflect.Type {
 	}
 }
 
-func ReportTableRecordInsert(key interface{}, record interface{}) {
-	vRec := reflect.ValueOf(record)
-	if watchers, ok := sTableWatchers[vRec.Type().Elem()]; ok {
-		vKey := reflect.ValueOf(key)
-		for _, w := range watchers {
-			vData := vRec
-			if len(w.field) > 0 {
-				vData = vRec.Elem().FieldByName(w.field)
+func AddTableRecordWatcher(dbSvcId uint32, recordType reflect.Type, primaryField string, fn interface{}) {
+	AddTableRecordFieldWatcher(dbSvcId, recordType, primaryField, "", fn)
+}
+
+func HasTableRecordWatcher(dbSvcId uint32, recordType reflect.Type, field string) (result bool) {
+	sTableWatchersLock.RLock()
+	defer sTableWatchersLock.RUnlock()
+
+	if dbTableWatchers := sTableWatchers[dbSvcId]; len(dbTableWatchers) > 0 {
+		if watchers := dbTableWatchers[recordType]; len(watchers) > 0 {
+			for _, w := range watchers {
+				if len(w.field) == 0 || w.field == field {
+					result = true
+					break
+				}
 			}
-			w.callback.Call([]reflect.Value{
-				vTableRecordInsert,
-				vKey,
-				reflect.Zero(w.dataType),
-				vData,
-			})
+		}
+	}
+	return
+}
+
+func ReportTableRecordInsert(dbSvcId uint32, key interface{}, record interface{}) {
+	sTableWatchersLock.RLock()
+	defer sTableWatchersLock.RUnlock()
+
+	if dbWatchers := sTableWatchers[dbSvcId]; len(dbWatchers) > 0 {
+		vRec := reflect.ValueOf(record)
+		if watchers, ok := dbWatchers[vRec.Type().Elem()]; ok {
+			vKey := reflect.ValueOf(key)
+			for _, w := range watchers {
+				vData := vRec
+				if len(w.field) > 0 {
+					vData = vRec.Elem().FieldByName(w.field)
+				}
+				w.callback.Call([]reflect.Value{
+					vTableRecordInsert,
+					vKey,
+					reflect.Zero(w.dataType),
+					vData,
+				})
+			}
 		}
 	}
 }
 
-func ReportTableRecordUpdate(key interface{}, oldRecord, newRecord interface{}) {
-	oldRec, newRec := reflect.ValueOf(oldRecord), reflect.ValueOf(newRecord)
-	if watchers, ok := sTableWatchers[newRec.Type().Elem()]; ok {
-		vKey := reflect.ValueOf(key)
-		for _, w := range watchers {
-			oldData, newData := oldRec, newRec
-			if len(w.field) > 0 {
-				oldData, newData = oldRec.Elem().FieldByName(w.field), newRec.Elem().FieldByName(w.field)
+func ReportTableRecordUpdate(dbSvcId uint32, key interface{}, oldRecord, newRecord interface{}) {
+	sTableWatchersLock.RLock()
+	defer sTableWatchersLock.RUnlock()
+
+	if dbWatchers := sTableWatchers[dbSvcId]; len(dbWatchers) > 0 {
+		oldRec, newRec := reflect.ValueOf(oldRecord), reflect.ValueOf(newRecord)
+		if watchers, ok := dbWatchers[newRec.Type().Elem()]; ok {
+			vKey := reflect.ValueOf(key)
+			for _, w := range watchers {
+				oldData, newData := oldRec, newRec
+				if len(w.field) > 0 {
+					oldData, newData = oldRec.Elem().FieldByName(w.field), newRec.Elem().FieldByName(w.field)
+				}
+				w.callback.Call([]reflect.Value{
+					vTableRecordUpdate,
+					vKey,
+					oldData,
+					newData,
+				})
 			}
-			w.callback.Call([]reflect.Value{
-				vTableRecordUpdate,
-				vKey,
-				oldData,
-				newData,
-			})
 		}
 	}
 }
 
-func ReportTableRecordDelete(key interface{}, record interface{}) {
-	vRec := reflect.ValueOf(record)
-	if watchers, ok := sTableWatchers[vRec.Type().Elem()]; ok {
-		vKey := reflect.ValueOf(key)
-		for _, w := range watchers {
-			vData := vRec
-			if len(w.field) > 0 {
-				vData = vRec.Elem().FieldByName(w.field)
+func ReportTableRecordDelete(dbSvcId uint32, key interface{}, record interface{}) {
+	sTableWatchersLock.RLock()
+	defer sTableWatchersLock.RUnlock()
+
+	if dbWatchers := sTableWatchers[dbSvcId]; len(dbWatchers) > 0 {
+		vRec := reflect.ValueOf(record)
+		if watchers, ok := dbWatchers[vRec.Type().Elem()]; ok {
+			vKey := reflect.ValueOf(key)
+			for _, w := range watchers {
+				vData := vRec
+				if len(w.field) > 0 {
+					vData = vRec.Elem().FieldByName(w.field)
+				}
+				w.callback.Call([]reflect.Value{
+					vTableRecordDelete,
+					vKey,
+					vData,
+					reflect.Zero(w.dataType),
+				})
 			}
-			w.callback.Call([]reflect.Value{
-				vTableRecordDelete,
-				vKey,
-				vData,
-				reflect.Zero(w.dataType),
-			})
 		}
 	}
 }
-

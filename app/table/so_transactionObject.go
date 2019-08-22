@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"sync"
 
 	"github.com/coschain/contentos-go/common/encoding/kope"
 	"github.com/coschain/contentos-go/iservices"
@@ -21,19 +22,21 @@ var (
 
 ////////////// SECTION Wrap Define ///////////////
 type SoTransactionObjectWrap struct {
-	dba       iservices.IDatabaseRW
-	mainKey   *prototype.Sha256
-	mKeyFlag  int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
-	mKeyBuf   []byte //the buffer after the main key is encoded with prefix
-	mBuf      []byte //the value after the main key is encoded
-	mdFuncMap map[string]interface{}
+	dba         iservices.IDatabaseRW
+	mainKey     *prototype.Sha256
+	watcherFlag *TransactionObjectWatcherFlag
+	mKeyFlag    int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
+	mKeyBuf     []byte //the buffer after the main key is encoded with prefix
+	mBuf        []byte //the value after the main key is encoded
+	mdFuncMap   map[string]interface{}
 }
 
 func NewSoTransactionObjectWrap(dba iservices.IDatabaseRW, key *prototype.Sha256) *SoTransactionObjectWrap {
 	if dba == nil || key == nil {
 		return nil
 	}
-	result := &SoTransactionObjectWrap{dba, key, -1, nil, nil, nil}
+	result := &SoTransactionObjectWrap{dba, key, nil, -1, nil, nil, nil}
+	result.initWatcherFlag()
 	return result
 }
 
@@ -77,6 +80,13 @@ func (s *SoTransactionObjectWrap) MustNotExist(errMsgs ...interface{}) *SoTransa
 		panic(bindErrorInfo(fmt.Sprintf("SoTransactionObjectWrap.MustNotExist: %v already exists", s.mainKey), errMsgs...))
 	}
 	return s
+}
+
+func (s *SoTransactionObjectWrap) initWatcherFlag() {
+	if s.watcherFlag == nil {
+		s.watcherFlag = new(TransactionObjectWatcherFlag)
+		*(s.watcherFlag) = TransactionObjectWatcherFlagOfDb(s.dba.ServiceId())
+	}
 }
 
 func (s *SoTransactionObjectWrap) create(f func(tInfo *SoTransactionObject)) error {
@@ -127,8 +137,9 @@ func (s *SoTransactionObjectWrap) create(f func(tInfo *SoTransactionObject)) err
 	s.mKeyFlag = 1
 
 	// call watchers
-	if TransactionObjectHasAnyWatcher {
-		ReportTableRecordInsert(s.mainKey, val)
+	s.initWatcherFlag()
+	if s.watcherFlag.AnyWatcher {
+		ReportTableRecordInsert(s.dba.ServiceId(), s.mainKey, val)
 	}
 
 	return nil
@@ -176,6 +187,7 @@ func (s *SoTransactionObjectWrap) modify(f func(tInfo *SoTransactionObject)) err
 		return errors.New("primary key does not support modification")
 	}
 
+	s.initWatcherFlag()
 	fieldSli, hasWatcher, err := s.getModifiedFields(oriTable, curTable)
 	if err != nil {
 		return err
@@ -217,7 +229,7 @@ func (s *SoTransactionObjectWrap) modify(f func(tInfo *SoTransactionObject)) err
 
 	// call watchers
 	if hasWatcher {
-		ReportTableRecordUpdate(s.mainKey, oriTable, curTable)
+		ReportTableRecordUpdate(s.dba.ServiceId(), s.mainKey, oriTable, curTable)
 	}
 
 	return nil
@@ -263,10 +275,10 @@ func (s *SoTransactionObjectWrap) getModifiedFields(oriTable *SoTransactionObjec
 
 	if !reflect.DeepEqual(oriTable.Expiration, curTable.Expiration) {
 		fields["Expiration"] = true
-		hasWatcher = hasWatcher || TransactionObjectHasExpirationWatcher
+		hasWatcher = hasWatcher || s.watcherFlag.HasExpirationWatcher
 	}
 
-	hasWatcher = hasWatcher || TransactionObjectHasWholeWatcher
+	hasWatcher = hasWatcher || s.watcherFlag.WholeWatcher
 	return fields, hasWatcher, nil
 }
 
@@ -381,8 +393,10 @@ func (s *SoTransactionObjectWrap) removeTransactionObject() error {
 		return errors.New("database is nil")
 	}
 
+	s.initWatcherFlag()
+
 	var oldVal *SoTransactionObject
-	if TransactionObjectHasAnyWatcher {
+	if s.watcherFlag.AnyWatcher {
 		oldVal = s.getTransactionObject()
 	}
 
@@ -407,8 +421,8 @@ func (s *SoTransactionObjectWrap) removeTransactionObject() error {
 		s.mKeyFlag = -1
 
 		// call watchers
-		if TransactionObjectHasAnyWatcher && oldVal != nil {
-			ReportTableRecordDelete(s.mainKey, oldVal)
+		if s.watcherFlag.AnyWatcher && oldVal != nil {
+			ReportTableRecordDelete(s.dba.ServiceId(), s.mainKey, oldVal)
 		}
 		return nil
 	} else {
@@ -885,22 +899,37 @@ func (s *UniTransactionObjectTrxIdWrap) UniQueryTrxId(start *prototype.Sha256) *
 }
 
 ////////////// SECTION Watchers ///////////////
+
+type TransactionObjectWatcherFlag struct {
+	HasExpirationWatcher bool
+
+	WholeWatcher bool
+	AnyWatcher   bool
+}
+
 var (
-	TransactionObjectRecordType = reflect.TypeOf((*SoTransactionObject)(nil)).Elem() // table record type
-
-	TransactionObjectHasExpirationWatcher bool // any watcher on member Expiration?
-
-	TransactionObjectHasWholeWatcher bool // any watcher on the whole record?
-	TransactionObjectHasAnyWatcher   bool // any watcher?
+	TransactionObjectRecordType       = reflect.TypeOf((*SoTransactionObject)(nil)).Elem()
+	TransactionObjectWatcherFlags     = make(map[uint32]TransactionObjectWatcherFlag)
+	TransactionObjectWatcherFlagsLock sync.RWMutex
 )
 
-func TransactionObjectRecordWatcherChanged() {
-	TransactionObjectHasWholeWatcher = HasTableRecordWatcher(TransactionObjectRecordType, "")
-	TransactionObjectHasAnyWatcher = TransactionObjectHasWholeWatcher
+func TransactionObjectWatcherFlagOfDb(dbSvcId uint32) TransactionObjectWatcherFlag {
+	TransactionObjectWatcherFlagsLock.RLock()
+	defer TransactionObjectWatcherFlagsLock.RUnlock()
+	return TransactionObjectWatcherFlags[dbSvcId]
+}
 
-	TransactionObjectHasExpirationWatcher = HasTableRecordWatcher(TransactionObjectRecordType, "Expiration")
-	TransactionObjectHasAnyWatcher = TransactionObjectHasAnyWatcher || TransactionObjectHasExpirationWatcher
+func TransactionObjectRecordWatcherChanged(dbSvcId uint32) {
+	var flag TransactionObjectWatcherFlag
+	flag.WholeWatcher = HasTableRecordWatcher(dbSvcId, TransactionObjectRecordType, "")
+	flag.AnyWatcher = flag.WholeWatcher
 
+	flag.HasExpirationWatcher = HasTableRecordWatcher(dbSvcId, TransactionObjectRecordType, "Expiration")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasExpirationWatcher
+
+	TransactionObjectWatcherFlagsLock.Lock()
+	TransactionObjectWatcherFlags[dbSvcId] = flag
+	TransactionObjectWatcherFlagsLock.Unlock()
 }
 
 func init() {

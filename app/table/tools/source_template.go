@@ -83,6 +83,7 @@ var (
 type So{{.ClsName}}Wrap struct {
 	dba 		iservices.IDatabaseRW
 	mainKey 	*{{formatStr .MainKeyType}}
+	watcherFlag *{{$.ClsName}}WatcherFlag
     mKeyFlag    int //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
 	mKeyBuf     []byte //the buffer after the main key is encoded with prefix
 	mBuf        []byte //the value after the main key is encoded
@@ -93,7 +94,8 @@ func NewSo{{.ClsName}}Wrap(dba iservices.IDatabaseRW, key *{{formatStr .MainKeyT
 	if dba == nil || key == nil {
        return nil
     }
-    result := &So{{.ClsName}}Wrap{dba,key,-1,nil,nil, nil}
+    result := &So{{.ClsName}}Wrap{dba,key,nil,-1,nil,nil, nil}
+	result.initWatcherFlag()
 	return result
 }
 
@@ -137,6 +139,13 @@ func (s *So{{.ClsName}}Wrap) MustNotExist(errMsgs...interface{}) *So{{.ClsName}}
 		panic(bindErrorInfo(fmt.Sprintf("So{{.ClsName}}Wrap.MustNotExist: %v already exists", s.mainKey), errMsgs...))
 	}
 	return s
+}
+
+func (s *So{{.ClsName}}Wrap) initWatcherFlag() {
+	if s.watcherFlag == nil {
+		s.watcherFlag = new({{$.ClsName}}WatcherFlag)
+		*(s.watcherFlag) = {{$.ClsName}}WatcherFlagOfDb(s.dba.ServiceId())
+	}
 }
 
 func (s *So{{.ClsName}}Wrap) create(f func(tInfo *So{{.ClsName}})) error {
@@ -193,8 +202,9 @@ func (s *So{{.ClsName}}Wrap) create(f func(tInfo *So{{.ClsName}})) error {
     s.mKeyFlag = 1
 
 	// call watchers
-	if {{$.ClsName}}HasAnyWatcher {
-		ReportTableRecordInsert(s.mainKey, val)
+	s.initWatcherFlag()
+	if s.watcherFlag.AnyWatcher {
+		ReportTableRecordInsert(s.dba.ServiceId(), s.mainKey, val)
 	}
 
 	return nil
@@ -242,7 +252,7 @@ func (s *So{{.ClsName}}Wrap) modify(f func(tInfo *So{{.ClsName}})) error {
        return errors.New("primary key does not support modification")
     }
 
- 
+	s.initWatcherFlag()
     fieldSli, hasWatcher, err := s.getModifiedFields(oriTable, curTable)
     if err != nil {
 		return err
@@ -285,7 +295,7 @@ func (s *So{{.ClsName}}Wrap) modify(f func(tInfo *So{{.ClsName}})) error {
 
 	// call watchers
     if hasWatcher {
-		ReportTableRecordUpdate(s.mainKey, oriTable, curTable)
+		ReportTableRecordUpdate(s.dba.ServiceId(), s.mainKey, oriTable, curTable)
 	}
 
     return nil
@@ -357,11 +367,11 @@ func (s *So{{$.ClsName}}Wrap) getModifiedFields (oriTable *So{{$.ClsName}}, curT
      {{if ne $k1 $.MainKeyName}}
      if !reflect.DeepEqual(oriTable.{{$k1}}, curTable.{{$k1}}) {
 		fields["{{$k1}}"] = true
-        hasWatcher = hasWatcher || {{$.ClsName}}Has{{$k1}}Watcher
+        hasWatcher = hasWatcher || s.watcherFlag.Has{{$k1}}Watcher
 	 }
      {{end}}
      {{end}}
-     hasWatcher = hasWatcher || {{$.ClsName}}HasWholeWatcher
+     hasWatcher = hasWatcher || s.watcherFlag.WholeWatcher
      return fields, hasWatcher, nil
 }
 
@@ -498,8 +508,10 @@ func (s *So{{.ClsName}}Wrap) remove{{.ClsName}}() error {
         return errors.New("database is nil")
     }
 
+	s.initWatcherFlag()
+	
 	var oldVal *So{{.ClsName}}
-	if {{$.ClsName}}HasAnyWatcher {
+	if s.watcherFlag.AnyWatcher {
 		oldVal = s.get{{$.ClsName}}()
 	}
 
@@ -527,8 +539,8 @@ func (s *So{{.ClsName}}Wrap) remove{{.ClsName}}() error {
 		s.mKeyFlag = -1
 
 		// call watchers
-		if {{$.ClsName}}HasAnyWatcher && oldVal != nil {
-			ReportTableRecordDelete(s.mainKey, oldVal)
+		if s.watcherFlag.AnyWatcher && oldVal != nil {
+			ReportTableRecordDelete(s.dba.ServiceId(), s.mainKey, oldVal)
 		}
 		return nil
 	}else{
@@ -1126,26 +1138,43 @@ func (s *Uni{{$.ClsName}}{{$k}}Wrap) UniQuery{{$k}}(start *{{formatStr $v.PType}
 {{end}}
 
 ////////////// SECTION Watchers ///////////////
-var (
-	{{$.ClsName}}RecordType = reflect.TypeOf((*So{{.ClsName}})(nil)).Elem()    // table record type
+
+type {{$.ClsName}}WatcherFlag struct {
 	{{range $k1, $v1 := .MemberKeyMap}}
 	{{if ne $k1 $.MainKeyName}}
-	{{$.ClsName}}Has{{$k1}}Watcher bool     // any watcher on member {{$k1}}?
+	Has{{$k1}}Watcher bool
 	{{end}}
 	{{end}}
-	{{$.ClsName}}HasWholeWatcher bool       // any watcher on the whole record?
-	{{$.ClsName}}HasAnyWatcher bool         // any watcher?
+	WholeWatcher bool
+	AnyWatcher bool
+}
+
+var (
+	{{$.ClsName}}RecordType = reflect.TypeOf((*So{{.ClsName}})(nil)).Elem()
+	{{$.ClsName}}WatcherFlags = make(map[uint32]{{$.ClsName}}WatcherFlag)
+	{{$.ClsName}}WatcherFlagsLock sync.RWMutex
 )
 
-func {{$.ClsName}}RecordWatcherChanged() {
-	{{$.ClsName}}HasWholeWatcher = HasTableRecordWatcher({{$.ClsName}}RecordType, "")
-	{{$.ClsName}}HasAnyWatcher = {{$.ClsName}}HasWholeWatcher
+func {{$.ClsName}}WatcherFlagOfDb(dbSvcId uint32) {{$.ClsName}}WatcherFlag {
+	{{$.ClsName}}WatcherFlagsLock.RLock()
+	defer {{$.ClsName}}WatcherFlagsLock.RUnlock()
+	return {{$.ClsName}}WatcherFlags[dbSvcId]
+}
+
+func {{$.ClsName}}RecordWatcherChanged(dbSvcId uint32) {
+	var flag {{$.ClsName}}WatcherFlag
+	flag.WholeWatcher = HasTableRecordWatcher(dbSvcId, {{$.ClsName}}RecordType, "")
+	flag.AnyWatcher = flag.WholeWatcher
 	{{range $k1, $v1 := .MemberKeyMap}}
 	{{if ne $k1 $.MainKeyName}}
-	{{$.ClsName}}Has{{$k1}}Watcher = HasTableRecordWatcher({{$.ClsName}}RecordType, "{{$k1}}")
-	{{$.ClsName}}HasAnyWatcher = {{$.ClsName}}HasAnyWatcher || {{$.ClsName}}Has{{$k1}}Watcher
+	flag.Has{{$k1}}Watcher = HasTableRecordWatcher(dbSvcId, {{$.ClsName}}RecordType, "{{$k1}}")
+	flag.AnyWatcher = flag.AnyWatcher || flag.Has{{$k1}}Watcher
 	{{end}}
 	{{end}}
+
+	{{$.ClsName}}WatcherFlagsLock.Lock()
+	{{$.ClsName}}WatcherFlags[dbSvcId] = flag
+	{{$.ClsName}}WatcherFlagsLock.Unlock()
 }
 
 func init() {

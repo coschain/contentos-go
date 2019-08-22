@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"sync"
 
 	"github.com/coschain/contentos-go/common/encoding/kope"
 	"github.com/coschain/contentos-go/iservices"
@@ -28,19 +29,21 @@ var (
 
 ////////////// SECTION Wrap Define ///////////////
 type SoAccountWrap struct {
-	dba       iservices.IDatabaseRW
-	mainKey   *prototype.AccountName
-	mKeyFlag  int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
-	mKeyBuf   []byte //the buffer after the main key is encoded with prefix
-	mBuf      []byte //the value after the main key is encoded
-	mdFuncMap map[string]interface{}
+	dba         iservices.IDatabaseRW
+	mainKey     *prototype.AccountName
+	watcherFlag *AccountWatcherFlag
+	mKeyFlag    int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
+	mKeyBuf     []byte //the buffer after the main key is encoded with prefix
+	mBuf        []byte //the value after the main key is encoded
+	mdFuncMap   map[string]interface{}
 }
 
 func NewSoAccountWrap(dba iservices.IDatabaseRW, key *prototype.AccountName) *SoAccountWrap {
 	if dba == nil || key == nil {
 		return nil
 	}
-	result := &SoAccountWrap{dba, key, -1, nil, nil, nil}
+	result := &SoAccountWrap{dba, key, nil, -1, nil, nil, nil}
+	result.initWatcherFlag()
 	return result
 }
 
@@ -84,6 +87,13 @@ func (s *SoAccountWrap) MustNotExist(errMsgs ...interface{}) *SoAccountWrap {
 		panic(bindErrorInfo(fmt.Sprintf("SoAccountWrap.MustNotExist: %v already exists", s.mainKey), errMsgs...))
 	}
 	return s
+}
+
+func (s *SoAccountWrap) initWatcherFlag() {
+	if s.watcherFlag == nil {
+		s.watcherFlag = new(AccountWatcherFlag)
+		*(s.watcherFlag) = AccountWatcherFlagOfDb(s.dba.ServiceId())
+	}
 }
 
 func (s *SoAccountWrap) create(f func(tInfo *SoAccount)) error {
@@ -134,8 +144,9 @@ func (s *SoAccountWrap) create(f func(tInfo *SoAccount)) error {
 	s.mKeyFlag = 1
 
 	// call watchers
-	if AccountHasAnyWatcher {
-		ReportTableRecordInsert(s.mainKey, val)
+	s.initWatcherFlag()
+	if s.watcherFlag.AnyWatcher {
+		ReportTableRecordInsert(s.dba.ServiceId(), s.mainKey, val)
 	}
 
 	return nil
@@ -183,6 +194,7 @@ func (s *SoAccountWrap) modify(f func(tInfo *SoAccount)) error {
 		return errors.New("primary key does not support modification")
 	}
 
+	s.initWatcherFlag()
 	fieldSli, hasWatcher, err := s.getModifiedFields(oriTable, curTable)
 	if err != nil {
 		return err
@@ -224,7 +236,7 @@ func (s *SoAccountWrap) modify(f func(tInfo *SoAccount)) error {
 
 	// call watchers
 	if hasWatcher {
-		ReportTableRecordUpdate(s.mainKey, oriTable, curTable)
+		ReportTableRecordUpdate(s.dba.ServiceId(), s.mainKey, oriTable, curTable)
 	}
 
 	return nil
@@ -532,135 +544,135 @@ func (s *SoAccountWrap) getModifiedFields(oriTable *SoAccount, curTable *SoAccou
 
 	if !reflect.DeepEqual(oriTable.Balance, curTable.Balance) {
 		fields["Balance"] = true
-		hasWatcher = hasWatcher || AccountHasBalanceWatcher
+		hasWatcher = hasWatcher || s.watcherFlag.HasBalanceWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.BpVoteCount, curTable.BpVoteCount) {
 		fields["BpVoteCount"] = true
-		hasWatcher = hasWatcher || AccountHasBpVoteCountWatcher
+		hasWatcher = hasWatcher || s.watcherFlag.HasBpVoteCountWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.ChargedTicket, curTable.ChargedTicket) {
 		fields["ChargedTicket"] = true
-		hasWatcher = hasWatcher || AccountHasChargedTicketWatcher
+		hasWatcher = hasWatcher || s.watcherFlag.HasChargedTicketWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.CreatedTime, curTable.CreatedTime) {
 		fields["CreatedTime"] = true
-		hasWatcher = hasWatcher || AccountHasCreatedTimeWatcher
+		hasWatcher = hasWatcher || s.watcherFlag.HasCreatedTimeWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.CreatedTrxCount, curTable.CreatedTrxCount) {
 		fields["CreatedTrxCount"] = true
-		hasWatcher = hasWatcher || AccountHasCreatedTrxCountWatcher
+		hasWatcher = hasWatcher || s.watcherFlag.HasCreatedTrxCountWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.Creator, curTable.Creator) {
 		fields["Creator"] = true
-		hasWatcher = hasWatcher || AccountHasCreatorWatcher
+		hasWatcher = hasWatcher || s.watcherFlag.HasCreatorWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.EachPowerdownRate, curTable.EachPowerdownRate) {
 		fields["EachPowerdownRate"] = true
-		hasWatcher = hasWatcher || AccountHasEachPowerdownRateWatcher
+		hasWatcher = hasWatcher || s.watcherFlag.HasEachPowerdownRateWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.Freeze, curTable.Freeze) {
 		fields["Freeze"] = true
-		hasWatcher = hasWatcher || AccountHasFreezeWatcher
+		hasWatcher = hasWatcher || s.watcherFlag.HasFreezeWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.FreezeMemo, curTable.FreezeMemo) {
 		fields["FreezeMemo"] = true
-		hasWatcher = hasWatcher || AccountHasFreezeMemoWatcher
+		hasWatcher = hasWatcher || s.watcherFlag.HasFreezeMemoWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.HasPowerdown, curTable.HasPowerdown) {
 		fields["HasPowerdown"] = true
-		hasWatcher = hasWatcher || AccountHasHasPowerdownWatcher
+		hasWatcher = hasWatcher || s.watcherFlag.HasHasPowerdownWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.LastPostTime, curTable.LastPostTime) {
 		fields["LastPostTime"] = true
-		hasWatcher = hasWatcher || AccountHasLastPostTimeWatcher
+		hasWatcher = hasWatcher || s.watcherFlag.HasLastPostTimeWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.LastStakeTime, curTable.LastStakeTime) {
 		fields["LastStakeTime"] = true
-		hasWatcher = hasWatcher || AccountHasLastStakeTimeWatcher
+		hasWatcher = hasWatcher || s.watcherFlag.HasLastStakeTimeWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.LastVoteTime, curTable.LastVoteTime) {
 		fields["LastVoteTime"] = true
-		hasWatcher = hasWatcher || AccountHasLastVoteTimeWatcher
+		hasWatcher = hasWatcher || s.watcherFlag.HasLastVoteTimeWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.NextPowerdownBlockNum, curTable.NextPowerdownBlockNum) {
 		fields["NextPowerdownBlockNum"] = true
-		hasWatcher = hasWatcher || AccountHasNextPowerdownBlockNumWatcher
+		hasWatcher = hasWatcher || s.watcherFlag.HasNextPowerdownBlockNumWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.PostCount, curTable.PostCount) {
 		fields["PostCount"] = true
-		hasWatcher = hasWatcher || AccountHasPostCountWatcher
+		hasWatcher = hasWatcher || s.watcherFlag.HasPostCountWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.PubKey, curTable.PubKey) {
 		fields["PubKey"] = true
-		hasWatcher = hasWatcher || AccountHasPubKeyWatcher
+		hasWatcher = hasWatcher || s.watcherFlag.HasPubKeyWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.Reputation, curTable.Reputation) {
 		fields["Reputation"] = true
-		hasWatcher = hasWatcher || AccountHasReputationWatcher
+		hasWatcher = hasWatcher || s.watcherFlag.HasReputationWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.ReputationMemo, curTable.ReputationMemo) {
 		fields["ReputationMemo"] = true
-		hasWatcher = hasWatcher || AccountHasReputationMemoWatcher
+		hasWatcher = hasWatcher || s.watcherFlag.HasReputationMemoWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.StakeVest, curTable.StakeVest) {
 		fields["StakeVest"] = true
-		hasWatcher = hasWatcher || AccountHasStakeVestWatcher
+		hasWatcher = hasWatcher || s.watcherFlag.HasStakeVestWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.Stamina, curTable.Stamina) {
 		fields["Stamina"] = true
-		hasWatcher = hasWatcher || AccountHasStaminaWatcher
+		hasWatcher = hasWatcher || s.watcherFlag.HasStaminaWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.StaminaFree, curTable.StaminaFree) {
 		fields["StaminaFree"] = true
-		hasWatcher = hasWatcher || AccountHasStaminaFreeWatcher
+		hasWatcher = hasWatcher || s.watcherFlag.HasStaminaFreeWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.StaminaFreeUseBlock, curTable.StaminaFreeUseBlock) {
 		fields["StaminaFreeUseBlock"] = true
-		hasWatcher = hasWatcher || AccountHasStaminaFreeUseBlockWatcher
+		hasWatcher = hasWatcher || s.watcherFlag.HasStaminaFreeUseBlockWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.StaminaUseBlock, curTable.StaminaUseBlock) {
 		fields["StaminaUseBlock"] = true
-		hasWatcher = hasWatcher || AccountHasStaminaUseBlockWatcher
+		hasWatcher = hasWatcher || s.watcherFlag.HasStaminaUseBlockWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.ToPowerdown, curTable.ToPowerdown) {
 		fields["ToPowerdown"] = true
-		hasWatcher = hasWatcher || AccountHasToPowerdownWatcher
+		hasWatcher = hasWatcher || s.watcherFlag.HasToPowerdownWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.Vest, curTable.Vest) {
 		fields["Vest"] = true
-		hasWatcher = hasWatcher || AccountHasVestWatcher
+		hasWatcher = hasWatcher || s.watcherFlag.HasVestWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.VotePower, curTable.VotePower) {
 		fields["VotePower"] = true
-		hasWatcher = hasWatcher || AccountHasVotePowerWatcher
+		hasWatcher = hasWatcher || s.watcherFlag.HasVotePowerWatcher
 	}
 
-	hasWatcher = hasWatcher || AccountHasWholeWatcher
+	hasWatcher = hasWatcher || s.watcherFlag.WholeWatcher
 	return fields, hasWatcher, nil
 }
 
@@ -1500,8 +1512,10 @@ func (s *SoAccountWrap) removeAccount() error {
 		return errors.New("database is nil")
 	}
 
+	s.initWatcherFlag()
+
 	var oldVal *SoAccount
-	if AccountHasAnyWatcher {
+	if s.watcherFlag.AnyWatcher {
 		oldVal = s.getAccount()
 	}
 
@@ -1526,8 +1540,8 @@ func (s *SoAccountWrap) removeAccount() error {
 		s.mKeyFlag = -1
 
 		// call watchers
-		if AccountHasAnyWatcher && oldVal != nil {
-			ReportTableRecordDelete(s.mainKey, oldVal)
+		if s.watcherFlag.AnyWatcher && oldVal != nil {
+			ReportTableRecordDelete(s.dba.ServiceId(), s.mainKey, oldVal)
 		}
 		return nil
 	} else {
@@ -4975,147 +4989,162 @@ func (s *UniAccountPubKeyWrap) UniQueryPubKey(start *prototype.PublicKeyType) *S
 }
 
 ////////////// SECTION Watchers ///////////////
+
+type AccountWatcherFlag struct {
+	HasBalanceWatcher bool
+
+	HasBpVoteCountWatcher bool
+
+	HasChargedTicketWatcher bool
+
+	HasCreatedTimeWatcher bool
+
+	HasCreatedTrxCountWatcher bool
+
+	HasCreatorWatcher bool
+
+	HasEachPowerdownRateWatcher bool
+
+	HasFreezeWatcher bool
+
+	HasFreezeMemoWatcher bool
+
+	HasHasPowerdownWatcher bool
+
+	HasLastPostTimeWatcher bool
+
+	HasLastStakeTimeWatcher bool
+
+	HasLastVoteTimeWatcher bool
+
+	HasNextPowerdownBlockNumWatcher bool
+
+	HasPostCountWatcher bool
+
+	HasPubKeyWatcher bool
+
+	HasReputationWatcher bool
+
+	HasReputationMemoWatcher bool
+
+	HasStakeVestWatcher bool
+
+	HasStaminaWatcher bool
+
+	HasStaminaFreeWatcher bool
+
+	HasStaminaFreeUseBlockWatcher bool
+
+	HasStaminaUseBlockWatcher bool
+
+	HasToPowerdownWatcher bool
+
+	HasVestWatcher bool
+
+	HasVotePowerWatcher bool
+
+	WholeWatcher bool
+	AnyWatcher   bool
+}
+
 var (
-	AccountRecordType = reflect.TypeOf((*SoAccount)(nil)).Elem() // table record type
-
-	AccountHasBalanceWatcher bool // any watcher on member Balance?
-
-	AccountHasBpVoteCountWatcher bool // any watcher on member BpVoteCount?
-
-	AccountHasChargedTicketWatcher bool // any watcher on member ChargedTicket?
-
-	AccountHasCreatedTimeWatcher bool // any watcher on member CreatedTime?
-
-	AccountHasCreatedTrxCountWatcher bool // any watcher on member CreatedTrxCount?
-
-	AccountHasCreatorWatcher bool // any watcher on member Creator?
-
-	AccountHasEachPowerdownRateWatcher bool // any watcher on member EachPowerdownRate?
-
-	AccountHasFreezeWatcher bool // any watcher on member Freeze?
-
-	AccountHasFreezeMemoWatcher bool // any watcher on member FreezeMemo?
-
-	AccountHasHasPowerdownWatcher bool // any watcher on member HasPowerdown?
-
-	AccountHasLastPostTimeWatcher bool // any watcher on member LastPostTime?
-
-	AccountHasLastStakeTimeWatcher bool // any watcher on member LastStakeTime?
-
-	AccountHasLastVoteTimeWatcher bool // any watcher on member LastVoteTime?
-
-	AccountHasNextPowerdownBlockNumWatcher bool // any watcher on member NextPowerdownBlockNum?
-
-	AccountHasPostCountWatcher bool // any watcher on member PostCount?
-
-	AccountHasPubKeyWatcher bool // any watcher on member PubKey?
-
-	AccountHasReputationWatcher bool // any watcher on member Reputation?
-
-	AccountHasReputationMemoWatcher bool // any watcher on member ReputationMemo?
-
-	AccountHasStakeVestWatcher bool // any watcher on member StakeVest?
-
-	AccountHasStaminaWatcher bool // any watcher on member Stamina?
-
-	AccountHasStaminaFreeWatcher bool // any watcher on member StaminaFree?
-
-	AccountHasStaminaFreeUseBlockWatcher bool // any watcher on member StaminaFreeUseBlock?
-
-	AccountHasStaminaUseBlockWatcher bool // any watcher on member StaminaUseBlock?
-
-	AccountHasToPowerdownWatcher bool // any watcher on member ToPowerdown?
-
-	AccountHasVestWatcher bool // any watcher on member Vest?
-
-	AccountHasVotePowerWatcher bool // any watcher on member VotePower?
-
-	AccountHasWholeWatcher bool // any watcher on the whole record?
-	AccountHasAnyWatcher   bool // any watcher?
+	AccountRecordType       = reflect.TypeOf((*SoAccount)(nil)).Elem()
+	AccountWatcherFlags     = make(map[uint32]AccountWatcherFlag)
+	AccountWatcherFlagsLock sync.RWMutex
 )
 
-func AccountRecordWatcherChanged() {
-	AccountHasWholeWatcher = HasTableRecordWatcher(AccountRecordType, "")
-	AccountHasAnyWatcher = AccountHasWholeWatcher
+func AccountWatcherFlagOfDb(dbSvcId uint32) AccountWatcherFlag {
+	AccountWatcherFlagsLock.RLock()
+	defer AccountWatcherFlagsLock.RUnlock()
+	return AccountWatcherFlags[dbSvcId]
+}
 
-	AccountHasBalanceWatcher = HasTableRecordWatcher(AccountRecordType, "Balance")
-	AccountHasAnyWatcher = AccountHasAnyWatcher || AccountHasBalanceWatcher
+func AccountRecordWatcherChanged(dbSvcId uint32) {
+	var flag AccountWatcherFlag
+	flag.WholeWatcher = HasTableRecordWatcher(dbSvcId, AccountRecordType, "")
+	flag.AnyWatcher = flag.WholeWatcher
 
-	AccountHasBpVoteCountWatcher = HasTableRecordWatcher(AccountRecordType, "BpVoteCount")
-	AccountHasAnyWatcher = AccountHasAnyWatcher || AccountHasBpVoteCountWatcher
+	flag.HasBalanceWatcher = HasTableRecordWatcher(dbSvcId, AccountRecordType, "Balance")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasBalanceWatcher
 
-	AccountHasChargedTicketWatcher = HasTableRecordWatcher(AccountRecordType, "ChargedTicket")
-	AccountHasAnyWatcher = AccountHasAnyWatcher || AccountHasChargedTicketWatcher
+	flag.HasBpVoteCountWatcher = HasTableRecordWatcher(dbSvcId, AccountRecordType, "BpVoteCount")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasBpVoteCountWatcher
 
-	AccountHasCreatedTimeWatcher = HasTableRecordWatcher(AccountRecordType, "CreatedTime")
-	AccountHasAnyWatcher = AccountHasAnyWatcher || AccountHasCreatedTimeWatcher
+	flag.HasChargedTicketWatcher = HasTableRecordWatcher(dbSvcId, AccountRecordType, "ChargedTicket")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasChargedTicketWatcher
 
-	AccountHasCreatedTrxCountWatcher = HasTableRecordWatcher(AccountRecordType, "CreatedTrxCount")
-	AccountHasAnyWatcher = AccountHasAnyWatcher || AccountHasCreatedTrxCountWatcher
+	flag.HasCreatedTimeWatcher = HasTableRecordWatcher(dbSvcId, AccountRecordType, "CreatedTime")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasCreatedTimeWatcher
 
-	AccountHasCreatorWatcher = HasTableRecordWatcher(AccountRecordType, "Creator")
-	AccountHasAnyWatcher = AccountHasAnyWatcher || AccountHasCreatorWatcher
+	flag.HasCreatedTrxCountWatcher = HasTableRecordWatcher(dbSvcId, AccountRecordType, "CreatedTrxCount")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasCreatedTrxCountWatcher
 
-	AccountHasEachPowerdownRateWatcher = HasTableRecordWatcher(AccountRecordType, "EachPowerdownRate")
-	AccountHasAnyWatcher = AccountHasAnyWatcher || AccountHasEachPowerdownRateWatcher
+	flag.HasCreatorWatcher = HasTableRecordWatcher(dbSvcId, AccountRecordType, "Creator")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasCreatorWatcher
 
-	AccountHasFreezeWatcher = HasTableRecordWatcher(AccountRecordType, "Freeze")
-	AccountHasAnyWatcher = AccountHasAnyWatcher || AccountHasFreezeWatcher
+	flag.HasEachPowerdownRateWatcher = HasTableRecordWatcher(dbSvcId, AccountRecordType, "EachPowerdownRate")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasEachPowerdownRateWatcher
 
-	AccountHasFreezeMemoWatcher = HasTableRecordWatcher(AccountRecordType, "FreezeMemo")
-	AccountHasAnyWatcher = AccountHasAnyWatcher || AccountHasFreezeMemoWatcher
+	flag.HasFreezeWatcher = HasTableRecordWatcher(dbSvcId, AccountRecordType, "Freeze")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasFreezeWatcher
 
-	AccountHasHasPowerdownWatcher = HasTableRecordWatcher(AccountRecordType, "HasPowerdown")
-	AccountHasAnyWatcher = AccountHasAnyWatcher || AccountHasHasPowerdownWatcher
+	flag.HasFreezeMemoWatcher = HasTableRecordWatcher(dbSvcId, AccountRecordType, "FreezeMemo")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasFreezeMemoWatcher
 
-	AccountHasLastPostTimeWatcher = HasTableRecordWatcher(AccountRecordType, "LastPostTime")
-	AccountHasAnyWatcher = AccountHasAnyWatcher || AccountHasLastPostTimeWatcher
+	flag.HasHasPowerdownWatcher = HasTableRecordWatcher(dbSvcId, AccountRecordType, "HasPowerdown")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasHasPowerdownWatcher
 
-	AccountHasLastStakeTimeWatcher = HasTableRecordWatcher(AccountRecordType, "LastStakeTime")
-	AccountHasAnyWatcher = AccountHasAnyWatcher || AccountHasLastStakeTimeWatcher
+	flag.HasLastPostTimeWatcher = HasTableRecordWatcher(dbSvcId, AccountRecordType, "LastPostTime")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasLastPostTimeWatcher
 
-	AccountHasLastVoteTimeWatcher = HasTableRecordWatcher(AccountRecordType, "LastVoteTime")
-	AccountHasAnyWatcher = AccountHasAnyWatcher || AccountHasLastVoteTimeWatcher
+	flag.HasLastStakeTimeWatcher = HasTableRecordWatcher(dbSvcId, AccountRecordType, "LastStakeTime")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasLastStakeTimeWatcher
 
-	AccountHasNextPowerdownBlockNumWatcher = HasTableRecordWatcher(AccountRecordType, "NextPowerdownBlockNum")
-	AccountHasAnyWatcher = AccountHasAnyWatcher || AccountHasNextPowerdownBlockNumWatcher
+	flag.HasLastVoteTimeWatcher = HasTableRecordWatcher(dbSvcId, AccountRecordType, "LastVoteTime")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasLastVoteTimeWatcher
 
-	AccountHasPostCountWatcher = HasTableRecordWatcher(AccountRecordType, "PostCount")
-	AccountHasAnyWatcher = AccountHasAnyWatcher || AccountHasPostCountWatcher
+	flag.HasNextPowerdownBlockNumWatcher = HasTableRecordWatcher(dbSvcId, AccountRecordType, "NextPowerdownBlockNum")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasNextPowerdownBlockNumWatcher
 
-	AccountHasPubKeyWatcher = HasTableRecordWatcher(AccountRecordType, "PubKey")
-	AccountHasAnyWatcher = AccountHasAnyWatcher || AccountHasPubKeyWatcher
+	flag.HasPostCountWatcher = HasTableRecordWatcher(dbSvcId, AccountRecordType, "PostCount")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasPostCountWatcher
 
-	AccountHasReputationWatcher = HasTableRecordWatcher(AccountRecordType, "Reputation")
-	AccountHasAnyWatcher = AccountHasAnyWatcher || AccountHasReputationWatcher
+	flag.HasPubKeyWatcher = HasTableRecordWatcher(dbSvcId, AccountRecordType, "PubKey")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasPubKeyWatcher
 
-	AccountHasReputationMemoWatcher = HasTableRecordWatcher(AccountRecordType, "ReputationMemo")
-	AccountHasAnyWatcher = AccountHasAnyWatcher || AccountHasReputationMemoWatcher
+	flag.HasReputationWatcher = HasTableRecordWatcher(dbSvcId, AccountRecordType, "Reputation")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasReputationWatcher
 
-	AccountHasStakeVestWatcher = HasTableRecordWatcher(AccountRecordType, "StakeVest")
-	AccountHasAnyWatcher = AccountHasAnyWatcher || AccountHasStakeVestWatcher
+	flag.HasReputationMemoWatcher = HasTableRecordWatcher(dbSvcId, AccountRecordType, "ReputationMemo")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasReputationMemoWatcher
 
-	AccountHasStaminaWatcher = HasTableRecordWatcher(AccountRecordType, "Stamina")
-	AccountHasAnyWatcher = AccountHasAnyWatcher || AccountHasStaminaWatcher
+	flag.HasStakeVestWatcher = HasTableRecordWatcher(dbSvcId, AccountRecordType, "StakeVest")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasStakeVestWatcher
 
-	AccountHasStaminaFreeWatcher = HasTableRecordWatcher(AccountRecordType, "StaminaFree")
-	AccountHasAnyWatcher = AccountHasAnyWatcher || AccountHasStaminaFreeWatcher
+	flag.HasStaminaWatcher = HasTableRecordWatcher(dbSvcId, AccountRecordType, "Stamina")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasStaminaWatcher
 
-	AccountHasStaminaFreeUseBlockWatcher = HasTableRecordWatcher(AccountRecordType, "StaminaFreeUseBlock")
-	AccountHasAnyWatcher = AccountHasAnyWatcher || AccountHasStaminaFreeUseBlockWatcher
+	flag.HasStaminaFreeWatcher = HasTableRecordWatcher(dbSvcId, AccountRecordType, "StaminaFree")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasStaminaFreeWatcher
 
-	AccountHasStaminaUseBlockWatcher = HasTableRecordWatcher(AccountRecordType, "StaminaUseBlock")
-	AccountHasAnyWatcher = AccountHasAnyWatcher || AccountHasStaminaUseBlockWatcher
+	flag.HasStaminaFreeUseBlockWatcher = HasTableRecordWatcher(dbSvcId, AccountRecordType, "StaminaFreeUseBlock")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasStaminaFreeUseBlockWatcher
 
-	AccountHasToPowerdownWatcher = HasTableRecordWatcher(AccountRecordType, "ToPowerdown")
-	AccountHasAnyWatcher = AccountHasAnyWatcher || AccountHasToPowerdownWatcher
+	flag.HasStaminaUseBlockWatcher = HasTableRecordWatcher(dbSvcId, AccountRecordType, "StaminaUseBlock")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasStaminaUseBlockWatcher
 
-	AccountHasVestWatcher = HasTableRecordWatcher(AccountRecordType, "Vest")
-	AccountHasAnyWatcher = AccountHasAnyWatcher || AccountHasVestWatcher
+	flag.HasToPowerdownWatcher = HasTableRecordWatcher(dbSvcId, AccountRecordType, "ToPowerdown")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasToPowerdownWatcher
 
-	AccountHasVotePowerWatcher = HasTableRecordWatcher(AccountRecordType, "VotePower")
-	AccountHasAnyWatcher = AccountHasAnyWatcher || AccountHasVotePowerWatcher
+	flag.HasVestWatcher = HasTableRecordWatcher(dbSvcId, AccountRecordType, "Vest")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasVestWatcher
 
+	flag.HasVotePowerWatcher = HasTableRecordWatcher(dbSvcId, AccountRecordType, "VotePower")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasVotePowerWatcher
+
+	AccountWatcherFlagsLock.Lock()
+	AccountWatcherFlags[dbSvcId] = flag
+	AccountWatcherFlagsLock.Unlock()
 }
 
 func init() {
