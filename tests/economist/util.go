@@ -15,6 +15,7 @@ type UtilTester struct {}
 func (tester *UtilTester) Test(t *testing.T, d *Dandelion) {
 	proportionAlgorithmTest(t)
 	decay(t)
+	equalZero(t)
 }
 
 func proportionAlgorithmTest(t *testing.T) {
@@ -40,4 +41,21 @@ func decay(t *testing.T) {
 	a.Equal(result2, uint64(constants.VpDecayTime - 1))
 	result3 :=  app.Decay(new(big.Int).SetUint64(0)).Uint64()
 	a.Equal(result3, uint64(0))
+	beforeDecay := new(big.Int).SetUint64(constants.VpDecayTime)
+	app.Decay(beforeDecay)
+	a.Equal(beforeDecay.Uint64(), uint64(constants.VpDecayTime) - uint64(1))
 }
+
+func equalZero(t *testing.T) {
+	a := assert.New(t)
+	a.True(app.EqualZero(new(big.Int).SetUint64(0)))
+	a.True(app.EqualZero(new(big.Int).SetInt64(0)))
+	a.False(app.EqualZero(new(big.Int).SetUint64(1)))
+}
+
+//func greaterThanZero(t *testing.T) {
+//	a := assert.New(t)
+//	a.True(app.GreaterThanZero(new(big.Int).SetUint64(0)))
+//	a.True(app.EqualZero(new(big.Int).SetInt64(0)))
+//	a.False(app.EqualZero(new(big.Int).SetUint64(1)))
+//}

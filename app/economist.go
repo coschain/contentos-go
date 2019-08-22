@@ -58,6 +58,10 @@ func GreaterThanZero(number *big.Int) bool {
 	return number.Cmp(new(big.Int).SetUint64(0)) > 0
 }
 
+func EqualZero(number *big.Int) bool {
+	return number.Cmp(new(big.Int).SetUint64(0)) == 0
+}
+
 func ProportionAlgorithm(numerator *big.Int, denominator *big.Int, total *big.Int) *big.Int {
 	if denominator.Cmp(new(big.Int).SetUint64(0)) == 0 {
 		return new(big.Int).SetUint64(0)
@@ -251,11 +255,11 @@ func  (e *Economist) setCurrentBlockObserver(observer iservices.ITrxObserver) {
 }
 
 func (e *Economist) Do(trxObserver iservices.ITrxObserver) {
-	e.decayGlobalWvp()
 	globalProps := e.dgp.GetProps()
 	if !globalProps.GetBlockProducerBootCompleted() {
 		return
 	}
+	e.decayGlobalWvp()
 	e.setCurrentBlockObserver(trxObserver)
 	iterator := table.NewPostCashoutBlockNumWrap(e.db)
 	//end := globalProps.HeadBlockNumber
@@ -516,7 +520,7 @@ func (e *Economist) cashoutVotes(votesItems []*VoteItem) {
 }
 
 func (e *Economist) processRewardForAccount(accountName string, reward *big.Int) bool {
-	if reward.Cmp(new(big.Int).SetInt64(0)) == 0 {
+	if EqualZero(reward) {
 		return true
 	}
 	account, err := e.getAccount(&prototype.AccountName{Value: accountName})
@@ -546,7 +550,9 @@ func (e *Economist) finalizePostCashout(postId uint64, reward *big.Int) {
 func (e *Economist) finalizePostDappCashout(postId uint64, reward *big.Int) {
 	rewardVest := &prototype.Vest{Value: reward.Uint64()}
 	post := table.NewSoPostWrap(e.db, &postId)
-	post.SetDappRewards(rewardVest)
+	dappReward := post.GetDappRewards()
+	newDappReward := rewardVest.Add(dappReward)
+	post.SetDappRewards(newDappReward)
 }
 
 func (e *Economist) notifyPostCashoutResult(beneficiary string, postId uint64, weightedVp *big.Int, reward *big.Int, prop *prototype.DynamicProperties) {

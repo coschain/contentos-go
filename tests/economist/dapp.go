@@ -79,6 +79,7 @@ func (tester *DappTester) normal1(t *testing.T, d *Dandelion) {
 	acc0vest1 := d.Account(tester.acc0.Name).GetVest().Value
 	a.NotZero(reward.Uint64())
 	a.Equal(reward.Uint64(), acc0vest1 - acc0vest0)
+	a.Equal(d.Post(POST).GetDappRewards().Value, dappReward.Uint64())
 	a.Equal(d.GlobalProps().GetClaimedDappRewards(), exceptGlobalClaimRewardAfterCashout)
 	a.Equal(d.GlobalProps().GetPoolDappRewards(), exceptGlobalRewardAfterCashout)
 	// make all post/test has been cashouted
@@ -130,6 +131,7 @@ func (tester *DappTester) normal2(t *testing.T, d *Dandelion) {
 	acc0vest1 := d.Account(tester.acc0.Name).GetVest().Value
 	a.NotZero(reward.Uint64())
 	a.Equal(reward.Uint64(), acc0vest1 - acc0vest0)
+	a.Equal(d.Post(POST).GetDappRewards().Value, dappReward.Uint64())
 	a.Equal(d.GlobalProps().GetClaimedDappRewards(), exceptGlobalClaimRewardAfterCashout)
 	a.Equal(d.GlobalProps().GetPoolDappRewards(), exceptGlobalRewardAfterCashout)
 	// make all post/test has been cashouted
@@ -167,6 +169,7 @@ func (tester *DappTester) normal3(t *testing.T, d *Dandelion) {
 	acc0vest1 := d.Account(tester.acc2.Name).GetVest().Value
 	a.NotZero(dappReward.Uint64())
 	a.Equal(dappReward.Uint64(), acc0vest1 - acc0vest0)
+	a.Equal(d.Post(POST).GetDappRewards().Value, dappReward.Uint64())
 	a.Equal(d.GlobalProps().GetClaimedDappRewards(), exceptGlobalClaimRewardAfterCashout)
 	a.Equal(d.GlobalProps().GetPoolDappRewards(), exceptGlobalRewardAfterCashout)
 	a.NoError(d.ProduceBlocks(constants.PostCashOutDelayBlock))
@@ -217,6 +220,8 @@ func (tester *DappTester) normal4(t *testing.T, d *Dandelion) {
 	acc0Reward := new(big.Int).Add(postReward, acc0DappReward)
 	acc2Reward := acc2DappReward
 
+	acc0acc2DappReward := new(big.Int).Add(acc0DappReward, acc0DappReward)
+
 	a.NoError(d.ProduceBlocks(1))
 	a.Equal(d.GlobalProps().GetWeightedVpsDapp(), exceptNextBlockDappWeightedVps.String())
 
@@ -227,6 +232,7 @@ func (tester *DappTester) normal4(t *testing.T, d *Dandelion) {
 	a.NotZero(acc2Reward.Uint64())
 	a.Equal(acc0Reward.Uint64(), acc0vest1 - acc0vest0)
 	a.Equal(acc2Reward.Uint64(), acc1vest1 - acc1vest0)
+	a.Equal(d.Post(POST).GetDappRewards().Value, acc0acc2DappReward.Uint64())
 	a.Equal(d.GlobalProps().GetClaimedDappRewards(), exceptGlobalClaimRewardAfterCashout)
 	a.Equal(d.GlobalProps().GetPoolDappRewards(), exceptGlobalRewardAfterCashout)
 	// make all post/test has been cashouted
@@ -284,6 +290,9 @@ func (tester *DappTester) normal5(t *testing.T, d *Dandelion) {
 	acc2Reward := acc2DappReward
 	acc3Reward := acc3DappReward
 
+	allAccDappReward := new(big.Int).Add(acc0DappReward, acc2DappReward)
+	allAccDappReward.Add(allAccDappReward, acc3DappReward)
+
 	a.NoError(d.ProduceBlocks(1))
 	a.Equal(d.GlobalProps().GetWeightedVpsDapp(), exceptNextBlockDappWeightedVps.String())
 
@@ -296,6 +305,7 @@ func (tester *DappTester) normal5(t *testing.T, d *Dandelion) {
 	a.Equal(acc0Reward.Uint64(), acc0vest1 - acc0vest0)
 	a.Equal(acc2Reward.Uint64(), acc1vest1 - acc1vest0)
 	a.Equal(acc3Reward.Uint64(), acc2vest1 - acc2vest0)
+	a.Equal(d.Post(POST).GetDappRewards().Value, allAccDappReward.Uint64())
 	a.Equal(d.GlobalProps().GetClaimedDappRewards(), exceptGlobalClaimRewardAfterCashout)
 	a.Equal(d.GlobalProps().GetPoolDappRewards(), exceptGlobalRewardAfterCashout)
 	// make all post/test has been cashouted
@@ -344,6 +354,8 @@ func (tester *DappTester) normal6(t *testing.T, d *Dandelion) {
 	acc2Reward := acc2DappReward
 	acc3Reward := acc3DappReward
 
+	allAccDappReward := new(big.Int).Add(acc2DappReward, acc3DappReward)
+
 	a.NoError(d.ProduceBlocks(1))
 	a.Equal(d.GlobalProps().GetWeightedVpsDapp(), exceptNextBlockDappWeightedVps.String())
 
@@ -353,6 +365,7 @@ func (tester *DappTester) normal6(t *testing.T, d *Dandelion) {
 	a.NotZero(acc2Reward.Uint64())
 	a.Equal(acc2Reward.Uint64(), acc1vest1 - acc1vest0)
 	a.Equal(acc3Reward.Uint64(), acc2vest1 - acc2vest0)
+	a.Equal(d.Post(REPLY).GetDappRewards().Value, allAccDappReward.Uint64())
 	a.Equal(d.GlobalProps().GetClaimedDappRewards(), exceptGlobalClaimRewardAfterCashout)
 	a.Equal(d.GlobalProps().GetPoolDappRewards(), exceptGlobalRewardAfterCashout)
 	// make all post/test has been cashouted

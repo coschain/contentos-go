@@ -130,6 +130,8 @@ func (tester *ReplyTester) cashout(t *testing.T, d *Dandelion) {
 	vest1 := d.Account(tester.acc0.Name).GetVest().Value
 	realReward := vest1 - vest0
 	a.Equal(reward.Uint64(), realReward)
+	a.Equal(d.Post(REPLY).GetRewards().Value, realReward)
+	a.Equal(d.Post(REPLY).GetCashoutBlockNum(), app.CashoutCompleted)
 	a.Equal(d.GlobalProps().GetClaimedReplyRewards(), exceptGlobalClaimRewardAfterCashout)
 	a.Equal(d.GlobalProps().GetPoolReplyRewards(), exceptGlobalRewardAfterCashout)
 	// make all post/test has been cashouted
@@ -166,6 +168,8 @@ func (tester *ReplyTester) cashoutAfterOtherCashout(t *testing.T, d *Dandelion) 
 	vest1 := d.Account(tester.acc0.Name).GetVest().Value
 	realReward := vest1 - vest0
 	a.Equal(reward.Uint64(), realReward)
+	a.Equal(d.Post(REPLY).GetRewards().Value, realReward)
+	a.Equal(d.Post(REPLY).GetCashoutBlockNum(), app.CashoutCompleted)
 	a.Equal(d.GlobalProps().GetClaimedReplyRewards(), exceptGlobalClaimRewardAfterCashout)
 	a.Equal(d.GlobalProps().GetPoolReplyRewards(), exceptGlobalRewardAfterCashout)
 	// make all post/test has been cashouted
@@ -222,6 +226,10 @@ func (tester *ReplyTester) multiCashout(t *testing.T, d *Dandelion) {
 	real2Reward := vestnew2 - vestold2
 	a.Equal(reply1Reward.Uint64(), real1Reward)
 	a.Equal(reply2Reward.Uint64(), real2Reward)
+	a.Equal(d.Post(REPLY1).GetRewards().Value, real1Reward)
+	a.Equal(d.Post(REPLY2).GetRewards().Value, real2Reward)
+	a.Equal(d.Post(REPLY1).GetCashoutBlockNum(), app.CashoutCompleted)
+	a.Equal(d.Post(REPLY2).GetCashoutBlockNum(), app.CashoutCompleted)
 	a.Equal(d.GlobalProps().GetClaimedReplyRewards(), exceptGlobalClaimRewardAfterCashout)
 	a.Equal(d.GlobalProps().GetPoolReplyRewards(), exceptGlobalRewardAfterCashout)
 	// make all post/test has been cashouted
@@ -264,6 +272,8 @@ func (tester *ReplyTester) hugeGlobalVp(t *testing.T, d *Dandelion) {
 	vest1 := d.Account(tester.acc0.Name).GetVest().Value
 	realReward := vest1 - vest0
 	a.Equal(reward.Uint64(), realReward)
+	a.Equal(d.Post(REPLY).GetRewards().Value, realReward)
+	a.Equal(d.Post(REPLY).GetCashoutBlockNum(), app.CashoutCompleted)
 	a.Equal(d.GlobalProps().GetClaimedReplyRewards(), exceptGlobalClaimRewardAfterCashout)
 	a.Equal(d.GlobalProps().GetPoolReplyRewards(), exceptGlobalRewardAfterCashout)
 	// make all post/test has been cashouted
@@ -273,8 +283,6 @@ func (tester *ReplyTester) hugeGlobalVp(t *testing.T, d *Dandelion) {
 func (tester *ReplyTester) zeroGlobalVp(t *testing.T, d *Dandelion) {
 	a := assert.New(t)
 
-	const BLOCKS = 100
-	const VEST = 1000
 	const POST = 3
 	const REPLY = 4
 
@@ -306,6 +314,8 @@ func (tester *ReplyTester) zeroGlobalVp(t *testing.T, d *Dandelion) {
 	vest1 := d.Account(tester.acc0.Name).GetVest().Value
 	realReward := vest1 - vest0
 	a.Equal(reward.Uint64(), realReward)
+	a.Equal(d.Post(REPLY).GetRewards().Value, realReward)
+	a.Equal(d.Post(REPLY).GetCashoutBlockNum(), app.CashoutCompleted)
 	a.Equal(d.GlobalProps().GetClaimedReplyRewards(), exceptGlobalClaimRewardAfterCashout)
 	a.Equal(d.GlobalProps().GetPoolReplyRewards(), exceptGlobalRewardAfterCashout)
 	// make all post/test has been cashouted
@@ -349,6 +359,8 @@ func (tester *ReplyTester) withTicket(t *testing.T, d *Dandelion) {
 	vest1 := d.Account(tester.acc0.Name).GetVest().Value
 	realReward := vest1 - vest0
 	a.Equal(reward.Uint64(), realReward)
+	a.Equal(d.Post(REPLY).GetRewards().Value, realReward)
+	a.Equal(d.Post(REPLY).GetCashoutBlockNum(), app.CashoutCompleted)
 	a.Equal(d.GlobalProps().GetClaimedReplyRewards(), exceptGlobalClaimRewardAfterCashout)
 	a.Equal(d.GlobalProps().GetPoolReplyRewards(), exceptGlobalRewardAfterCashout)
 	// make all post/test has been cashouted
