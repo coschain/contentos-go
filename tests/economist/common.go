@@ -89,3 +89,16 @@ func perBlockDappReward(d *Dandelion) uint64 {
 	dappReward := blockCurrency * constants.RewardRateDapp / constants.PERCENT
 	return dappReward
 }
+
+func perBlockVoteReward(d *Dandelion) uint64 {
+	ith := d.GlobalProps().GetIthYear()
+	annualBudget := annual_mint.CalculateBudget(ith)
+	blockCurrency := annual_mint.CalculatePerBlockBudget(annualBudget)
+
+	creatorReward := blockCurrency * constants.RewardRateCreator / constants.PERCENT
+
+	postReward := creatorReward * constants.RewardRateAuthor / constants.PERCENT
+	replyReward := creatorReward * constants.RewardRateReply / constants.PERCENT
+	voterReward := creatorReward - postReward - replyReward
+	return voterReward
+}

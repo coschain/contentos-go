@@ -25,8 +25,7 @@ func (tester *PostTester) Test1(t *testing.T, d *Dandelion) {
 	registerBlockProducer(tester.acc2, t)
 
 	const VEST = 1000
-	_ = tester.acc0.SendTrx(TransferToVest(tester.acc0.Name, tester.acc0.Name, VEST, ""))
-	_= tester.acc1.SendTrx(TransferToVest(tester.acc1.Name, tester.acc1.Name, VEST, ""))
+	SelfTransferToVesting([]*DandelionAccount{tester.acc0, tester.acc1}, VEST, t)
 
 	t.Run("normal", d.Test(tester.normal))
 }
@@ -39,8 +38,7 @@ func (tester *PostTester) Test2(t *testing.T, d *Dandelion) {
 	registerBlockProducer(tester.acc2, t)
 
 	const VEST = 1000
-	_ = tester.acc0.SendTrx(TransferToVest(tester.acc0.Name, tester.acc0.Name, VEST, ""))
-	_= tester.acc1.SendTrx(TransferToVest(tester.acc1.Name, tester.acc1.Name, VEST, ""))
+	SelfTransferToVesting([]*DandelionAccount{tester.acc0, tester.acc1}, VEST, t)
 
 	t.Run("cashout", d.Test(tester.cashout))
 	t.Run("cashout after other cashout", d.Test(tester.cashoutAfterOtherCashout))
@@ -55,8 +53,7 @@ func (tester *PostTester) Test3(t *testing.T, d *Dandelion) {
 	registerBlockProducer(tester.acc2, t)
 
 	const VEST = 1000
-	_ = tester.acc0.SendTrx(TransferToVest(tester.acc0.Name, tester.acc0.Name, VEST, ""))
-	_= tester.acc1.SendTrx(TransferToVest(tester.acc1.Name, tester.acc1.Name, VEST, ""))
+	SelfTransferToVesting([]*DandelionAccount{tester.acc0, tester.acc1}, VEST, t)
 
 	t.Run("huge global vp", d.Test(tester.hugeGlobalVp))
 	//t.Run("zero global vp", d.Test(tester.zeroGlobalVp))
@@ -68,6 +65,8 @@ func (tester *PostTester) Test4(t *testing.T, d *Dandelion) {
 	tester.acc2 = d.Account("actor2")
 
 	registerBlockProducer(tester.acc2, t)
+	const VEST = 1000
+	SelfTransferToVesting([]*DandelionAccount{tester.acc0, tester.acc1}, VEST, t)
 
 	t.Run("with ticket", d.Test(tester.withTicket))
 }

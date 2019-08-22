@@ -358,6 +358,9 @@ func (e *Economist) Do(trxObserver iservices.ITrxObserver) {
 }
 
 func (e *Economist) cashoutPosts(postsItems []*PostItem) {
+	if len(postsItems) == 0 {
+		return
+	}
 	globalProps := e.dgp.GetProps()
 	var items []IItem
 	for _, postItem := range postsItems {
@@ -397,6 +400,9 @@ func (e *Economist) cashoutPosts(postsItems []*PostItem) {
 }
 
 func (e *Economist) cashoutReplies(repliesItems []*PostItem) {
+	if len(repliesItems) == 0 {
+		return
+	}
 	globalProps := e.dgp.GetProps()
 	var items []IItem
 	for _, replyItem := range repliesItems {
@@ -433,6 +439,9 @@ func (e *Economist) cashoutReplies(repliesItems []*PostItem) {
 }
 
 func (e *Economist) cashoutDapps(dappsItems []*DappItem) {
+	if len(dappsItems) == 0 {
+		return
+	}
 	globalProps := e.dgp.GetProps()
 	var items []IItem
 	for _, dappItem := range dappsItems {
@@ -469,6 +478,9 @@ func (e *Economist) cashoutDapps(dappsItems []*DappItem) {
 }
 
 func (e *Economist) cashoutVotes(votesItems []*VoteItem) {
+	if len(votesItems) == 0 {
+		return
+	}
 	globalProps := e.dgp.GetProps()
 	var items []IItem
 	for _, voteItem := range votesItems {
