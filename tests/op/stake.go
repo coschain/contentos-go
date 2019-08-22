@@ -136,13 +136,13 @@ func (tester *StakeTester) multipleStake(t *testing.T, d *Dandelion) {
 		balance0 := tester.acc0.GetBalance().Value
 		acct := acctList[i%listLen]
 		stakeVest := acct.GetStakeVestForMe().Value
-		stakeVestFromMe := acct.GetStakeVestFromMe().Value
+		stakeVestFromMe := tester.acc0.GetStakeVestFromMe().Value
 		amount := uint64(20*(i+1))
 		a.NoError(tester.acc0.SendTrx(Stake(tester.acc0.Name, acct.Name, amount)))
 		a.NoError(d.ProduceBlocks(1))
 		a.Equal(balance0-amount, tester.acc0.GetBalance().Value)
 		a.Equal(stakeVest+amount, acct.GetStakeVestForMe().Value)
-		a.Equal(stakeVestFromMe+amount, acct.GetStakeVestFromMe().Value)
+		a.Equal(stakeVestFromMe+amount, tester.acc0.GetStakeVestFromMe().Value)
 	}
 
 }
