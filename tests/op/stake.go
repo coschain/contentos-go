@@ -52,12 +52,14 @@ func (tester *StakeTester) Test(t *testing.T, d *Dandelion) {
 func (tester *StakeTester) normal(t *testing.T, d *Dandelion) {
 	a := assert.New(t)
 	balance0 := tester.acc0.GetBalance().Value
-	stakeVest1 := tester.acc1.GetStakeVest().Value
+	stakeVest1 := tester.acc1.GetStakeVestForMe().Value
+	stakeFromMeVest := tester.acc0.GetStakeVestFromMe().Value
+
 	a.NoError(tester.acc0.SendTrx(Stake(tester.acc0.Name, tester.acc1.Name, 100)))
 	a.NoError(d.ProduceBlocks(1))
 	a.Equal(balance0-100, tester.acc0.GetBalance().Value)
-	a.Equal(stakeVest1+100, tester.acc1.GetStakeVest().Value)
-
+	a.Equal(stakeVest1+100, tester.acc1.GetStakeVestForMe().Value)
+	a.Equal(stakeFromMeVest + 100 , tester.acc0.GetStakeVestFromMe().Value)
 	//stake user's stake stamina
 	// (stakeVest/GlobalDynamicData.stakeVest)*StakeVestGlobalDynamicData.OneDayStamina)
 	maxStakeStamina := d.CalculateUserMaxStamina(tester.acc1.Name)
@@ -71,10 +73,10 @@ func (tester *StakeTester) wrongSender(t *testing.T, d *Dandelion) {
 	a := assert.New(t)
 	sender := d.Account("account1")
 	a.Empty(sender.CheckExist())
-	stakeVest2 := tester.acc2.GetStakeVest().Value
+	stakeVest2 := tester.acc2.GetStakeVestForMe().Value
 	a.Error(tester.acc0.SendTrx(Stake(sender.Name, tester.acc2.Name, 1)))
 	a.NoError(d.ProduceBlocks(1))
-	a.Equal(stakeVest2, tester.acc2.GetStakeVest().Value)
+	a.Equal(stakeVest2, tester.acc2.GetStakeVestForMe().Value)
 }
 
 
@@ -98,7 +100,7 @@ func (tester *StakeTester) wrongSenderAndReceiver(t *testing.T, d *Dandelion) {
 	a.Error(tester.acc2.SendTrx(Stake(sender.Name, receiver.Name, 10)))
 	a.NoError(d.ProduceBlocks(1))
 	a.Nil(sender.GetBalance())
-	a.Nil(receiver.GetStakeVest())
+	a.Nil(receiver.GetStakeVestForMe())
 
 }
 
@@ -106,10 +108,10 @@ func (tester *StakeTester) amountZero(t *testing.T, d *Dandelion) {
 	a := assert.New(t)
 
 	balance0 := tester.acc0.GetBalance().Value
-	stakeVest2 := tester.acc2.GetStakeVest().Value
+	stakeVest2 := tester.acc2.GetStakeVestForMe().Value
 	a.Error(tester.acc1.SendTrx(Stake(tester.acc0.Name, tester.acc2.Name, 0)))
 	a.Equal(balance0, tester.acc0.GetBalance().Value)
-	a.Equal(stakeVest2, tester.acc2.GetStakeVest().Value)
+	a.Equal(stakeVest2, tester.acc2.GetStakeVestForMe().Value)
 
 }
 
@@ -117,11 +119,11 @@ func (tester *StakeTester) insufficientBalance(t *testing.T, d *Dandelion) {
 	a := assert.New(t)
 
 	balance2 := tester.acc2.GetBalance().Value
-	stakeVest0 := tester.acc0.GetStakeVest().Value
+	stakeVest0 := tester.acc0.GetStakeVestForMe().Value
 	a.NoError(tester.acc2.SendTrx(Stake(tester.acc2.Name, tester.acc0.Name, math.MaxUint64)))
 	a.NoError(d.ProduceBlocks(1))
 	a.Equal(balance2, tester.acc2.GetBalance().Value)
-	a.Equal(stakeVest0, tester.acc0.GetStakeVest().Value)
+	a.Equal(stakeVest0, tester.acc0.GetStakeVestForMe().Value)
 
 }
 
@@ -133,12 +135,14 @@ func (tester *StakeTester) multipleStake(t *testing.T, d *Dandelion) {
 	for i := 0; i < 6; i++ {
 		balance0 := tester.acc0.GetBalance().Value
 		acct := acctList[i%listLen]
-		stakeVest := acct.GetStakeVest().Value
+		stakeVest := acct.GetStakeVestForMe().Value
+		stakeVestFromMe := tester.acc0.GetStakeVestFromMe().Value
 		amount := uint64(20*(i+1))
 		a.NoError(tester.acc0.SendTrx(Stake(tester.acc0.Name, acct.Name, amount)))
 		a.NoError(d.ProduceBlocks(1))
 		a.Equal(balance0-amount, tester.acc0.GetBalance().Value)
-		a.Equal(stakeVest+amount, acct.GetStakeVest().Value)
+		a.Equal(stakeVest+amount, acct.GetStakeVestForMe().Value)
+		a.Equal(stakeVestFromMe+amount, tester.acc0.GetStakeVestFromMe().Value)
 	}
 
 }
@@ -315,7 +319,7 @@ func (tester *StakeTester) sameRegainSpeed(t *testing.T, d *Dandelion) {
 	newAcct5 := d.Account(acctName5)
 	dgp := d.GlobalProps()
 
-	a.Equal(newAcct4.GetStakeVest().Value, newAcct5.GetStakeVest().Value)
+	a.Equal(newAcct4.GetStakeVestForMe().Value, newAcct5.GetStakeVestForMe().Value)
 	sysFreeStamina := dgp.GetStaminaFree()
 	var newFreeStamina uint64 = 100
 	a.NotEqual(sysFreeStamina, newFreeStamina)
@@ -364,7 +368,7 @@ func (tester *StakeTester) diffRegainSpeed(t *testing.T, d *Dandelion) {
 	acctName7 := "account7"
 	tester.createNewAccount(t, d, acctName7, 1000)
 	newAcct7 := d.Account(acctName7)
-	a.Equal(newAcct6.GetStakeVest().Value, newAcct7.GetStakeVest().Value)
+	a.Equal(newAcct6.GetStakeVestForMe().Value, newAcct7.GetStakeVestForMe().Value)
 	dgp := d.GlobalProps()
 	sysFreeStamina := dgp.GetStaminaFree()
 	var newFreeStamina uint64 = 100
@@ -498,7 +502,7 @@ func (tester *StakeTester) createNewAccount(t *testing.T, d *Dandelion, name str
 		a.NoError(d.SendTrxByAccount(initminer.Name, Stake(initminer.Name, name, stakeAmount)))
 		a.NoError(d.ProduceBlocks(1))
 		a.Equal(balanceInitMiner-stakeAmount, initminer.GetBalance().Value)
-		a.Equal(stakeAmount, d.Account(name).GetStakeVest().Value)
+		a.Equal(stakeAmount, d.Account(name).GetStakeVestForMe().Value)
 	}
 
 }

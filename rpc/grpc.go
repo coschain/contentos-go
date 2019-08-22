@@ -85,6 +85,22 @@ func (as *APIService) QueryTableContent(ctx context.Context, req *grpcpb.GetTabl
 	return res, nil
 }
 
+func (as *APIService) GetAccountByPubKey(ctx context.Context, req *grpcpb.GetAccountByPubKeyRequest ) (*grpcpb.AccountResponse, error) {
+	as.db.RLock()
+	defer as.db.RUnlock()
+
+	uniWrap := table.UniAccountPubKeyWrap{Dba: as.db}
+	pubkey,err := prototype.PublicKeyFromWIF(req.PublicKey)
+	if err != nil {
+		return &grpcpb.AccountResponse{},err
+	}
+
+	accountWrap := uniWrap.UniQueryPubKey(pubkey)
+
+	acct := as.getAccountResponseByName(accountWrap.GetName(),false)
+	return acct, nil
+}
+
 func (as *APIService) GetAccountByName(ctx context.Context, req *grpcpb.GetAccountByNameRequest) (*grpcpb.AccountResponse, error) {
 	as.db.RLock()
 	defer as.db.RUnlock()
@@ -911,10 +927,12 @@ func (as *APIService) getAccountResponseByName(name *prototype.AccountName, isNe
 		acctInfo.PostCount = accWrap.GetPostCount()
 		acctInfo.TrxCount = accWrap.GetCreatedTrxCount()
 		acctInfo.VotePower = accWrap.GetVotePower()
-		acctInfo.StakeVest = accWrap.GetStakeVest()
+		acctInfo.StakeVestForMe = accWrap.GetStakeVestForMe()
+		acctInfo.StakeVestFromMe = accWrap.GetStakeVestFromMe()
 		acctInfo.WithdrawRemains = accWrap.GetToPowerdown()
 		acctInfo.WithdrawEachTime = accWrap.GetEachPowerdownRate()
 		acctInfo.BpVoteCount = accWrap.GetBpVoteCount()
+		acctInfo.PublicKey = accWrap.GetPubKey()
 		currentBlockNum := gp.GetHeadBlockNumber()
 		currentTime := gp.GetTime()
 		nextWithdrawBlock := accWrap.GetNextPowerdownBlockNum()
@@ -941,12 +959,6 @@ func (as *APIService) getAccountResponseByName(name *prototype.AccountName, isNe
 				PerTicketWeight:       witWrap.GetPerTicketWeight(),
 				VoterCount:            witWrap.GetVoterCount(),
 			}
-		}
-
-		keyWrap := table.NewSoAccountWrap(as.db, name)
-
-		if keyWrap.CheckExist() {
-			acctInfo.PublicKey = keyWrap.GetPubKey()
 		}
 
 		followWrap := table.NewSoExtFollowCountWrap(as.db, name)
@@ -1133,11 +1145,11 @@ func (as *APIService) fetchPostInfoResponseById(postId uint64,isNeedLock bool) *
 		var globalRewards uint64
 		var globalWeightedVp string
 		if pWrap.GetParentId() == 0 {
-			globalRewards = props.PostRewards.Value
-			globalWeightedVp = props.PostWeightedVps
+			globalRewards = props.PoolPostRewards.Value
+			globalWeightedVp = props.WeightedVpsPost
 		} else {
-			globalRewards = props.ReplyRewards.Value
-			globalWeightedVp = props.ReplyWeightedVps
+			globalRewards = props.PoolReplyRewards.Value
+			globalWeightedVp = props.WeightedVpsReply
 		}
 		res  =	&grpcpb.PostResponse{
 			PostId:        pWrap.GetPostId(),

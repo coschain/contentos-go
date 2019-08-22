@@ -25,7 +25,6 @@ type BlockLog struct {
 	BlockId string
 	BlockTime uint64
 	TrxLogs []TrxLog
-	Index int // the index of item in the heap
 }
 
 type IStateObserver interface {

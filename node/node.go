@@ -75,15 +75,17 @@ func (n *Node) Start() error {
 	n.lock.Lock()
 	defer n.lock.Unlock()
 
-	if err := n.openDataDir(); err != nil {
-		return err
-	}
-
 	// which confs should be assigned to p2p configuration
 
 	n.MainLoop = eventloop.NewEventLoop()
 	n.EvBus = EventBus.New()
+	n.services, n.serviceNames = nil, nil
 
+	if err := n.openDataDir(); err != nil {
+		return err
+	}
+
+	serviceNames := make([]string, 0, len(n.serviceFuncs))
 	services := make(map[string]Service)
 
 	for _, namedConstructor := range n.serviceFuncs {
@@ -97,7 +99,7 @@ func (n *Node) Start() error {
 		name := namedConstructor.name
 		constructor := namedConstructor.constructor
 
-		n.serviceNames = append(n.serviceNames, name)
+		serviceNames = append(serviceNames, name)
 
 		service, err := constructor(ctx)
 		if err != nil {
@@ -110,7 +112,7 @@ func (n *Node) Start() error {
 	}
 
 	var started []string
-	for _, kind := range n.serviceNames {
+	for _, kind := range serviceNames {
 		service := services[kind]
 		if err := service.Start(n); err != nil {
 			for _, kind := range started {
@@ -122,8 +124,7 @@ func (n *Node) Start() error {
 		started = append(started, kind)
 	}
 
-	n.services = services
-
+	n.services, n.serviceNames = services, serviceNames
 	return nil
 
 }
@@ -158,7 +159,7 @@ func (n *Node) Stop() error {
 			failure.Services[kind] = err
 		}
 	}
-	n.services = nil
+	n.services, n.serviceNames = nil, nil
 
 	if len(failure.Services) > 0 {
 		return failure

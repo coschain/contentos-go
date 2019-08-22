@@ -961,9 +961,12 @@ func (p *MsgHandler) RequestCheckpointBatchHandle(data *msgTypes.MsgPayload, p2p
 
 	startNum := msgdata.Start
 	endNum := msgdata.End
-	if endNum-startNum > msgCommon.BATCH_LENGTH {
-		endNum = startNum + msgCommon.BATCH_LENGTH
+	if endNum-startNum > msgCommon.MAX_BLOCK_COUNT {
+		endNum = startNum + msgCommon.MAX_BLOCK_COUNT
 	}
+	//if endNum-startNum > msgCommon.BATCH_LENGTH {
+	//	endNum = startNum + msgCommon.BATCH_LENGTH
+	//}
 	log.Infof("RequestCheckpointBatchHandle from %d to %d", startNum, endNum)
 	for {
 		if startNum >= endNum {

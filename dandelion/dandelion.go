@@ -3,6 +3,7 @@ package dandelion
 import (
 	"errors"
 	"fmt"
+	"github.com/coschain/contentos-go/app/plugins"
 	"github.com/coschain/contentos-go/app/table"
 	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/dandelion/core"
@@ -15,19 +16,35 @@ import (
 
 type Dandelion struct {
 	*core.DandelionCore
+	enablePlugins bool
+	sqlPlugins []string
 }
 
 func NewDandelion(logger *logrus.Logger) *Dandelion {
-	return &Dandelion{
+	return NewDandelionWithPlugins(logger, false, nil)
+}
+
+func NewDandelionWithPlugins(logger *logrus.Logger, enablePlugins bool, sqlPlugins []string) *Dandelion {
+	d := &Dandelion{
 		DandelionCore: core.NewDandelionCore(logger),
+		enablePlugins: enablePlugins,
+		sqlPlugins: sqlPlugins,
 	}
+	if d.enablePlugins {
+		plugins.NewPluginMgt(d.sqlPlugins).Register(d.Node(), d.NodeConfig())
+	}
+	return d
 }
 
 type DandelionTestFunc func(*testing.T, *Dandelion)
 
 func NewDandelionTest(f DandelionTestFunc, actors int) func(*testing.T) {
+	return NewDandelionTestWithPlugins(false, nil, f, actors)
+}
+
+func NewDandelionTestWithPlugins(enablePlugins bool, sqlPlugins []string, f DandelionTestFunc, actors int) func(*testing.T) {
 	return func(t *testing.T) {
-		d := NewDandelion(nil)
+		d := NewDandelionWithPlugins(nil, enablePlugins, sqlPlugins)
 		if d == nil {
 			t.Fatal("dandelion creation failed")
 		}

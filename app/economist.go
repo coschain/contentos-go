@@ -16,12 +16,50 @@ import (
 	"math/big"
 )
 
+const CashoutCompleted uint64 = math.MaxUint64
+
+type IItem interface {
+	GetWvp() *big.Int
+}
+
+type Item struct {
+	beneficiary string
+	wvp *big.Int
+}
+
+func (i *Item) GetWvp() *big.Int {
+	return i.wvp
+}
+
+type PostItem struct {
+	Item
+	postId uint64
+}
+
+type VoteItem struct {
+	Item
+	postId uint64
+}
+
+type DappItem struct {
+	Item
+	postId uint64
+}
+
 func Min(x, y uint64) uint64 {
 	if x < y {
 		return x
 	} else {
 		return y
 	}
+}
+
+func GreaterThanZero(number *big.Int) bool {
+	return number.Cmp(new(big.Int).SetUint64(0)) > 0
+}
+
+func EqualZero(number *big.Int) bool {
+	return number.Cmp(new(big.Int).SetUint64(0)) == 0
 }
 
 func ProportionAlgorithm(numerator *big.Int, denominator *big.Int, total *big.Int) *big.Int {
@@ -43,10 +81,18 @@ func StringToBigInt(n string) *big.Int {
 	}
 }
 
-func decay(rawValue *big.Int) *big.Int {
+func Decay(rawValue *big.Int) *big.Int {
 	decayValue := ProportionAlgorithm(new(big.Int).SetUint64(constants.BlockInterval), new(big.Int).SetUint64(constants.VpDecayTime), rawValue)
 	rawValue.Sub(rawValue, decayValue)
 	return rawValue
+}
+
+func SumItemsWvp(items []IItem) *big.Int {
+	sum := new(big.Int).SetUint64(0)
+	for _, item := range items {
+		sum = sum.Add(sum, item.GetWvp())
+	}
+	return sum
 }
 
 type Economist struct {
@@ -54,13 +100,8 @@ type Economist struct {
 	noticer  EventBus.Bus
 	log *logrus.Logger
 	dgp *DynamicGlobalPropsRW
+	observer iservices.ITrxObserver
 }
-
-type VoteProxy struct {
-	VoteId *prototype.VoterId
-	WeightedVp *big.Int
-}
-
 
 func NewEconomist(db iservices.IDatabaseService, noticer EventBus.Bus, log *logrus.Logger) *Economist {
 	return &Economist{db: db, noticer:noticer, log: log, dgp: &DynamicGlobalPropsRW{db: db}}
@@ -74,9 +115,7 @@ func (e *Economist) getAccount(account *prototype.AccountName) (*table.SoAccount
 	return accountWrap, nil
 }
 
-
 func (e *Economist) Mint(trxObserver iservices.ITrxObserver) {
-	//blockCurrent := constants.PerBlockCurrent
 	//t0 := time.Now()
 	globalProps := e.dgp.GetProps()
 	if !globalProps.GetBlockProducerBootCompleted() {
@@ -118,13 +157,7 @@ func (e *Economist) Mint(trxObserver iservices.ITrxObserver) {
 	// merge author rewards and reply rewards
 	postReward := creatorReward * constants.RewardRateAuthor / constants.PERCENT
 	replyReward := creatorReward * constants.RewardRateReply / constants.PERCENT
-	//voterReward := creatorReward * constants.RewardRateVoter / constants.PERCENT
-	voterReward := creatorReward - postReward - replyReward
-	//reportReward := creatorReward * constants.RewardRateReport / constants.PERCENT
-
-	replyDappRewards := dappReward * constants.RewardRateReply / constants.PERCENT
-	postDappRewards := dappReward - replyDappRewards
-
+	voteReward := creatorReward - postReward - replyReward
 
 	bpWrap, err := e.getAccount(globalProps.CurrentBlockProducer)
 	if err != nil {
@@ -143,11 +176,10 @@ func (e *Economist) Mint(trxObserver iservices.ITrxObserver) {
 	trxObserver.AddOpState(iservices.Add, "mint", globalProps.CurrentBlockProducer.Value, bpReward)
 
 	e.dgp.ModifyProps(func(props *prototype.DynamicProperties) {
-		props.PostRewards.Add(&prototype.Vest{Value: postReward})
-		props.ReplyRewards.Add(&prototype.Vest{Value: replyReward})
-		props.PostDappRewards.Add(&prototype.Vest{Value: postDappRewards})
-		props.ReplyDappRewards.Add(&prototype.Vest{Value: replyDappRewards})
-		props.VoterRewards.Add(&prototype.Vest{Value: voterReward})
+		props.PoolPostRewards.Add(&prototype.Vest{Value: postReward})
+		props.PoolReplyRewards.Add(&prototype.Vest{Value: replyReward})
+		props.PoolVoteRewards.Add(&prototype.Vest{Value: voteReward})
+		props.PoolDappRewards.Add(&prototype.Vest{Value: dappReward})
 		props.AnnualMinted.Add(&prototype.Vest{Value: blockCurrent})
 		props.TotalVest.Add(&prototype.Vest{Value: blockCurrent})
 	})
@@ -201,402 +233,365 @@ func (e *Economist) Distribute(trxObserver iservices.ITrxObserver) {
 	})
 }
 
-// Should be claiming or direct modify the balance?
+func (e *Economist) decayGlobalWvp() {
+	e.dgp.ModifyProps(func(props *prototype.DynamicProperties) {
+		postWeightedVps := StringToBigInt(props.GetWeightedVpsPost())
+		replyWeightedVps := StringToBigInt(props.GetWeightedVpsReply())
+		voteWeightedVps := StringToBigInt(props.GetWeightedVpsVote())
+		dappWeightedVps := StringToBigInt(props.GetWeightedVpsDapp())
+		Decay(postWeightedVps)
+		Decay(replyWeightedVps)
+		Decay(voteWeightedVps)
+		Decay(dappWeightedVps)
+		props.WeightedVpsPost = postWeightedVps.String()
+		props.WeightedVpsReply = replyWeightedVps.String()
+		props.WeightedVpsVote = voteWeightedVps.String()
+		props.WeightedVpsDapp = dappWeightedVps.String()
+	})
+}
+
+func  (e *Economist) setCurrentBlockObserver(observer iservices.ITrxObserver) {
+	e.observer = observer
+}
+
 func (e *Economist) Do(trxObserver iservices.ITrxObserver) {
-	e.decayGlobalVotePower()
 	globalProps := e.dgp.GetProps()
 	if !globalProps.GetBlockProducerBootCompleted() {
 		return
 	}
+	e.decayGlobalWvp()
+	e.setCurrentBlockObserver(trxObserver)
 	iterator := table.NewPostCashoutBlockNumWrap(e.db)
-	var pids []*uint64
-	end := globalProps.HeadBlockNumber
-	t0 := common.EasyTimer()
+	//end := globalProps.HeadBlockNumber
+	// in iterator, the right is open.
+	end := globalProps.HeadBlockNumber + 1
 	// post and reply
+	var pids []*uint64
 	err := iterator.ForEachByOrder(nil, &end, nil, nil, func(mVal *uint64, sVal *uint64, idx uint32) bool {
 		pids = append(pids, mVal)
 		return true
 	})
-	e.log.Debugf("Do iterator spent: %v", t0)
 	if err != nil {
 		panic("economist do failed when iterator")
 	}
-	var posts []*table.SoPostWrap
-	var replies []*table.SoPostWrap
+	var posts []*PostItem
+	var replies []*PostItem
+	var dappsRoutes []*DappItem
 
-	var postVpAccumulator, replyVpAccumulator big.Int
-	// posts accumulate by linear, replies by sqrt
 	for _, pid := range pids {
 		post := table.NewSoPostWrap(e.db, pid)
+		if !post.CheckExist() {
+			e.log.Warnf("post %d ignored to cashout, pid not found", pid)
+			continue
+		}
 		giftNum := new(big.Int).SetUint64(uint64(post.GetTicket()))
 		giftVp := new(big.Int).Mul(giftNum, new(big.Int).SetUint64(globalProps.GetPerTicketWeight()))
 		weightedVp := new(big.Int).Add(StringToBigInt(post.GetWeightedVp()), giftVp)
-
 		authorName := post.GetAuthor()
+		// set wvp to zero
 		if author, err := e.getAccount(authorName); err != nil {
+			weightedVp = new(big.Int).SetUint64(0)
 			e.log.Warnf("author of post %d not found, name %s", *pid, authorName.Value)
-			continue
 		} else if author.GetReputation() == constants.MinReputation {
+			weightedVp = new(big.Int).SetUint64(0)
 			e.log.Warnf("ignored post %d due to bad reputation of author %s", *pid, authorName.Value)
-			continue
 		}
-
 		if post.GetCopyright() == constants.CopyrightInfringement {
+			weightedVp = new(big.Int).SetUint64(0)
 			e.log.Warnf("ignored post %d due to invalid copyright,author %s", *pid, authorName.Value)
-			continue
 		}
-
+		//postItem := &PostItem{postId: post.GetPostId(), Item{beneficiary: post.GetAuthor().Value, wvp: weightedVp}}
+		postItem := &PostItem{Item{beneficiary: post.GetAuthor().Value, wvp: weightedVp}, post.GetPostId()}
 		if post.GetParentId() == 0 {
-			posts = append(posts, post)
-			postVpAccumulator.Add(&postVpAccumulator, weightedVp)
+			posts = append(posts, postItem)
 		} else {
-			replies = append(replies, post)
-			replyVpAccumulator.Add(&replyVpAccumulator, weightedVp)
+			replies = append(replies, postItem)
+		}
+
+		beneficiaryRoutes := post.GetBeneficiaries()
+		for _, beneficiaryRoute := range beneficiaryRoutes {
+			name := beneficiaryRoute.Name.Value
+			weight := beneficiaryRoute.Weight
+			routeWvp := ProportionAlgorithm(new(big.Int).SetUint64(uint64(weight)), new(big.Int).SetUint64(uint64(constants.PERCENT)), weightedVp)
+			if post.GetParentId() == 0 {
+				dappRoute := &DappItem{Item{beneficiary: name, wvp: routeWvp}, post.GetPostId()}
+				dappsRoutes = append(dappsRoutes, dappRoute)
+			} else {
+				// 15 / 75 * routeWvp
+				equalRouteWvp := ProportionAlgorithm(new(big.Int).SetUint64(uint64(constants.RewardRateReply)), new(big.Int).SetUint64(uint64(constants.RewardRateAuthor)), routeWvp)
+				dappRoute := &DappItem{Item{beneficiary: name, wvp: equalRouteWvp}, post.GetPostId()}
+				dappsRoutes = append(dappsRoutes, dappRoute)
+			}
 		}
 	}
-	var postWeightedVps, replyWeightedVps big.Int
-	globalPostWeightedVps := StringToBigInt(globalProps.PostWeightedVps)
-	globalReplyWeightedVps := StringToBigInt(globalProps.ReplyWeightedVps)
+	e.cashoutPosts(posts)
+	e.cashoutReplies(replies)
+	e.cashoutDapps(dappsRoutes)
 
-	postWeightedVps.Add(globalPostWeightedVps, &postVpAccumulator)
-	replyWeightedVps.Add(globalReplyWeightedVps, &replyVpAccumulator)
-
-	e.dgp.ModifyProps(func(props *prototype.DynamicProperties) {
-		props.PostWeightedVps = postWeightedVps.String()
-		props.ReplyWeightedVps = replyWeightedVps.String()
-	})
-
-	if postWeightedVps.Cmp(new(big.Int).SetInt64(0)) >= 0 {
-		var rewards, dappRewards *big.Int
-		//if postWeightedVps + postVpAccumulator == 0 {
-		if postWeightedVps.Cmp(new(big.Int).SetInt64(0)) == 0 {
-			rewards = new(big.Int).SetUint64(0)
-			dappRewards = new(big.Int).SetUint64(0)
-		}else {
-			bigGlobalPostRewards := new(big.Int).SetUint64(globalProps.PostRewards.Value)
-			rewards = ProportionAlgorithm(&postVpAccumulator, &postWeightedVps, bigGlobalPostRewards)
-			bigGlobalPostDappRewards := new(big.Int).SetUint64(globalProps.PostDappRewards.Value)
-			dappRewards = ProportionAlgorithm(&postVpAccumulator, &postWeightedVps, bigGlobalPostDappRewards)
-		}
-
-		e.log.Debugf("cashout posts length: %d", len(posts))
-		if len(posts) > 0 {
-			t := common.EasyTimer()
-			e.postCashout(posts, rewards, dappRewards, &postVpAccumulator, trxObserver)
-			e.log.Debugf("cashout posts spend: %v", t)
-		}
-	}
-
-	if replyWeightedVps.Cmp(new(big.Int).SetInt64(0)) >= 0 {
-		var rewards, dappRewards *big.Int
-		if replyWeightedVps.Cmp(new(big.Int).SetInt64(0)) == 0 {
-			rewards = new(big.Int).SetUint64(0)
-			dappRewards = new(big.Int).SetUint64(0)
-		}else {
-			bigGlobalReplyRewards := new(big.Int).SetUint64(globalProps.ReplyRewards.Value)
-			rewards = ProportionAlgorithm(&replyVpAccumulator, &replyWeightedVps, bigGlobalReplyRewards)
-			bigGlobalReplyDappRewards := new(big.Int).SetUint64(globalProps.ReplyDappRewards.Value)
-			dappRewards = ProportionAlgorithm(&replyVpAccumulator, &replyWeightedVps, bigGlobalReplyDappRewards)
-		}
-
-		e.log.Debugf("cashout replies length: %d", len(replies))
-		if len(replies) > 0 {
-			t := common.EasyTimer()
-			e.replyCashout(replies, rewards, dappRewards, &replyVpAccumulator, trxObserver)
-			e.log.Debugf("cashout reply spend: %v", t)
-		}
-	}
-
-	// post/reply cashout finished, vote cashout start
-
-
-	globalVoteWeightedVps := StringToBigInt(globalProps.GetVoteWeightedVps())
-	globalVoteRewards := globalProps.GetVoterRewards()
-
-	voteCashoutWrap := table.NewSoVoteCashoutWrap(e.db, &end)
+	voteCashoutWrap := table.NewSoVoteCashoutWrap(e.db, &globalProps.HeadBlockNumber)
 	if !voteCashoutWrap.CheckExist() {
 		return
 	}
-	var votes []*VoteProxy
-	var voteWeightedVpsAccumulator big.Int
+	var voteItems []*VoteItem
 	voteIds := voteCashoutWrap.GetVoterIds()
 	for _, voteId := range voteIds {
 		voteWrap := table.NewSoVoteWrap(e.db, voteId)
+		voteWvp := StringToBigInt(voteWrap.GetWeightedVp())
+		voter := voteWrap.GetVoter().Voter.Value
 		postId := voteId.PostId
 		postWrap := table.NewSoPostWrap(e.db, &postId)
+		// if the voted post is illegal, voter does not receive reward
+		postWvp := StringToBigInt(postWrap.GetWeightedVp())
+		authorName := postWrap.GetAuthor()
+		if author, err := e.getAccount(authorName); err != nil {
+			postWvp = new(big.Int).SetUint64(0)
+			e.log.Warnf("author of post %d not found, name %s", postId, authorName.Value)
+		} else if author.GetReputation() == constants.MinReputation {
+			postWvp = new(big.Int).SetUint64(0)
+			e.log.Warnf("ignored post %d due to bad reputation of author %s", postId, authorName.Value)
+		}
 		if postWrap.GetCopyright() == constants.CopyrightInfringement {
-			e.log.Warnf("ignored post %v vp accumulate due to invalid copyright", postWrap.GetPostId())
-			continue
+			postWvp = new(big.Int).SetUint64(0)
+			e.log.Warnf("ignored post %d due to invalid copyright,author %s", postId, authorName.Value)
 		}
-		bigPostWeightedVp := StringToBigInt(postWrap.GetWeightedVp())
-		bigVoteWeightedVp := StringToBigInt(voteWrap.GetWeightedVp())
-		bigWeightedVp := new(big.Int).Mul(bigPostWeightedVp, bigVoteWeightedVp)
-		voteProxy := &VoteProxy{VoteId:voteId, WeightedVp: bigWeightedVp}
-		votes = append(votes, voteProxy)
-		voteWeightedVpsAccumulator.Add(&voteWeightedVpsAccumulator, bigWeightedVp)
+		wvp := new(big.Int).Mul(voteWvp, postWvp)
+		voteItem := &VoteItem{Item{wvp: wvp, beneficiary: voter}, postId}
+		voteItems = append(voteItems, voteItem)
 	}
-	bigGlobalVoteRewards := new(big.Int).SetUint64(globalVoteRewards.Value)
-	globalVoteWeightedVps.Add(globalVoteWeightedVps, &voteWeightedVpsAccumulator)
-	e.dgp.ModifyProps(func(props *prototype.DynamicProperties) {
-		props.VoteWeightedVps = globalVoteWeightedVps.String()
-	})
-	// should assert globalVoteWeightedVps > 0
-	if globalVoteWeightedVps.Cmp(new(big.Int).SetInt64(0)) > 0 {
-		currentBlockVoteReward := ProportionAlgorithm(&voteWeightedVpsAccumulator, globalVoteWeightedVps, bigGlobalVoteRewards)
-		e.voteCashout(votes, currentBlockVoteReward, &voteWeightedVpsAccumulator, trxObserver)
-	}
+	e.cashoutVotes(voteItems)
 }
 
-
-func (e *Economist) decayGlobalVotePower() {
-	e.dgp.ModifyProps(func(props *prototype.DynamicProperties) {
-		postWeightedVps := StringToBigInt(props.PostWeightedVps)
-		replyWeightedVps := StringToBigInt(props.ReplyWeightedVps)
-		voteWeightedVps := StringToBigInt(props.VoteWeightedVps)
-		decay(postWeightedVps)
-		decay(replyWeightedVps)
-		decay(voteWeightedVps)
-		props.PostWeightedVps = postWeightedVps.String()
-		props.ReplyWeightedVps = replyWeightedVps.String()
-		props.VoteWeightedVps = voteWeightedVps.String()
-	})
-}
-
-func (e *Economist) postCashout(posts []*table.SoPostWrap, bigBlockRewards *big.Int, bigBlockDappRewards *big.Int, vpAccumulator *big.Int, trxObserver iservices.ITrxObserver) {
+func (e *Economist) cashoutPosts(postsItems []*PostItem) {
+	if len(postsItems) == 0 {
+		return
+	}
 	globalProps := e.dgp.GetProps()
-
-	//var vpAccumulator uint64 = 0
-	t0 := common.EasyTimer()
-	e.log.Debugf("cashout post weight cashout spend: %v", t0)
-	var spentPostReward uint64 = 0
-	var spentDappReward uint64 = 0
-	//var spentVoterReward uint64 = 0
-	for _, post := range posts {
-		if post.GetCopyright() == constants.CopyrightInfringement {
-			post.SetCashoutBlockNum(math.MaxUint64)
-			e.log.Warnf("ignored post %v postCashout due to invalid copyright", post.GetPostId())
-			continue
-		}
-
-		postTiming := common.NewTiming()
-		postTiming.Begin()
-
-		author := post.GetAuthor().Value
-		var reward uint64 = 0
-		var beneficiaryReward uint64 = 0
-		// divide zero exception
-		if vpAccumulator.Cmp(new(big.Int).SetInt64(0)) > 0 {
-			giftNum := new(big.Int).SetUint64(uint64(post.GetTicket()))
-			giftVp := new(big.Int).Mul(giftNum, new(big.Int).SetUint64(globalProps.GetPerTicketWeight()))
-			bigWeightedVp := new(big.Int).Add(StringToBigInt(post.GetWeightedVp()), giftVp)
-			reward = ProportionAlgorithm(bigWeightedVp, vpAccumulator, bigBlockRewards).Uint64()
-			beneficiaryReward = ProportionAlgorithm(bigWeightedVp, vpAccumulator, bigBlockDappRewards).Uint64()
-			spentPostReward += reward
-			spentDappReward += beneficiaryReward
-		}
-
-		postTiming.Mark()
-
-		//e.voterCashout(post.GetPostId(), voterReward, post.GetWeightedVp(), innerRewards)
-		beneficiaries := post.GetBeneficiaries()
-		var spentBeneficiaryReward uint64 = 0
-		var weightSum uint32 = 0
-		for _, beneficiary := range beneficiaries {
-			name := beneficiary.Name.Value
-			weight := beneficiary.Weight
-			weightSum += weight
-			// malicious user, pass it
-			if weightSum > constants.PERCENT {
-				continue
-			}
-			// one of ten thousands
-			//r := beneficiaryReward * uint64(weight) / constants.PERCENT
-			r := new(big.Int).Div(new(big.Int).Mul(big.NewInt(int64(beneficiaryReward)), big.NewInt(int64(weight))), big.NewInt(constants.PERCENT)).Uint64()
-			if r == 0 {
-				continue
-			}
-			beneficiaryWrap, err := e.getAccount(&prototype.AccountName{Value: name})
-			if err != nil {
-				e.log.Debugf("beneficiary get account %s failed", name)
-				continue
-			} else if beneficiaryWrap.GetReputation() == constants.MinReputation {
-				e.log.Debugf("ignored beneficiary %s due to bad reputation", name)
-				continue
-			} else {
-				oldVest := beneficiaryWrap.GetVest()
-				vestRewards := &prototype.Vest{Value: r}
-				vestRewards.Add(beneficiaryWrap.GetVest())
-				beneficiaryWrap.SetVest(vestRewards)
-				updateBpVoteValue(e.db, &prototype.AccountName{Value: name}, oldVest, vestRewards)
-				spentBeneficiaryReward += r
-				e.noticer.Publish(constants.NoticeCashout, name, post.GetPostId(), r, globalProps.GetHeadBlockNumber())
-				trxObserver.AddOpState(iservices.Add, "cashout", name , r)
-			}
-		}
-
-		postTiming.Mark()
-
-		if beneficiaryReward - spentBeneficiaryReward > 0 {
-			reward += beneficiaryReward - spentBeneficiaryReward
-		}
-		authorWrap, err := e.getAccount(&prototype.AccountName{Value: author})
-		if err != nil {
-			e.log.Debugf("post cashout get account %s failed", author)
-			continue
-		} else {
-			oldVest := authorWrap.GetVest()
-			vestRewards := &prototype.Vest{Value: reward}
-			vestRewards.Add(authorWrap.GetVest())
-			authorWrap.SetVest(vestRewards)
-
-			t := common.EasyTimer()
-			t1, t2 := updateBpVoteValue(e.db, &prototype.AccountName{Value: author}, oldVest, vestRewards)
-			e.log.Debugf("post cashout updateBpVoteValue: %v, query: %v, update: %v", t, t1, t2)
-		}
-		post.SetCashoutBlockNum(math.MaxUint64)
-		post.SetRewards(&prototype.Vest{Value: reward})
-		post.SetDappRewards(&prototype.Vest{Value: beneficiaryReward})
-		if reward > 0 {
-			rInfo := &itype.RewardInfo{
-				Reward:reward,
-				PostId:post.GetPostId(),
-			}
-			e.noticer.Publish(constants.NoticeCashout, author, post.GetPostId(), reward, globalProps.GetHeadBlockNumber())
-			trxObserver.AddOpState(iservices.Add, "cashout", author, reward)
-			trxObserver.AddOpState(iservices.Update, "postReward", author, rInfo)
-		}
-
-		postTiming.End()
-		e.log.Debugf("cashout (postWeight|beneficiary|postCashout): %v", postTiming.String())
+	var items []IItem
+	for _, postItem := range postsItems {
+		items = append(items, postItem)
 	}
+	currentBlockPostsWvp := SumItemsWvp(items)
+	globalPostsWvps := StringToBigInt(globalProps.GetWeightedVpsPost())
+	globalPostRewards := globalProps.GetPoolPostRewards()
+
+	currentGlobalPostsWvps := new(big.Int).Add(globalPostsWvps, currentBlockPostsWvp)
+
+	// add global post wvp
 	e.dgp.ModifyProps(func(props *prototype.DynamicProperties) {
-		//props.PostRewards.Value -= spentPostReward
-		//props.PostDappRewards.Value -= spentDappReward
-		props.PostRewards.Sub(&prototype.Vest{Value: spentPostReward})
-		props.PostDappRewards.Sub(&prototype.Vest{Value: spentDappReward})
+		props.WeightedVpsPost = currentGlobalPostsWvps.String()
+	})
+	claimedPostsReward := new(big.Int).SetUint64(0)
+	for _, postItem := range postsItems {
+		wvp := postItem.wvp
+		postReward := ProportionAlgorithm(wvp, currentGlobalPostsWvps, new(big.Int).SetUint64(globalPostRewards.Value))
+		// result false: author banned
+		result := e.processRewardForAccount(postItem.beneficiary, postReward)
+		if !result {
+			postReward = new(big.Int).SetUint64(0)
+		}
+		e.finalizePostCashout(postItem.postId, postReward)
+		claimedPostsReward = claimedPostsReward.Add(claimedPostsReward, postReward)
+		e.notifyPostCashoutResult(postItem.beneficiary, postItem.postId, wvp, postReward, globalProps)
+	}
+
+	//subtract reward from global post reward pool and add it to claimed reward pool
+	e.dgp.ModifyProps(func(props *prototype.DynamicProperties) {
+		// the claimed post reward does not beyond max uint64
+		currentBlockClaimedReward := &prototype.Vest{Value: claimedPostsReward.Uint64()}
+		props.PoolPostRewards.Sub(currentBlockClaimedReward)
+		props.ClaimedPostRewards.Add(currentBlockClaimedReward)
 	})
 }
 
-// use same algorithm to simplify
-func (e *Economist) replyCashout(replies []*table.SoPostWrap, bigBlockRewards *big.Int, bigBlockDappRewards *big.Int, vpAccumulator *big.Int, trxObserver iservices.ITrxObserver) {
+func (e *Economist) cashoutReplies(repliesItems []*PostItem) {
+	if len(repliesItems) == 0 {
+		return
+	}
 	globalProps := e.dgp.GetProps()
-	var spentReplyReward uint64 = 0
-	var spentDappReward uint64 = 0
-	//var spentVoterReward uint64 = 0
-	for _, reply := range replies {
-		if reply.GetCopyright() == constants.CopyrightInfringement {
-			reply.SetCashoutBlockNum(math.MaxUint64)
-			e.log.Warnf("ignored reply %v replyCashout due to invalid copyright", reply.GetPostId())
-			continue
-		}
-		author := reply.GetAuthor().Value
-		var reward uint64 = 0
-		var beneficiaryReward uint64 = 0
-		//var voterReward uint64 = 0
-		// divide zero exception
-		if vpAccumulator.Cmp(new(big.Int).SetInt64(0)) > 0 {
-			giftNum := new(big.Int).SetUint64(uint64(reply.GetTicket()))
-			giftVp := new(big.Int).Mul(giftNum, new(big.Int).SetUint64(globalProps.GetPerTicketWeight()))
-			bigWeightedVp := new(big.Int).Add(StringToBigInt(reply.GetWeightedVp()), giftVp)
-			reward = ProportionAlgorithm(bigWeightedVp, vpAccumulator, bigBlockRewards).Uint64()
-			beneficiaryReward = ProportionAlgorithm(bigWeightedVp, vpAccumulator, bigBlockDappRewards).Uint64()
-			spentReplyReward += reward
-			spentDappReward += beneficiaryReward
-		}
-		//e.voterCashout(reply.GetPostId(), voterReward, reply.GetWeightedVp(), innerRewards)
-		beneficiaries := reply.GetBeneficiaries()
-		var spentBeneficiaryReward uint64 = 0
-		var weightSum uint32 = 0
-		for _, beneficiary := range beneficiaries {
-			name := beneficiary.Name.Value
-			weight := beneficiary.Weight
-			weightSum += weight
-			if weightSum > constants.PERCENT {
-				continue
-			}
-			r := new(big.Int).Div(new(big.Int).Mul(big.NewInt(int64(beneficiaryReward)), big.NewInt(int64(weight))), big.NewInt(constants.PERCENT)).Uint64()
-			//r := beneficiaryReward * uint64(weight) / constants.PERCENT
-			if r == 0 {
-				continue
-			}
-			beneficiaryWrap, err := e.getAccount(&prototype.AccountName{Value: name})
-			if err != nil {
-				e.log.Debugf("beneficiary get account %s failed", name)
-			} else if beneficiaryWrap.GetReputation() == constants.MinReputation {
-				e.log.Debugf("ignored beneficiary %s due to bad reputation", name)
-				continue
-			} else {
-				//beneficiaryWrap.SetVest(&prototype.Vest{ Value: r + beneficiaryWrap.GetVest().Value})
-				oldVest := beneficiaryWrap.GetVest()
-				vestRewards := &prototype.Vest{Value: r}
-				vestRewards.Add(beneficiaryWrap.GetVest())
-				beneficiaryWrap.SetVest(vestRewards)
-				updateBpVoteValue(e.db, &prototype.AccountName{Value: name}, oldVest, vestRewards)
-				spentBeneficiaryReward += r
-				e.noticer.Publish(constants.NoticeCashout, name, reply.GetPostId(), r, globalProps.GetHeadBlockNumber())
-				trxObserver.AddOpState(iservices.Add, "cashout", name, r)
-			}
-		}
-		if beneficiaryReward - spentBeneficiaryReward > 0 {
-			reward += beneficiaryReward - spentBeneficiaryReward
-		}
-		authorWrap, err := e.getAccount(&prototype.AccountName{Value: author})
-		if err != nil {
-			e.log.Debugf("reply cashout get account %s failed", author)
-			continue
-		} else {
-			//authorWrap.SetVest(&prototype.Vest{ Value: reward + authorWrap.GetVest().Value })
-			oldVest := authorWrap.GetVest()
-			vestRewards := &prototype.Vest{Value: reward}
-			vestRewards.Add(authorWrap.GetVest())
-			authorWrap.SetVest(vestRewards)
-			t := common.EasyTimer()
-			t1, t2 := updateBpVoteValue(e.db, &prototype.AccountName{Value: author}, oldVest, vestRewards)
-			e.log.Debugf("reply cashout updateBpVoteValue: %v, query: %v, update: %v", t, t1, t2)
-		}
-		reply.SetCashoutBlockNum(math.MaxUint64)
-		reply.SetRewards(&prototype.Vest{Value: reward})
-		reply.SetDappRewards(&prototype.Vest{Value: beneficiaryReward})
-		if reward > 0 {
-			e.noticer.Publish(constants.NoticeCashout, author, reply.GetPostId(), reward, globalProps.GetHeadBlockNumber())
-			rInfo := &itype.RewardInfo{
-				Reward:reward,
-				PostId:reply.GetPostId(),
-			}
-			trxObserver.AddOpState(iservices.Add, "cashout", author, reward)
-			trxObserver.AddOpState(iservices.Update, "postReward", author, rInfo)
-		}
+	var items []IItem
+	for _, replyItem := range repliesItems {
+		items = append(items, replyItem)
 	}
-	e.log.Infof("cashout: [reply] blockRewards: %d, blockDappRewards: %d, spendPostReward: %d, spendDappReward: %d",
-		bigBlockRewards.Uint64(), bigBlockDappRewards.Uint64(), spentReplyReward, spentDappReward)
+	currentBlockRepliesWvp := SumItemsWvp(items)
+	globalRepliesWvps := StringToBigInt(globalProps.GetWeightedVpsReply())
+	globalRepliesRewards := globalProps.GetPoolReplyRewards()
+
+	currentGlobalRepliesWvps := new(big.Int).Add(globalRepliesWvps, currentBlockRepliesWvp)
+
 	e.dgp.ModifyProps(func(props *prototype.DynamicProperties) {
-		props.ReplyRewards.Sub(&prototype.Vest{Value: spentReplyReward})
-		props.ReplyDappRewards.Sub(&prototype.Vest{Value: spentDappReward})
+		props.WeightedVpsReply = currentGlobalRepliesWvps.String()
+	})
+
+	claimedRepliesReward := new(big.Int).SetUint64(0)
+	for _, replyItem := range repliesItems {
+		wvp := replyItem.wvp
+		replyReward := ProportionAlgorithm(wvp, currentGlobalRepliesWvps, new(big.Int).SetUint64(globalRepliesRewards.Value))
+		result := e.processRewardForAccount(replyItem.beneficiary, replyReward)
+		if !result {
+			replyReward = new(big.Int).SetUint64(0)
+		}
+		e.finalizePostCashout(replyItem.postId, replyReward)
+		claimedRepliesReward.Add(claimedRepliesReward, replyReward)
+		e.notifyReplyCashoutResult(replyItem.beneficiary, replyItem.postId, wvp, replyReward, globalProps)
+	}
+
+	e.dgp.ModifyProps(func(props *prototype.DynamicProperties) {
+		currentBlockClaimedRepliesReward := &prototype.Vest{Value: claimedRepliesReward.Uint64()}
+		props.ClaimedReplyRewards.Add(currentBlockClaimedRepliesReward)
+		props.PoolReplyRewards.Sub(currentBlockClaimedRepliesReward)
 	})
 }
 
-func (e *Economist) voteCashout(votes []*VoteProxy, currentBlockVotesReward *big.Int, currentTotalCashoutVotesWeightedVps *big.Int, trxObserver iservices.ITrxObserver) {
-	for _, vote := range votes {
-		weightedVp := vote.WeightedVp
-		bigVoteReward := ProportionAlgorithm(weightedVp, currentTotalCashoutVotesWeightedVps, currentBlockVotesReward)
-		voterName := vote.VoteId.Voter
-		postId := vote.VoteId.PostId
-		if voter, err := e.getAccount(voterName); err != nil {
-			e.log.Warnf("voter %s for post %d not found", voterName.Value, postId)
-			continue
-		} else if voter.GetReputation() == constants.MinReputation {
-			e.log.Warnf("ignored voter %s for post %d due to bad reputation", voterName.Value, postId)
-			continue
-		} else {
-			oldVest := voter.GetVest()
-			voteReward := &prototype.Vest{Value: bigVoteReward.Uint64()}
-			voteReward.Add(voter.GetVest())
-			voter.SetVest(voteReward)
-			updateBpVoteValue(e.db, voterName, oldVest, voteReward)
+func (e *Economist) cashoutDapps(dappsItems []*DappItem) {
+	if len(dappsItems) == 0 {
+		return
+	}
+	globalProps := e.dgp.GetProps()
+	var items []IItem
+	for _, dappItem := range dappsItems {
+		items = append(items, dappItem)
+	}
+	currentBlockDappsWvp := SumItemsWvp(items)
+	globalDappsWvps := StringToBigInt(globalProps.GetWeightedVpsDapp())
+	globalDappsRewards := globalProps.GetPoolDappRewards()
+
+	currentGlobalDappsWvps := new(big.Int).Add(globalDappsWvps, currentBlockDappsWvp)
+
+	e.dgp.ModifyProps(func(prop *prototype.DynamicProperties) {
+		prop.WeightedVpsDapp = currentGlobalDappsWvps.String()
+	})
+
+	claimedDappReward := new(big.Int).SetUint64(0)
+	for _, dappItem := range dappsItems {
+		wvp := dappItem.wvp
+		dappReward := ProportionAlgorithm(wvp, currentGlobalDappsWvps, new(big.Int).SetUint64(globalDappsRewards.Value))
+		result := e.processRewardForAccount(dappItem.beneficiary, dappReward)
+		if !result {
+			dappReward = new(big.Int).SetUint64(0)
 		}
+		e.finalizePostDappCashout(dappItem.postId, dappReward)
+		claimedDappReward.Add(claimedDappReward, dappReward)
+		e.notifyDappCashoutResult(dappItem.beneficiary, dappItem.postId, wvp, dappReward, globalProps)
+	}
+
+	e.dgp.ModifyProps(func(prop *prototype.DynamicProperties) {
+		currentBlockClaimedDappReward := &prototype.Vest{Value: claimedDappReward.Uint64()}
+		prop.ClaimedDappRewards.Add(currentBlockClaimedDappReward)
+		prop.PoolDappRewards.Sub(currentBlockClaimedDappReward)
+	})
+}
+
+func (e *Economist) cashoutVotes(votesItems []*VoteItem) {
+	if len(votesItems) == 0 {
+		return
+	}
+	globalProps := e.dgp.GetProps()
+	var items []IItem
+	for _, voteItem := range votesItems {
+		items = append(items, voteItem)
+	}
+	currentBlockVotesWvp := SumItemsWvp(items)
+	globalVotesWvps := StringToBigInt(globalProps.GetWeightedVpsVote())
+	globalVotesRewards := globalProps.GetPoolVoteRewards()
+
+	currentGlobalVotesWvp := new(big.Int).Add(globalVotesWvps, currentBlockVotesWvp)
+
+	e.dgp.ModifyProps(func(props *prototype.DynamicProperties) {
+		props.WeightedVpsVote = currentGlobalVotesWvp.String()
+	})
+
+	claimedVoteReward := new(big.Int).SetUint64(0)
+	for _, voteItem := range votesItems {
+		wvp := voteItem.wvp
+		voteReward := ProportionAlgorithm(wvp, currentGlobalVotesWvp, new(big.Int).SetUint64(globalVotesRewards.Value))
+		result := e.processRewardForAccount(voteItem.beneficiary, voteReward)
+		if !result {
+			voteReward = new(big.Int).SetUint64(0)
+		}
+		claimedVoteReward.Add(claimedVoteReward, voteReward)
+		e.notifyVoteCashoutResult(voteItem.beneficiary, voteItem.postId, wvp, voteReward, globalProps)
+	}
+
+	e.dgp.ModifyProps(func(props *prototype.DynamicProperties) {
+		currentBlockClaimedVoteReward := &prototype.Vest{Value: claimedVoteReward.Uint64()}
+		props.ClaimedVoteRewards.Add(currentBlockClaimedVoteReward)
+		props.PoolVoteRewards.Sub(currentBlockClaimedVoteReward)
+	})
+}
+
+func (e *Economist) processRewardForAccount(accountName string, reward *big.Int) bool {
+	if EqualZero(reward) {
+		return true
+	}
+	account, err := e.getAccount(&prototype.AccountName{Value: accountName})
+	if err != nil {
+		e.log.Warnf("account not found, name %s", accountName)
+		return false
+	}
+	if account.GetReputation() == constants.MinReputation {
+		e.log.Warnf("ignore cashout to account %s because of bad reputation", accountName)
+		return false
+	}
+	rewardVest := &prototype.Vest{Value: reward.Uint64()}
+	oldVest := account.GetVest()
+	newVest := rewardVest.Add(oldVest)
+	account.SetVest(newVest)
+	updateBpVoteValue(e.db, &prototype.AccountName{Value: accountName}, oldVest, newVest)
+	return true
+}
+
+func (e *Economist) finalizePostCashout(postId uint64, reward *big.Int) {
+	rewardVest := &prototype.Vest{Value: reward.Uint64()}
+	post := table.NewSoPostWrap(e.db, &postId)
+	post.SetRewards(rewardVest)
+	post.SetCashoutBlockNum(CashoutCompleted)
+}
+
+func (e *Economist) finalizePostDappCashout(postId uint64, reward *big.Int) {
+	rewardVest := &prototype.Vest{Value: reward.Uint64()}
+	post := table.NewSoPostWrap(e.db, &postId)
+	dappReward := post.GetDappRewards()
+	newDappReward := rewardVest.Add(dappReward)
+	post.SetDappRewards(newDappReward)
+}
+
+func (e *Economist) notifyPostCashoutResult(beneficiary string, postId uint64, weightedVp *big.Int, reward *big.Int, prop *prototype.DynamicProperties) {
+	if GreaterThanZero(reward) {
+		rInfo := &itype.RewardInfo{
+			Reward: reward.Uint64(),
+			PostId: postId,
+		}
+		e.noticer.Publish(constants.NoticeCashout, beneficiary, postId, reward.Uint64(), prop.GetHeadBlockNumber())
+		e.observer.AddOpState(iservices.Add, "cashout", beneficiary, reward.Uint64())
+		e.observer.AddOpState(iservices.Update, "postReward", beneficiary, rInfo)
 	}
 }
 
+func (e *Economist) notifyReplyCashoutResult(beneficiary string, postId uint64, weightedVp *big.Int, reward *big.Int, prop *prototype.DynamicProperties) {
+	if GreaterThanZero(reward) {
+		rInfo := &itype.RewardInfo{
+			Reward: reward.Uint64(),
+			PostId: postId,
+		}
+		e.noticer.Publish(constants.NoticeCashout, beneficiary, postId, reward.Uint64(), prop.GetHeadBlockNumber())
+		e.observer.AddOpState(iservices.Add, "cashout", beneficiary, reward.Uint64())
+		e.observer.AddOpState(iservices.Update, "postReward", beneficiary, rInfo)
+	}
+}
+
+func (e *Economist) notifyVoteCashoutResult(beneficiary string, postId uint64, weightedVp *big.Int, reward *big.Int, prop *prototype.DynamicProperties) {
+	if GreaterThanZero(reward) {
+		e.noticer.Publish(constants.NoticeCashout, beneficiary, postId, reward.Uint64(), prop.GetHeadBlockNumber())
+		e.observer.AddOpState(iservices.Add, "cashout", beneficiary, reward.Uint64())
+	}
+}
+
+func (e *Economist) notifyDappCashoutResult(beneficiary string, postId uint64, weightedVp *big.Int, reward *big.Int, prop *prototype.DynamicProperties) {
+	if GreaterThanZero(reward) {
+		e.noticer.Publish(constants.NoticeCashout, beneficiary, postId, reward.Uint64(), prop.GetHeadBlockNumber())
+		e.observer.AddOpState(iservices.Add, "cashout", beneficiary, reward.Uint64())
+	}
+}
 
 func (e *Economist) PowerDown() {
 	globalProps := e.dgp.GetProps()
