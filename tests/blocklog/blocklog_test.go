@@ -7,6 +7,7 @@ import (
 	"github.com/coschain/contentos-go/common/constants"
 	. "github.com/coschain/contentos-go/dandelion"
 	"github.com/coschain/contentos-go/prototype"
+	"github.com/coschain/contentos-go/tests/op"
 	"github.com/stretchr/testify/assert"
 	"math"
 	"testing"
@@ -46,7 +47,12 @@ func (tester *BlockLogTester) doSomething() {
 	tester.a.NoError(tester.d.Account("actor1").SendTrx(Vote("actor1", 1)))
 	tester.a.NoError(tester.d.Account("actor4").SendTrx(Vote("actor4", 1)))
 	tester.a.NoError(tester.d.Account("actor6").SendTrx(Vote("actor6", 1)))
+	tester.a.NoError(tester.d.Account("actor0").SendTrx(ContractApply("actor0", "actor0", "token", "create", `["USDollar", "USD", 10000000000, 6]`, 123)))
 	tester.a.NoError(tester.d.ProduceBlocks(1))
+
+	tester.a.NoError(tester.d.Account("actor0").SendTrx(ContractApply("actor0", "actor0", "token", "transfer", `["actor0", "actor1", 8888]`, 0)))
+	tester.a.NoError(tester.d.ProduceBlocks(1))
+
 	waits := constants.PostCashOutDelayBlock
 	if waits < constants.VoteCashOutDelayBlock {
 		waits = constants.VoteCashOutDelayBlock
@@ -57,6 +63,7 @@ func (tester *BlockLogTester) doSomething() {
 func (tester *BlockLogTester) prepare() {
 	producers := []int{0, 1, 2, 3}
 	tester.addBlockProducer(producers...)
+	tester.a.NoError(op.Deploy(tester.d, "actor0", "token"))
 	tester.a.NoError(tester.d.ProduceBlocks(constants.BlockProdRepetition * len(producers)))
 	_ = tester.d.Node().EvBus.Subscribe(constants.NoticeBlockLog, tester.onBlockLog)
 }

@@ -184,8 +184,13 @@ func (w *CosVMNative) TableNewRecord(tableName string, record []byte) {
 	tables := w.cosVM.ctx.Tables
 	w.CosAssert(tables != nil, "TableNewRecord(): context tables not ready.")
 	currentTable := tables.Table(tableName)
+	currentTable.SetRecordCallback(func(what string, key, before, after interface{}) {
+		w.addTableRecordChange(tableName, what, key, before, after)
+	})
 	err := currentTable.NewRecord(record)
+	currentTable.SetRecordCallback(nil)
 	w.CosAssert(err == nil, fmt.Sprintf("TableNewRecord(): table.NewRecord() failed. %v", err))
+
 	decodeRecord, _ := currentTable.DecodeRecordToJson(record)
 	var contractData itype.ContractData
 	contractData.Contract = w.ReadContractName()
@@ -198,8 +203,13 @@ func (w *CosVMNative) TableUpdateRecord(tableName string, primary []byte, record
 	tables := w.cosVM.ctx.Tables
 	w.CosAssert(tables != nil, "TableUpdateRecord(): context tables not ready.")
 	currentTable := tables.Table(tableName)
+	currentTable.SetRecordCallback(func(what string, key, before, after interface{}) {
+		w.addTableRecordChange(tableName, what, key, before, after)
+	})
 	err := currentTable.UpdateRecord(primary, record)
+	currentTable.SetRecordCallback(nil)
 	w.CosAssert(err == nil, fmt.Sprintf("TableUpdateRecord(): table.UpdateRecord() failed. %v", err))
+
 	decodeRecord, _ := currentTable.DecodeRecordToJson(record)
 	var contractData itype.ContractData
 	contractData.Contract = w.ReadContractName()
@@ -211,7 +221,12 @@ func (w *CosVMNative) TableUpdateRecord(tableName string, primary []byte, record
 func (w *CosVMNative) TableDeleteRecord(tableName string, primary []byte) {
 	tables := w.cosVM.ctx.Tables
 	w.CosAssert(tables != nil, "TableDeleteRecord(): context tables not ready.")
-	err := tables.Table(tableName).DeleteRecord(primary)
+	currentTable := tables.Table(tableName)
+	currentTable.SetRecordCallback(func(what string, key, before, after interface{}) {
+		w.addTableRecordChange(tableName, what, key, before, after)
+	})
+	err := currentTable.DeleteRecord(primary)
+	currentTable.SetRecordCallback(nil)
 	w.CosAssert(err == nil, fmt.Sprintf("TableDeleteRecord(): table.DeleteRecord() failed. %v", err))
 	// delete should be observer ? Yes and No
 	// For yes, every modify should be record of course
@@ -306,4 +321,24 @@ func (w *CosVMNative) SetUserFreeze(name string, value uint32, memo string) {
 	if value != 0 {
 		w.cosVM.ctx.Injector.DiscardAccountCache(name)
 	}
+}
+
+type ContractTableRecordChange struct {
+	Owner string			`json:"owner"`
+	Contract string			`json:"contract"`
+	Table string			`json:"table"`
+	Key interface{}			`json:"key"`
+	Before interface{}		`json:"before"`
+	After interface{}		`json:"after"`
+}
+
+func (w *CosVMNative) addTableRecordChange(tableName, what string, key, before, after interface{}) {
+	w.cosVM.ctx.Injector.StateChangeContext().AddChange(what, &ContractTableRecordChange{
+		Owner: w.ReadContractOwner(),
+		Contract: w.ReadContractName(),
+		Table: tableName,
+		Key: key,
+		Before: before,
+		After: after,
+	})
 }

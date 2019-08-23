@@ -17,11 +17,20 @@ const (
 	ContractTablePrefix = "_ContractTable"
 )
 
+const (
+	RecordInsert = "contract_table_insert"
+	RecordUpdate = "contract_table_update"
+	RecordDelete = "contract_table_delete"
+)
+
+type RecordCallbackFunc func(what string, key, before, after interface{})
+
 type ContractTable struct {
 	abiTable abi.IContractTable
 	primary kope.Key
 	secondaries []kope.Key
 	db iservices.IDatabaseRW
+	recordCallback RecordCallbackFunc
 }
 
 func (t *ContractTable) fieldValue(record reflect.Value, i int) reflect.Value {
@@ -38,7 +47,8 @@ func (t *ContractTable) NewRecord(encodedRecord []byte) error {
 	if err != nil {
 		return err
 	}
-	p := t.fieldValue(reflect.ValueOf(r), t.abiTable.PrimaryIndex()).Interface()
+	rVal := reflect.ValueOf(r)
+	p := t.fieldValue(rVal, t.abiTable.PrimaryIndex()).Interface()
 	pk := kope.AppendKey(t.primary, p)
 	if dup, err := t.db.Has(pk); err != nil {
 		return err
@@ -58,6 +68,7 @@ func (t *ContractTable) NewRecord(encodedRecord []byte) error {
 	if err = b.Write(); err != nil {
 		return err
 	}
+	t.recordChanged(RecordInsert, p, reflect.Zero(rVal.Type()), r)
 	return nil
 }
 
@@ -134,7 +145,12 @@ func (t *ContractTable) UpdateRecord(encodedPK []byte, encodedRecord []byte) err
 	if err = t.writeSecondaryIndices(b, newRec, newPk); err != nil {
 		return err
 	}
-	return b.Write()
+	if err = b.Write(); err != nil {
+		return err
+	}
+	p := t.fieldValue(reflect.ValueOf(oldRec), t.abiTable.PrimaryIndex()).Interface()
+	t.recordChanged(RecordUpdate, p, oldRec, newRec)
+	return nil
 }
 
 func (t *ContractTable) DeleteRecord(encodedPK []byte) error {
@@ -158,7 +174,14 @@ func (t *ContractTable) DeleteRecord(encodedPK []byte) error {
 	if err = t.deleteSecondaryIndices(b, oldRec, pk); err != nil {
 		return err
 	}
-	return b.Write()
+	if err = b.Write(); err != nil {
+		return err
+	}
+
+	oldRecVal := reflect.ValueOf(oldRec)
+	p := t.fieldValue(oldRecVal, t.abiTable.PrimaryIndex()).Interface()
+	t.recordChanged(RecordDelete, p, oldRec, reflect.Zero(oldRecVal.Type()))
+	return nil
 }
 
 func (t *ContractTable) EnumRecords(field string, start interface{}, limit interface{}, reverse bool, maxCount int, callback func(r interface{})bool) int {
@@ -338,6 +361,16 @@ func (t *ContractTable) scanDatabase(prefix kope.Key, start interface{}, limit i
 		return true
 	})
 	return count, err
+}
+
+func (t *ContractTable) recordChanged(what string, key, before, after interface{}) {
+	if t.recordCallback != nil {
+		t.recordCallback(what, key, before, after)
+	}
+}
+
+func (t *ContractTable) SetRecordCallback(callback RecordCallbackFunc) {
+	t.recordCallback = callback
 }
 
 
