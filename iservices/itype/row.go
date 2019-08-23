@@ -35,6 +35,19 @@ type VoteInfo struct {
 }
 
 type RewardInfo struct {
+	Beneficiary string `json:"beneficiary"`
 	Reward uint64 `json:"reward"`
 	PostId uint64 `json:"postid"`
+}
+
+type VoteRewardInfo struct {
+	Beneficiary string `json:"beneficiary"`
+	Reward uint64 `json:"reward"`
+	VotePostId uint64 `json:"postid"`
+}
+
+type DappRewardInfo struct {
+	Beneficiary string `json:"beneficiary"`
+	Reward uint64 `json:"reward"`
+	RelatedPostId uint64 `json:"postid"`
 }

@@ -563,11 +563,11 @@ func (e *Economist) finalizePostDappCashout(postId uint64, reward *big.Int) {
 func (e *Economist) notifyPostCashoutResult(beneficiary string, postId uint64, weightedVp *big.Int, reward *big.Int, prop *prototype.DynamicProperties) {
 	if GreaterThanZero(reward) {
 		rInfo := &itype.RewardInfo{
+			Beneficiary:beneficiary,
 			Reward: reward.Uint64(),
 			PostId: postId,
 		}
 		e.noticer.Publish(constants.NoticeCashout, beneficiary, postId, reward.Uint64(), prop.GetHeadBlockNumber())
-		e.observer.AddOpState(iservices.Add, "cashout", beneficiary, reward.Uint64())
 		e.observer.AddOpState(iservices.Update, "postReward", beneficiary, rInfo)
 	}
 }
@@ -575,26 +575,36 @@ func (e *Economist) notifyPostCashoutResult(beneficiary string, postId uint64, w
 func (e *Economist) notifyReplyCashoutResult(beneficiary string, postId uint64, weightedVp *big.Int, reward *big.Int, prop *prototype.DynamicProperties) {
 	if GreaterThanZero(reward) {
 		rInfo := &itype.RewardInfo{
+			Beneficiary:beneficiary,
 			Reward: reward.Uint64(),
 			PostId: postId,
 		}
 		e.noticer.Publish(constants.NoticeCashout, beneficiary, postId, reward.Uint64(), prop.GetHeadBlockNumber())
-		e.observer.AddOpState(iservices.Add, "cashout", beneficiary, reward.Uint64())
-		e.observer.AddOpState(iservices.Update, "postReward", beneficiary, rInfo)
+		e.observer.AddOpState(iservices.Update, "replyReward", beneficiary, rInfo)
 	}
 }
 
 func (e *Economist) notifyVoteCashoutResult(beneficiary string, postId uint64, weightedVp *big.Int, reward *big.Int, prop *prototype.DynamicProperties) {
 	if GreaterThanZero(reward) {
+		b := &itype.VoteRewardInfo{
+			Beneficiary:beneficiary,
+			Reward:reward.Uint64(),
+			VotePostId:postId,
+		}
 		e.noticer.Publish(constants.NoticeCashout, beneficiary, postId, reward.Uint64(), prop.GetHeadBlockNumber())
-		e.observer.AddOpState(iservices.Add, "cashout", beneficiary, reward.Uint64())
+		e.observer.AddOpState(iservices.Add, "voteReward", beneficiary, b)
 	}
 }
 
 func (e *Economist) notifyDappCashoutResult(beneficiary string, postId uint64, weightedVp *big.Int, reward *big.Int, prop *prototype.DynamicProperties) {
 	if GreaterThanZero(reward) {
+		rInfo := &itype.DappRewardInfo{
+			Beneficiary:beneficiary,
+			Reward:reward.Uint64(),
+			RelatedPostId:postId,
+		}
 		e.noticer.Publish(constants.NoticeCashout, beneficiary, postId, reward.Uint64(), prop.GetHeadBlockNumber())
-		e.observer.AddOpState(iservices.Add, "cashout", beneficiary, reward.Uint64())
+		e.observer.AddOpState(iservices.Add, "dappcashout", beneficiary, rInfo)
 	}
 }
 
