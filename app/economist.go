@@ -543,8 +543,13 @@ func (e *Economist) processRewardForAccount(accountName string, reward *big.Int)
 func (e *Economist) finalizePostCashout(postId uint64, reward *big.Int) {
 	rewardVest := &prototype.Vest{Value: reward.Uint64()}
 	post := table.NewSoPostWrap(e.db, &postId)
-	post.SetRewards(rewardVest)
-	post.SetCashoutBlockNum(CashoutCompleted)
+	// for multi fields assigning
+	//post.SetRewards(rewardVest)
+	//post.SetCashoutBlockNum(CashoutCompleted)
+	post.Modify(func(tInfo *table.SoPost) {
+		tInfo.Rewards = rewardVest
+		tInfo.CashoutBlockNum = CashoutCompleted
+	})
 }
 
 func (e *Economist) finalizePostDappCashout(postId uint64, reward *big.Int) {
@@ -598,8 +603,6 @@ func (e *Economist) PowerDown() {
 	if !globalProps.GetBlockProducerBootCompleted() {
 		return
 	}
-	//timestamp := globalProps.Time.UtcSeconds
-	//iterator := table.NewAccountNextPowerdownTimeWrap(e.db)
 	iterator := table.NewAccountNextPowerdownBlockNumWrap(e.db)
 	var accountNames []*prototype.AccountName
 
@@ -624,25 +627,33 @@ func (e *Economist) PowerDown() {
 		} else {
 			powerdownQuota = Min(accountWrap.GetVest().Value, accountWrap.GetEachPowerdownRate().Value)
 		}
+
 		oldVest := accountWrap.GetVest()
-		vest := accountWrap.GetVest().Value - powerdownQuota
-		balance := accountWrap.GetBalance().Value + powerdownQuota
-		hasPowerDown := accountWrap.GetHasPowerdown().Value + powerdownQuota
-		accountWrap.SetVest(&prototype.Vest{Value: vest})
+		powerDownQuotaVest := &prototype.Vest{Value: powerdownQuota}
+		powerDownQuotaCoin := powerDownQuotaVest.ToCoin()
 		newVest := accountWrap.GetVest()
+		newVest.Sub(powerDownQuotaVest)
+		newBalance := accountWrap.GetBalance()
+		newBalance.Add(powerDownQuotaCoin)
+		newHasPowerdown := accountWrap.GetHasPowerdown()
+		newHasPowerdown.Add(powerDownQuotaVest)
+
+		accountWrap.Modify(func(acc *table.SoAccount) {
+			acc.Vest = newVest
+			acc.Balance = newBalance
+			acc.HasPowerdown = newHasPowerdown
+		})
 		updateBpVoteValue(e.db, accountName, oldVest, newVest)
-		accountWrap.SetBalance(&prototype.Coin{Value: balance})
-		accountWrap.SetHasPowerdown(&prototype.Vest{Value: hasPowerDown})
 		// update total cos and total vest shares
 		e.dgp.ModifyProps(func(props *prototype.DynamicProperties) {
-			props.TotalCos.Add(&prototype.Coin{Value: powerdownQuota})
-			props.TotalVest.Sub(&prototype.Vest{Value: powerdownQuota})
-			//props.TotalCos.Value += powerdownQuota
-			//props.TotalVest.Value -= powerdownQuota
+			props.TotalCos.Add(powerDownQuotaCoin)
+			props.TotalVest.Sub(powerDownQuotaVest)
 		})
 		if accountWrap.GetHasPowerdown().Value >= accountWrap.GetToPowerdown().Value || accountWrap.GetVest().Value == 0 {
-			accountWrap.SetEachPowerdownRate(&prototype.Vest{Value: 0})
-			accountWrap.SetNextPowerdownBlockNum(math.MaxUint64)
+			accountWrap.Modify(func(acc *table.SoAccount) {
+				acc.EachPowerdownRate = &prototype.Vest{Value: 0}
+				acc.NextPowerdownBlockNum = math.MaxUint64
+			})
 		} else {
 			accountWrap.SetNextPowerdownBlockNum(current + constants.PowerDownBlockInterval)
 		}
