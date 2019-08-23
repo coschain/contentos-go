@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/asaskevich/EventBus"
 	"github.com/coschain/contentos-go/app/annual_mint"
+	"github.com/coschain/contentos-go/app/blocklog"
 	"github.com/coschain/contentos-go/app/table"
 	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/common/constants"
@@ -101,6 +102,7 @@ type Economist struct {
 	log *logrus.Logger
 	dgp *DynamicGlobalPropsRW
 	observer iservices.ITrxObserver
+	stateChange *blocklog.StateChangeContext
 }
 
 func NewEconomist(db iservices.IDatabaseService, noticer EventBus.Bus, log *logrus.Logger) *Economist {
@@ -116,6 +118,9 @@ func (e *Economist) getAccount(account *prototype.AccountName) (*table.SoAccount
 }
 
 func (e *Economist) Mint(trxObserver iservices.ITrxObserver) {
+	e.stateChange.PushCause("mint")
+	defer e.stateChange.PopCause()
+
 	//t0 := time.Now()
 	globalProps := e.dgp.GetProps()
 	if !globalProps.GetBlockProducerBootCompleted() {
@@ -187,6 +192,9 @@ func (e *Economist) Mint(trxObserver iservices.ITrxObserver) {
 
 // maybe slow
 func (e *Economist) Distribute(trxObserver iservices.ITrxObserver) {
+	e.stateChange.PushCause("ticket")
+	defer e.stateChange.PopCause()
+
 	globalProps := e.dgp.GetProps()
 	if globalProps.GetCurrentEpochStartBlock() == uint64(0) {
 		return
@@ -255,6 +263,9 @@ func  (e *Economist) setCurrentBlockObserver(observer iservices.ITrxObserver) {
 }
 
 func (e *Economist) Do(trxObserver iservices.ITrxObserver) {
+	e.stateChange.PushCause("settle")
+	defer e.stateChange.PopCause()
+
 	globalProps := e.dgp.GetProps()
 	if !globalProps.GetBlockProducerBootCompleted() {
 		return
@@ -362,6 +373,9 @@ func (e *Economist) Do(trxObserver iservices.ITrxObserver) {
 }
 
 func (e *Economist) cashoutPosts(postsItems []*PostItem) {
+	e.stateChange.PushCause("post")
+	defer e.stateChange.PopCause()
+
 	if len(postsItems) == 0 {
 		return
 	}
@@ -404,6 +418,9 @@ func (e *Economist) cashoutPosts(postsItems []*PostItem) {
 }
 
 func (e *Economist) cashoutReplies(repliesItems []*PostItem) {
+	e.stateChange.PushCause("reply")
+	defer e.stateChange.PopCause()
+
 	if len(repliesItems) == 0 {
 		return
 	}
@@ -443,6 +460,9 @@ func (e *Economist) cashoutReplies(repliesItems []*PostItem) {
 }
 
 func (e *Economist) cashoutDapps(dappsItems []*DappItem) {
+	e.stateChange.PushCause("dapp")
+	defer e.stateChange.PopCause()
+
 	if len(dappsItems) == 0 {
 		return
 	}
@@ -482,6 +502,9 @@ func (e *Economist) cashoutDapps(dappsItems []*DappItem) {
 }
 
 func (e *Economist) cashoutVotes(votesItems []*VoteItem) {
+	e.stateChange.PushCause("vote")
+	defer e.stateChange.PopCause()
+
 	if len(votesItems) == 0 {
 		return
 	}
@@ -594,6 +617,9 @@ func (e *Economist) notifyDappCashoutResult(beneficiary string, postId uint64, w
 }
 
 func (e *Economist) PowerDown() {
+	e.stateChange.PushCause("power_down")
+	defer e.stateChange.PopCause()
+
 	globalProps := e.dgp.GetProps()
 	if !globalProps.GetBlockProducerBootCompleted() {
 		return
@@ -649,4 +675,8 @@ func (e *Economist) PowerDown() {
 	}
 	timing.End()
 	e.log.Debugf("powerdown: %s", timing.String())
+}
+
+func (e *Economist) SetStateChangeContext(ctx *blocklog.StateChangeContext) {
+	e.stateChange = ctx
 }

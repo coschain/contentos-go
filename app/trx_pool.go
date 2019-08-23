@@ -595,6 +595,7 @@ func (c *TrxPool) applyBlock(blk *prototype.SignedBlock, skip prototype.SkipFlag
 	afterTiming.Mark()
 
 	c.blockLogWatcher.CurrentBlockContext().SetCause("esys")
+	c.economist.SetStateChangeContext(c.blockLogWatcher.CurrentBlockContext())
 	eTiming.Begin()
 	c.economist.Mint(pseudoTrxObserver)
 	eTiming.Mark()
@@ -604,6 +605,7 @@ func (c *TrxPool) applyBlock(blk *prototype.SignedBlock, skip prototype.SkipFlag
 	eTiming.Mark()
 	c.economist.PowerDown()
 	eTiming.End()
+	c.economist.SetStateChangeContext(nil)
 	c.blockLogWatcher.CurrentBlockContext().SetCause("")
 	c.log.Debugf("Economist: %s", eTiming.String())
 	pseudoTrxObserver.EndTrx(true)
