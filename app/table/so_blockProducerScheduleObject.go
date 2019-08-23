@@ -184,29 +184,29 @@ func (s *SoBlockProducerScheduleObjectWrap) modify(f func(tInfo *SoBlockProducer
 	}
 
 	s.initWatcherFlag()
-	fieldSli, hasWatcher, err := s.getModifiedFields(oriTable, curTable)
+	modifiedFields, hasWatcher, err := s.getModifiedFields(oriTable, curTable)
 	if err != nil {
 		return err
 	}
 
-	if fieldSli == nil || len(fieldSli) < 1 {
+	if modifiedFields == nil || len(modifiedFields) < 1 {
 		return nil
 	}
 
 	//check whether modify sort and unique field to nil
-	err = s.checkSortAndUniFieldValidity(curTable, fieldSli)
+	err = s.checkSortAndUniFieldValidity(curTable, modifiedFields)
 	if err != nil {
 		return err
 	}
 
 	//check unique
-	err = s.handleFieldMd(FieldMdHandleTypeCheck, curTable, fieldSli)
+	err = s.handleFieldMd(FieldMdHandleTypeCheck, curTable, modifiedFields)
 	if err != nil {
 		return err
 	}
 
 	//delete sort and unique key
-	err = s.handleFieldMd(FieldMdHandleTypeDel, oriTable, fieldSli)
+	err = s.handleFieldMd(FieldMdHandleTypeDel, oriTable, modifiedFields)
 	if err != nil {
 		return err
 	}
@@ -218,14 +218,14 @@ func (s *SoBlockProducerScheduleObjectWrap) modify(f func(tInfo *SoBlockProducer
 	}
 
 	//insert sort and unique key
-	err = s.handleFieldMd(FieldMdHandleTypeInsert, curTable, fieldSli)
+	err = s.handleFieldMd(FieldMdHandleTypeInsert, curTable, modifiedFields)
 	if err != nil {
 		return err
 	}
 
 	// call watchers
 	if hasWatcher {
-		ReportTableRecordUpdate(s.dba.ServiceId(), s.dba.BranchId(), s.mainKey, oriTable, curTable)
+		ReportTableRecordUpdate(s.dba.ServiceId(), s.dba.BranchId(), s.mainKey, oriTable, curTable, modifiedFields)
 	}
 
 	return nil
