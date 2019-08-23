@@ -431,12 +431,22 @@ func (s *SoAccountWrap) SetReputationMemo(p string, errArgs ...interface{}) *SoA
 	return s
 }
 
-func (s *SoAccountWrap) SetStakeVest(p *prototype.Vest, errArgs ...interface{}) *SoAccountWrap {
+func (s *SoAccountWrap) SetStakeVestForMe(p *prototype.Vest, errArgs ...interface{}) *SoAccountWrap {
 	err := s.modify(func(r *SoAccount) {
-		r.StakeVest = p
+		r.StakeVestForMe = p
 	})
 	if err != nil {
-		panic(bindErrorInfo(fmt.Sprintf("SoAccountWrap.SetStakeVest( %v ) failed: %s", p, err.Error()), errArgs...))
+		panic(bindErrorInfo(fmt.Sprintf("SoAccountWrap.SetStakeVestForMe( %v ) failed: %s", p, err.Error()), errArgs...))
+	}
+	return s
+}
+
+func (s *SoAccountWrap) SetStakeVestFromMe(p *prototype.Vest, errArgs ...interface{}) *SoAccountWrap {
+	err := s.modify(func(r *SoAccount) {
+		r.StakeVestFromMe = p
+	})
+	if err != nil {
+		panic(bindErrorInfo(fmt.Sprintf("SoAccountWrap.SetStakeVestFromMe( %v ) failed: %s", p, err.Error()), errArgs...))
 	}
 	return s
 }
@@ -632,9 +642,14 @@ func (s *SoAccountWrap) getModifiedFields(oriTable *SoAccount, curTable *SoAccou
 		hasWatcher = hasWatcher || s.watcherFlag.HasReputationMemoWatcher
 	}
 
-	if !reflect.DeepEqual(oriTable.StakeVest, curTable.StakeVest) {
-		fields["StakeVest"] = true
-		hasWatcher = hasWatcher || s.watcherFlag.HasStakeVestWatcher
+	if !reflect.DeepEqual(oriTable.StakeVestForMe, curTable.StakeVestForMe) {
+		fields["StakeVestForMe"] = true
+		hasWatcher = hasWatcher || s.watcherFlag.HasStakeVestForMeWatcher
+	}
+
+	if !reflect.DeepEqual(oriTable.StakeVestFromMe, curTable.StakeVestFromMe) {
+		fields["StakeVestFromMe"] = true
+		hasWatcher = hasWatcher || s.watcherFlag.HasStakeVestFromMeWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.Stamina, curTable.Stamina) {
@@ -994,17 +1009,34 @@ func (s *SoAccountWrap) handleFieldMd(t FieldMdHandleType, so *SoAccount, fields
 		}
 	}
 
-	if fields["StakeVest"] {
+	if fields["StakeVestForMe"] {
 		res := true
 		if t == FieldMdHandleTypeCheck {
-			res = s.mdFieldStakeVest(so.StakeVest, true, false, false, so)
-			errStr = fmt.Sprintf("fail to modify exist value of %v", "StakeVest")
+			res = s.mdFieldStakeVestForMe(so.StakeVestForMe, true, false, false, so)
+			errStr = fmt.Sprintf("fail to modify exist value of %v", "StakeVestForMe")
 		} else if t == FieldMdHandleTypeDel {
-			res = s.mdFieldStakeVest(so.StakeVest, false, true, false, so)
-			errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", "StakeVest")
+			res = s.mdFieldStakeVestForMe(so.StakeVestForMe, false, true, false, so)
+			errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", "StakeVestForMe")
 		} else if t == FieldMdHandleTypeInsert {
-			res = s.mdFieldStakeVest(so.StakeVest, false, false, true, so)
-			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "StakeVest")
+			res = s.mdFieldStakeVestForMe(so.StakeVestForMe, false, false, true, so)
+			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "StakeVestForMe")
+		}
+		if !res {
+			return errors.New(errStr)
+		}
+	}
+
+	if fields["StakeVestFromMe"] {
+		res := true
+		if t == FieldMdHandleTypeCheck {
+			res = s.mdFieldStakeVestFromMe(so.StakeVestFromMe, true, false, false, so)
+			errStr = fmt.Sprintf("fail to modify exist value of %v", "StakeVestFromMe")
+		} else if t == FieldMdHandleTypeDel {
+			res = s.mdFieldStakeVestFromMe(so.StakeVestFromMe, false, true, false, so)
+			errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", "StakeVestFromMe")
+		} else if t == FieldMdHandleTypeInsert {
+			res = s.mdFieldStakeVestFromMe(so.StakeVestFromMe, false, false, true, so)
+			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "StakeVestFromMe")
 		}
 		if !res {
 			return errors.New(errStr)
@@ -3129,7 +3161,7 @@ func (s *SoAccountWrap) checkReputationMemoIsMetMdCondition(p string) bool {
 	return true
 }
 
-func (s *SoAccountWrap) GetStakeVest() *prototype.Vest {
+func (s *SoAccountWrap) GetStakeVestForMe() *prototype.Vest {
 	res := true
 	msg := &SoAccount{}
 	if s.dba == nil {
@@ -3147,7 +3179,7 @@ func (s *SoAccountWrap) GetStakeVest() *prototype.Vest {
 			if err != nil {
 				res = false
 			} else {
-				return msg.StakeVest
+				return msg.StakeVestForMe
 			}
 		}
 	}
@@ -3155,31 +3187,31 @@ func (s *SoAccountWrap) GetStakeVest() *prototype.Vest {
 		return nil
 
 	}
-	return msg.StakeVest
+	return msg.StakeVestForMe
 }
 
-func (s *SoAccountWrap) mdFieldStakeVest(p *prototype.Vest, isCheck bool, isDel bool, isInsert bool,
+func (s *SoAccountWrap) mdFieldStakeVestForMe(p *prototype.Vest, isCheck bool, isDel bool, isInsert bool,
 	so *SoAccount) bool {
 	if s.dba == nil {
 		return false
 	}
 
 	if isCheck {
-		res := s.checkStakeVestIsMetMdCondition(p)
+		res := s.checkStakeVestForMeIsMetMdCondition(p)
 		if !res {
 			return false
 		}
 	}
 
 	if isDel {
-		res := s.delFieldStakeVest(so)
+		res := s.delFieldStakeVestForMe(so)
 		if !res {
 			return false
 		}
 	}
 
 	if isInsert {
-		res := s.insertFieldStakeVest(so)
+		res := s.insertFieldStakeVestForMe(so)
 		if !res {
 			return false
 		}
@@ -3187,7 +3219,7 @@ func (s *SoAccountWrap) mdFieldStakeVest(p *prototype.Vest, isCheck bool, isDel 
 	return true
 }
 
-func (s *SoAccountWrap) delFieldStakeVest(so *SoAccount) bool {
+func (s *SoAccountWrap) delFieldStakeVestForMe(so *SoAccount) bool {
 	if s.dba == nil {
 		return false
 	}
@@ -3195,7 +3227,7 @@ func (s *SoAccountWrap) delFieldStakeVest(so *SoAccount) bool {
 	return true
 }
 
-func (s *SoAccountWrap) insertFieldStakeVest(so *SoAccount) bool {
+func (s *SoAccountWrap) insertFieldStakeVestForMe(so *SoAccount) bool {
 	if s.dba == nil {
 		return false
 	}
@@ -3203,7 +3235,89 @@ func (s *SoAccountWrap) insertFieldStakeVest(so *SoAccount) bool {
 	return true
 }
 
-func (s *SoAccountWrap) checkStakeVestIsMetMdCondition(p *prototype.Vest) bool {
+func (s *SoAccountWrap) checkStakeVestForMeIsMetMdCondition(p *prototype.Vest) bool {
+	if s.dba == nil {
+		return false
+	}
+
+	return true
+}
+
+func (s *SoAccountWrap) GetStakeVestFromMe() *prototype.Vest {
+	res := true
+	msg := &SoAccount{}
+	if s.dba == nil {
+		res = false
+	} else {
+		key, err := s.encodeMainKey()
+		if err != nil {
+			res = false
+		} else {
+			buf, err := s.dba.Get(key)
+			if err != nil {
+				res = false
+			}
+			err = proto.Unmarshal(buf, msg)
+			if err != nil {
+				res = false
+			} else {
+				return msg.StakeVestFromMe
+			}
+		}
+	}
+	if !res {
+		return nil
+
+	}
+	return msg.StakeVestFromMe
+}
+
+func (s *SoAccountWrap) mdFieldStakeVestFromMe(p *prototype.Vest, isCheck bool, isDel bool, isInsert bool,
+	so *SoAccount) bool {
+	if s.dba == nil {
+		return false
+	}
+
+	if isCheck {
+		res := s.checkStakeVestFromMeIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
+
+	if isDel {
+		res := s.delFieldStakeVestFromMe(so)
+		if !res {
+			return false
+		}
+	}
+
+	if isInsert {
+		res := s.insertFieldStakeVestFromMe(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoAccountWrap) delFieldStakeVestFromMe(so *SoAccount) bool {
+	if s.dba == nil {
+		return false
+	}
+
+	return true
+}
+
+func (s *SoAccountWrap) insertFieldStakeVestFromMe(so *SoAccount) bool {
+	if s.dba == nil {
+		return false
+	}
+
+	return true
+}
+
+func (s *SoAccountWrap) checkStakeVestFromMeIsMetMdCondition(p *prototype.Vest) bool {
 	if s.dba == nil {
 		return false
 	}
@@ -5027,7 +5141,9 @@ type AccountWatcherFlag struct {
 
 	HasReputationMemoWatcher bool
 
-	HasStakeVestWatcher bool
+	HasStakeVestForMeWatcher bool
+
+	HasStakeVestFromMeWatcher bool
 
 	HasStaminaWatcher bool
 
@@ -5118,8 +5234,11 @@ func AccountRecordWatcherChanged(dbSvcId uint32) {
 	flag.HasReputationMemoWatcher = HasTableRecordWatcher(dbSvcId, AccountRecordType, "ReputationMemo")
 	flag.AnyWatcher = flag.AnyWatcher || flag.HasReputationMemoWatcher
 
-	flag.HasStakeVestWatcher = HasTableRecordWatcher(dbSvcId, AccountRecordType, "StakeVest")
-	flag.AnyWatcher = flag.AnyWatcher || flag.HasStakeVestWatcher
+	flag.HasStakeVestForMeWatcher = HasTableRecordWatcher(dbSvcId, AccountRecordType, "StakeVestForMe")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasStakeVestForMeWatcher
+
+	flag.HasStakeVestFromMeWatcher = HasTableRecordWatcher(dbSvcId, AccountRecordType, "StakeVestFromMe")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasStakeVestFromMeWatcher
 
 	flag.HasStaminaWatcher = HasTableRecordWatcher(dbSvcId, AccountRecordType, "Stamina")
 	flag.AnyWatcher = flag.AnyWatcher || flag.HasStaminaWatcher

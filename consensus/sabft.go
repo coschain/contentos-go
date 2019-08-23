@@ -456,7 +456,8 @@ func (sabft *SABFT) start() {
 			if sabft.readyToProduce && sabft.tooManyUncommittedBlocks() &&
 				b.Id().BlockNum() > sabft.ForkDB.Head().Id().BlockNum() {
 				sabft.log.Debugf("dropping new block %v cause we had too many uncommitted blocks", b.Id())
-				return
+				continue
+				//return
 			}
 			sabft.Lock()
 			err := sabft.pushBlock(b, true)

@@ -263,10 +263,11 @@ func (ev *AccountCreateEvaluator) Apply() {
 		tInfo.ToPowerdown = &prototype.Vest{Value: 0}
 		tInfo.HasPowerdown = &prototype.Vest{Value: 0}
 		tInfo.PubKey = op.PubKey
-		tInfo.StakeVest = prototype.NewVest(0)
+		tInfo.StakeVestForMe = prototype.NewVest(0)
+		tInfo.StakeVestFromMe = prototype.NewVest(0)
 		tInfo.Reputation = constants.DefaultReputation
 		tInfo.ChargedTicket = 0
-		tInfo.VotePower = 1000
+		tInfo.VotePower = constants.FullVP
 	})
 
 	// sub dynamic glaobal properties's total fee
@@ -1089,12 +1090,13 @@ func (ev *StakeEvaluator) Apply() {
 	//fidWrap.SetBalance(fBalance)
 	fidWrap.Modify(func(tInfo *table.SoAccount) {
 		tInfo.Balance.Sub(op.Amount)
+		tInfo.StakeVestFromMe.Add(op.Amount.ToVest())
 	})
 
 	//tVests.Add(addVests)
 	//tidWrap.SetStakeVest(tVests)
 	tidWrap.Modify(func(tInfo *table.SoAccount) {
-		tInfo.StakeVest.Add(addVests)
+		tInfo.StakeVestForMe.Add(addVests)
 	})
 
 	// unique stake record
@@ -1102,17 +1104,19 @@ func (ev *StakeEvaluator) Apply() {
 		From:   op.From,
 		To: op.To,
 	})
+	headBlockTime := ev.GlobalProp().HeadBlockTime()
 	if !recordWrap.CheckExist() {
 		recordWrap.Create(func(record *table.SoStakeRecord) {
 			record.Record = &prototype.StakeRecord{
-				From:   &prototype.AccountName{Value: op.From.Value},
-				To: &prototype.AccountName{Value: op.To.Value},
+				From:  op.From,
+				To: op.To,
 			}
 			record.RecordReverse = &prototype.StakeRecordReverse{
-				To:&prototype.AccountName{Value: op.To.Value},
-				From:   &prototype.AccountName{Value: op.From.Value},
+				To: op.To,
+				From: op.From,
 			}
-			record.StakeAmount = prototype.NewVest(addVests.Value)
+			record.StakeAmount = addVests
+			record.LastStakeTime = headBlockTime
 		})
 	} else {
 		//oldVest := recordWrap.GetStakeAmount()
@@ -1120,10 +1124,9 @@ func (ev *StakeEvaluator) Apply() {
 		//recordWrap.SetStakeAmount(oldVest)
 		recordWrap.Modify(func(tInfo *table.SoStakeRecord) {
 			tInfo.StakeAmount.Add(addVests)
+			tInfo.LastStakeTime = headBlockTime
 		})
 	}
-	headBlockTime := ev.GlobalProp().HeadBlockTime()
-	recordWrap.SetLastStakeTime(headBlockTime)
 
 	ev.GlobalProp().TransferToVest(op.Amount)
 	ev.GlobalProp().TransferToStakeVest(op.Amount)
@@ -1152,7 +1155,7 @@ func (ev *UnStakeEvaluator) Apply() {
 	//vest.Sub(value.ToVest())
 	//debtorWrap.SetStakeVest(vest)
 	debtorWrap.Modify(func(tInfo *table.SoAccount) {
-		tInfo.StakeVest.Sub(value.ToVest())
+		tInfo.StakeVestForMe.Sub(value.ToVest())
 	})
 
 	//fBalance := creditorWrap.GetBalance()
@@ -1160,6 +1163,7 @@ func (ev *UnStakeEvaluator) Apply() {
 	//creditorWrap.SetBalance(fBalance)
 	creditorWrap.Modify(func(tInfo *table.SoAccount) {
 		tInfo.Balance.Add(value)
+		tInfo.StakeVestFromMe.Sub(op.Amount.ToVest())
 	})
 
 	// update stake record

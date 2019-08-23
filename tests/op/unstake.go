@@ -40,23 +40,28 @@ func (tester *UnStakeTester) normal(t *testing.T, d *Dandelion) {
 	name1 := tester.acc1.Name
 	//Firstly stake
 	balance0 := tester.acc0.GetBalance().Value
-	stakeVest1 := tester.acc1.GetStakeVest().Value
+	stakeFromMe0 := tester.acc0.GetStakeVestFromMe().Value
+	stakeVest1 := tester.acc1.GetStakeVestForMe().Value
 	a.NoError(tester.acc0.SendTrx(Stake(name0, name1, stakeAmount)))
 	a.NoError(d.ProduceBlocks(1))
 	a.Equal(balance0-stakeAmount, tester.acc0.GetBalance().Value)
-	a.Equal(stakeVest1+stakeAmount, tester.acc1.GetStakeVest().Value)
+	a.Equal(stakeFromMe0+stakeAmount, tester.acc0.GetStakeVestFromMe().Value)
+	a.Equal(stakeVest1+stakeAmount, tester.acc1.GetStakeVestForMe().Value)
+
 	_,_,maxStakeStamina,leftStakeStamina := getUserStamina(name1, d)
 	a.Equal(maxStakeStamina, leftStakeStamina)
 	//unStake
 	//can only unStake after the stakeFreezeTime time
 	a.NoError(d.ProduceBlocks(constants.StakeFreezeTime + 5))
 	curBalance0 := tester.acc0.GetBalance().Value
-	curStakeVest1 := tester.acc1.GetStakeVest().Value
+	curStakeFromMe0 := tester.acc0.GetStakeVestFromMe().Value
+	curStakeVest1 := tester.acc1.GetStakeVestForMe().Value
 	unStakeAmount := stakeAmount/2
 	a.NoError(tester.acc0.SendTrx(UnStake(name0, name1, unStakeAmount)))
 	a.NoError(d.ProduceBlocks(1))
 	a.Equal(curBalance0+unStakeAmount, tester.acc0.GetBalance().Value)
-	a.Equal(curStakeVest1-unStakeAmount, tester.acc1.GetStakeVest().Value)
+	a.Equal(curStakeFromMe0-unStakeAmount, tester.acc0.GetStakeVestFromMe().Value)
+	a.Equal(curStakeVest1-unStakeAmount, tester.acc1.GetStakeVestForMe().Value)
 
 	_,_,maxStakeStamina,curStakeStamina := getUserStamina(name1, d)
 	a.Equal(maxStakeStamina, curStakeStamina)
@@ -74,14 +79,14 @@ func (tester *UnStakeTester) wrongCreditor(t *testing.T, d *Dandelion) {
 	name0 := tester.acc0.Name
 	name1 := tester.acc1.Name
 	balance0 := tester.acc0.GetBalance().Value
-	stakeVest1 := tester.acc1.GetStakeVest().Value
+	stakeVest1 := tester.acc1.GetStakeVestForMe().Value
 	a.NoError(tester.acc0.SendTrx(Stake(name0, name1, stakeAmount)))
 	a.NoError(d.ProduceBlocks(1))
 	a.Equal(balance0-stakeAmount, tester.acc0.GetBalance().Value)
-	a.Equal(stakeVest1+stakeAmount, tester.acc1.GetStakeVest().Value)
+	a.Equal(stakeVest1+stakeAmount, tester.acc1.GetStakeVestForMe().Value)
 	a.NoError(d.ProduceBlocks(constants.StakeFreezeTime + 5))
 
-	curStakeVest1 := tester.acc1.GetStakeVest().Value
+	curStakeVest1 := tester.acc1.GetStakeVestForMe().Value
 	a.NotEmpty(curStakeVest1)
 	amount := curStakeVest1/2
 	if amount == 0 {
@@ -89,7 +94,7 @@ func (tester *UnStakeTester) wrongCreditor(t *testing.T, d *Dandelion) {
 	}
 	a.Error(tester.acc2.SendTrx(UnStake(creditor.Name, name1, amount)))
 	a.NoError(d.ProduceBlocks(1))
-	a.Equal(curStakeVest1, tester.acc1.GetStakeVest().Value)
+	a.Equal(curStakeVest1, tester.acc1.GetStakeVestForMe().Value)
 }
 
 func (tester *UnStakeTester) wrongDebtor(t *testing.T, d *Dandelion) {
@@ -102,14 +107,14 @@ func (tester *UnStakeTester) wrongDebtor(t *testing.T, d *Dandelion) {
 	name0 := tester.acc0.Name
 	name2 := tester.acc2.Name
 	balance0 := tester.acc0.GetBalance().Value
-	stakeVest2 := tester.acc2.GetStakeVest().Value
+	stakeVest2 := tester.acc2.GetStakeVestForMe().Value
 	a.NoError(tester.acc0.SendTrx(Stake(name0, name2, stakeAmount)))
 	a.NoError(d.ProduceBlocks(1))
 	a.Equal(balance0-stakeAmount, tester.acc0.GetBalance().Value)
-	a.Equal(stakeVest2+stakeAmount, tester.acc2.GetStakeVest().Value)
+	a.Equal(stakeVest2+stakeAmount, tester.acc2.GetStakeVestForMe().Value)
 	a.NoError(d.ProduceBlocks(constants.StakeFreezeTime + 5))
 
-	curStakeVest2 := tester.acc2.GetStakeVest().Value
+	curStakeVest2 := tester.acc2.GetStakeVestForMe().Value
 	curBalance0 := tester.acc0.GetBalance().Value
 	amount := curStakeVest2/2
 	if amount == 0 {
@@ -134,7 +139,7 @@ func (tester *UnStakeTester) wrongCreditorAndDebtor(t *testing.T, d *Dandelion) 
 	a.Error(tester.acc0.SendTrx(UnStake(creditor.Name, debtor.Name, stakeAmount)))
 	a.NoError(d.ProduceBlocks(1))
 	a.Empty(creditor.GetBalance())
-	a.Empty(debtor.GetStakeVest())
+	a.Empty(debtor.GetStakeVestForMe())
 
 }
 
@@ -144,14 +149,14 @@ func (tester *UnStakeTester) unStakeWhenFreeze(t *testing.T, d *Dandelion) {
 	name0 := tester.acc0.Name
 	name2 := tester.acc2.Name
 	balance0 := tester.acc0.GetBalance().Value
-	stakeVest2 := tester.acc2.GetStakeVest().Value
+	stakeVest2 := tester.acc2.GetStakeVestForMe().Value
 	a.NoError(tester.acc0.SendTrx(Stake(name0, name2, stakeAmount)))
 	a.NoError(d.ProduceBlocks(1))
 	a.Equal(balance0-stakeAmount, tester.acc0.GetBalance().Value)
-	a.Equal(stakeVest2+stakeAmount, tester.acc2.GetStakeVest().Value)
+	a.Equal(stakeVest2+stakeAmount, tester.acc2.GetStakeVestForMe().Value)
 
 	//unStake when frozen
-	curStakeVest2 := tester.acc2.GetStakeVest().Value
+	curStakeVest2 := tester.acc2.GetStakeVestForMe().Value
 	curBalance0 := tester.acc0.GetBalance().Value
 	amount := curStakeVest2/2
 	if amount == 0 {
@@ -160,7 +165,7 @@ func (tester *UnStakeTester) unStakeWhenFreeze(t *testing.T, d *Dandelion) {
 	a.NoError(tester.acc0.SendTrx(UnStake(name0, name2, amount)))
 	a.NoError(d.ProduceBlocks(1))
 	a.Equal(curBalance0, tester.acc0.GetBalance().Value)
-	a.Equal(curStakeVest2, tester.acc2.GetStakeVest().Value)
+	a.Equal(curStakeVest2, tester.acc2.GetStakeVestForMe().Value)
 }
 
 
@@ -170,18 +175,18 @@ func (tester *UnStakeTester) unStakeAmountZero(t *testing.T, d *Dandelion) {
 	name0 := tester.acc0.Name
 	name1 := tester.acc1.Name
 	balance1 := tester.acc1.GetBalance().Value
-	stakeVest0 := tester.acc0.GetStakeVest().Value
+	stakeVest0 := tester.acc0.GetStakeVestForMe().Value
 	a.NoError(tester.acc1.SendTrx(Stake(name1, name0, stakeAmount)))
 	a.NoError(d.ProduceBlocks(1))
 	a.Equal(balance1-stakeAmount, tester.acc1.GetBalance().Value)
-	a.Equal(stakeVest0+stakeAmount, tester.acc0.GetStakeVest().Value)
+	a.Equal(stakeVest0+stakeAmount, tester.acc0.GetStakeVestForMe().Value)
 	a.NoError(d.ProduceBlocks(constants.StakeFreezeTime + 5))
 
-	curStakeVest0 := tester.acc0.GetStakeVest().Value
+	curStakeVest0 := tester.acc0.GetStakeVestForMe().Value
 	curBalance1 := tester.acc1.GetBalance().Value
 	a.Error(tester.acc1.SendTrx(UnStake(name1, name0, 0)))
 	a.NoError(d.ProduceBlocks(1))
-	a.Equal(curStakeVest0, tester.acc0.GetStakeVest().Value)
+	a.Equal(curStakeVest0, tester.acc0.GetStakeVestForMe().Value)
 	a.Equal(curBalance1, tester.acc1.GetBalance().Value)
 
 }
@@ -193,19 +198,19 @@ func (tester *UnStakeTester) insufficientVest(t *testing.T, d *Dandelion) {
 	name0 := tester.acc0.Name
 	name2 := tester.acc2.Name
 	balance2 := tester.acc2.GetBalance().Value
-	stakeVest0 := tester.acc0.GetStakeVest().Value
+	stakeVest0 := tester.acc0.GetStakeVestForMe().Value
 	a.NoError(tester.acc2.SendTrx(Stake(name2, name0, stakeAmount)))
 	a.NoError(d.ProduceBlocks(1))
 	a.Equal(balance2-stakeAmount, tester.acc2.GetBalance().Value)
-	a.Equal(stakeVest0+stakeAmount, tester.acc0.GetStakeVest().Value)
+	a.Equal(stakeVest0+stakeAmount, tester.acc0.GetStakeVestForMe().Value)
 	a.NoError(d.ProduceBlocks(constants.StakeFreezeTime + 5))
 
-	curStakeVest0 := tester.acc0.GetStakeVest().Value
+	curStakeVest0 := tester.acc0.GetStakeVestForMe().Value
 	curBalance2 := tester.acc2.GetBalance().Value
 	//unStake amount greater than stake vest
 	a.NoError(tester.acc2.SendTrx(UnStake(name2, name0, math.MaxUint64)))
 	a.NoError(d.ProduceBlocks(1))
-	a.Equal(curStakeVest0, tester.acc0.GetStakeVest().Value)
+	a.Equal(curStakeVest0, tester.acc0.GetStakeVestForMe().Value)
 	a.Equal(curBalance2, tester.acc2.GetBalance().Value)
 
 }
@@ -234,10 +239,10 @@ func (tester *UnStakeTester) noStakeRecord(t *testing.T, d *Dandelion) {
 	d.PutAccount(acct4.Name, priv4)
 	//no stake recode from acc3 to acc4
 	balance3 := acct3.GetBalance().Value
-	stakeVest4 := acct4.GetStakeVest().Value
+	stakeVest4 := acct4.GetStakeVestForMe().Value
 	a.Empty(d.StakeRecord(name3, name4).CheckExist())
 	a.NoError(acct3.SendTrx(UnStake(name3, name4, stakeAmount)))
 	a.NoError(d.ProduceBlocks(1))
 	a.Equal(balance3, acct3.GetBalance().Value)
-	a.Equal(stakeVest4, acct4.GetStakeVest().Value)
+	a.Equal(stakeVest4, acct4.GetStakeVestForMe().Value)
 }

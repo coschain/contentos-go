@@ -134,11 +134,11 @@ func RegisterService(app *node.Node, cfg node.Config) {
 		var s node.Service
 		switch ctx.Config().Consensus.Type {
 		case "DPoS":
-			s = consensus.NewDPoS(ctx, nil)
+			s = consensus.NewSABFT(ctx, nil)
 		case "SABFT":
 			s = consensus.NewSABFT(ctx, nil)
 		default:
-			s = consensus.NewDPoS(ctx, nil)
+			s = consensus.NewSABFT(ctx, nil)
 		}
 		return s, nil
 	})

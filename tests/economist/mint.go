@@ -35,8 +35,8 @@ func (tester *MintTester) normal(t *testing.T, d *Dandelion) {
 
 	postRewards := d.GlobalProps().GetPoolPostRewards().Value
 	replyRewards := d.GlobalProps().GetPoolReplyRewards().Value
-	replyDappRewards := d.GlobalProps().GetPoolReplyDappRewards().Value
-	postDappRewards := d.GlobalProps().GetPoolPostDappRewards().Value
+	dappRewards := d.GlobalProps().GetPoolDappRewards().Value
+	voteRewards := d.GlobalProps().GetPoolVoteRewards().Value
 	bpVest := d.Account(tester.acc2.Name).GetVest().Value
 
 	const BLOCKS = 1000
@@ -48,8 +48,9 @@ func (tester *MintTester) normal(t *testing.T, d *Dandelion) {
 
 	a.Equal(d.GlobalProps().GetPoolPostRewards().Value - postRewards, creatorReward * constants.RewardRateAuthor / constants.PERCENT * BLOCKS)
 	a.Equal(d.GlobalProps().GetPoolReplyRewards().Value - replyRewards, creatorReward * constants.RewardRateReply / constants.PERCENT * BLOCKS)
-	a.Equal(d.GlobalProps().GetPoolReplyDappRewards().Value - replyDappRewards, dappReward * constants.RewardRateReply / constants.PERCENT * BLOCKS)
-	a.Equal(d.GlobalProps().GetPoolPostDappRewards().Value - postDappRewards, (dappReward - dappReward * constants.RewardRateReply / constants.PERCENT) * BLOCKS)
+	a.Equal(d.GlobalProps().GetPoolDappRewards().Value -  dappRewards, dappReward * BLOCKS)
+	a.Equal(d.GlobalProps().GetPoolVoteRewards().Value -  voteRewards,
+		(creatorReward - creatorReward * constants.RewardRateReply / constants.PERCENT - creatorReward * constants.RewardRateAuthor / constants.PERCENT) * BLOCKS)
 	a.Equal(d.Account(tester.acc2.Name).GetVest().Value - bpVest, bpReward * BLOCKS)
 }
 
