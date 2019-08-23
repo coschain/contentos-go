@@ -27,3 +27,11 @@ type Wallet interface {
 
 	IsExist(name string) bool
 }
+
+type HDWallet interface {
+	Wallet
+
+	GenerateNewMnemonic() (string, error)
+
+	GenerateFromMnemonic(mnemonic string) (string, string, error)
+}
