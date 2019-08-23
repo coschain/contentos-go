@@ -22,7 +22,7 @@ func CreateContractOwner(owner string, d *dandelion.Dandelion) error {
 		var ops []*prototype.Operation
 		var transAmount uint64 = 1000000 * constants.COSTokenDecimals
 		ops = append(ops,
-			dandelion.AccountCreate(constants.COSInitMiner, owner, pub, 10, ""),
+			dandelion.AccountCreate(constants.COSInitMiner, owner, pub, constants.DefaultAccountCreateFee, ""),
 			dandelion.Transfer(constants.COSInitMiner, owner, transAmount, ""))
 		err = d.SendTrxByAccount(constants.COSInitMiner, ops...)
 		if err == nil {

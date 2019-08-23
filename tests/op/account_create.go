@@ -39,9 +39,9 @@ func (tester *AccountCreateTester) normal(t *testing.T, d *Dandelion) {
 	acctName := "actor3"
     a.Empty(d.Account(acctName).CheckExist())
 	balance0 := tester.acc0.GetBalance().Value
-	a.NoError(tester.acc0.SendTrx(AccountCreate(tester.acc0.Name, acctName, pub, 10,  "")))
+	a.NoError(tester.acc0.SendTrx(AccountCreate(tester.acc0.Name, acctName, pub, constants.DefaultAccountCreateFee,  "")))
 	a.NoError(d.ProduceBlocks(1))
-	a.Equal(balance0-10, tester.acc0.GetBalance().Value)
+	a.Equal(balance0-constants.DefaultAccountCreateFee, tester.acc0.GetBalance().Value)
 	newAcct := d.Account(acctName)
 	a.NotEmpty(newAcct.CheckExist())
 
@@ -56,7 +56,7 @@ func (tester *AccountCreateTester) acctNameTooLong(t *testing.T, d *Dandelion)  
 	lName := "testTooLongAccount"
 	a.Empty(d.Account(lName).CheckExist())
 	balance0 := tester.acc0.GetBalance().Value
-	a.Error(tester.acc0.SendTrx(AccountCreate(tester.acc0.Name, lName ,pub, 10, "")))
+	a.Error(tester.acc0.SendTrx(AccountCreate(tester.acc0.Name, lName ,pub, constants.DefaultAccountCreateFee, "")))
 	a.NoError(d.ProduceBlocks(1))
 	a.Equal(balance0, tester.acc0.GetBalance().Value)
 	newAcct := d.Account(lName)
@@ -73,7 +73,7 @@ func (tester *AccountCreateTester) acctNameTooShort(t *testing.T, d *Dandelion) 
 	sName := "acct"
 	a.Empty(d.Account(sName).CheckExist())
 	balance0 := tester.acc0.GetBalance().Value
-	a.Error(tester.acc0.SendTrx(AccountCreate(tester.acc0.Name, sName ,pub, 10, "")))
+	a.Error(tester.acc0.SendTrx(AccountCreate(tester.acc0.Name, sName ,pub, constants.DefaultAccountCreateFee, "")))
 	a.NoError(d.ProduceBlocks(1))
 	a.Equal(balance0, tester.acc0.GetBalance().Value)
 	newAcct := d.Account(sName)
@@ -105,7 +105,7 @@ func (tester *AccountCreateTester) wrongCreator(t *testing.T, d *Dandelion) {
 	//the creator not already exist
 	creator := d.Account("testAccount")
 	a.Empty(creator.CheckExist())
-	a.Error(tester.acc2.SendTrx(AccountCreate(creator.Name, acctName, pub, 10, "")))
+	a.Error(tester.acc2.SendTrx(AccountCreate(creator.Name, acctName, pub, constants.DefaultAccountCreateFee, "")))
 	a.NoError(d.ProduceBlocks(1))
 	newAcct := d.Account(acctName)
 	a.Empty(newAcct.CheckExist())
@@ -118,7 +118,7 @@ func (tester *AccountCreateTester) duplicatePublicKey(t *testing.T, d *Dandelion
 	acctName := "account3"
 	a.Empty(d.Account(acctName).CheckExist())
 	balance0 := tester.acc0.GetBalance().Value
-	a.NoError(tester.acc0.SendTrx(AccountCreate(tester.acc0.Name, acctName, pub0, 10, "")))
+	a.NoError(tester.acc0.SendTrx(AccountCreate(tester.acc0.Name, acctName, pub0, constants.DefaultAccountCreateFee, "")))
 	a.NoError(d.ProduceBlocks(1))
 	acct := d.Account(acctName)
 	a.Equal(balance0, tester.acc0.GetBalance().Value)
@@ -136,7 +136,7 @@ func (tester *AccountCreateTester) illegalCharacterFormat(t *testing.T, d *Dande
 	acctName := "account_4"
 	a.Empty(d.Account(acctName).CheckExist())
 	balance0 := tester.acc0.GetBalance().Value
-	a.Error(tester.acc0.SendTrx(AccountCreate(tester.acc0.Name, acctName, pub, 10, "")))
+	a.Error(tester.acc0.SendTrx(AccountCreate(tester.acc0.Name, acctName, pub, constants.DefaultAccountCreateFee, "")))
 	a.NoError(d.ProduceBlocks(1))
 	a.Equal(balance0, tester.acc0.GetBalance().Value)
 	newAcct := d.Account(acctName)
@@ -149,9 +149,9 @@ func (tester *AccountCreateTester) feeTooLow(t *testing.T, d *Dandelion) {
 	priv, _ := prototype.GenerateNewKey()
 	pub, _ := priv.PubKey()
 
-	d.TrxPool().ModifyProps(func(oldProps *prototype.DynamicProperties) {
-		oldProps.AccountCreateFee = &prototype.Coin{Value:10}
-	})
+	//d.TrxPool().ModifyProps(func(oldProps *prototype.DynamicProperties) {
+	//	oldProps.AccountCreateFee = &prototype.Coin{Value:10}
+	//})
 	acctName := "account5"
 	a.Empty(d.Account(acctName).CheckExist())
 	balance2 := tester.acc2.GetBalance().Value
@@ -172,13 +172,13 @@ func (tester *AccountCreateTester) verifyValid(t *testing.T, d *Dandelion) {
 	name0 := tester.acc0.Name
 	balance0 := tester.acc0.GetBalance().Value
 	a.Empty(d.Account(acctName).CheckExist())
-	a.NoError(tester.acc0.SendTrx(AccountCreate(name0, acctName, pub, 10, "")))
+	a.NoError(tester.acc0.SendTrx(AccountCreate(name0, acctName, pub, constants.DefaultAccountCreateFee, "")))
 	a.NoError(d.ProduceBlocks(1))
-	a.Equal(balance0-10, tester.acc0.GetBalance().Value)
+	a.Equal(balance0-constants.DefaultAccountCreateFee, tester.acc0.GetBalance().Value)
 	newAcct := d.Account(acctName)
 	a.NotEmpty(newAcct.CheckExist())
 	a.True(newAcct.GetBalance().Value == 0)
-	a.True(newAcct.GetVest().Value == 10)
+	a.True(newAcct.GetVest().Value == constants.DefaultAccountCreateFee)
 
 	d.PutAccount(acctName, priv)
     a.NoError(tester.acc0.SendTrx(Transfer(name0, acctName, 1000*constants.COSTokenDecimals, "")))

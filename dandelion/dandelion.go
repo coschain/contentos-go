@@ -55,7 +55,7 @@ func NewDandelionTestWithPlugins(enablePlugins bool, sqlPlugins []string, f Dand
 		defer func() {
 			_ = d.Stop()
 		}()
-		err = d.CreateAndFund("actor", actors, 100000 * constants.COSTokenDecimals, 10)
+		err = d.CreateAndFund("actor", actors, 100000 * constants.COSTokenDecimals, constants.DefaultAccountCreateFee)
 		if err != nil {
 			t.Fatalf("dandelion createAndFund failed: %s", err.Error())
 		}

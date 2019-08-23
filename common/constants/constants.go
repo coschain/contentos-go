@@ -64,7 +64,7 @@ const (
 	MaxTPSExpected       = 2000
 
 	MinAccountCreateFee      = 1
-	DefaultAccountCreateFee  = 1
+	DefaultAccountCreateFee  = COSTokenDecimals / 10 //  default fee 0.1 VEST
 	MaxAccountCreateFee      = 10000 * COSTokenDecimals
 	
 	// bp register limit

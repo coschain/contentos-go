@@ -300,7 +300,7 @@ func (tester *ReputationTester) voteByTicketWithMinRep(t *testing.T, d *Dandelio
 	)
 
 	ops = append(ops,
-		AccountCreate(constants.COSInitMiner, acctName, pub, 10, ""),
+		AccountCreate(constants.COSInitMiner, acctName, pub, constants.DefaultAccountCreateFee, ""),
 		Transfer(constants.COSInitMiner, acctName, transAmount, ""))
 	a.NoError(d.SendTrxByAccount(constants.COSInitMiner, ops...))
 	a.NoError(d.ProduceBlocks(1))

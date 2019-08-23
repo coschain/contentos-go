@@ -47,7 +47,7 @@ func newAccount(name string,t *testing.T,d *Dandelion) *prototype.PrivateKeyType
 	priv, _ := prototype.GenerateNewKey()
 	pub, _ := priv.PubKey()
 	a.NoError(checkError(d.Account(constants.COSInitMiner).TrxReceipt(AccountCreate(constants.COSInitMiner,name,
-		pub,1,""))))
+		pub,constants.DefaultAccountCreateFee,""))))
 	d.PutAccount(name,priv)
 	return priv
 }

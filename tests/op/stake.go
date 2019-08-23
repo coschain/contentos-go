@@ -489,7 +489,7 @@ func (tester *StakeTester) createNewAccount(t *testing.T, d *Dandelion, name str
 		transAmount uint64 = 10000 * constants.COSTokenDecimals
 	)
 
-	ops = append(ops, AccountCreate(constants.COSInitMiner, name, pub, 10, ""),
+	ops = append(ops, AccountCreate(constants.COSInitMiner, name, pub, constants.DefaultAccountCreateFee, ""),
 		         Transfer(constants.COSInitMiner, name, transAmount, ""))
 	a.NoError(d.SendTrxByAccount(constants.COSInitMiner, ops...))
 	a.NoError(d.ProduceBlocks(1))
