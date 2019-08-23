@@ -38,20 +38,7 @@ type BlockLog struct {
 
 type internalStateChange struct {
 	StateChange
-	Sequence uint64
 	TransactionId string
 }
 
 type InternalStateChangeSlice []*internalStateChange
-
-func (s InternalStateChangeSlice) Len() int {
-	return len(s)
-}
-
-func (s InternalStateChangeSlice) Less(i, j int) bool {
-	return s[i].Sequence < s[j].Sequence
-}
-
-func (s InternalStateChangeSlice) Swap(i, j int) {
-	s[i], s[j] = s[j], s[i]
-}

@@ -78,7 +78,7 @@ func (ctx *StateChangeContext) Cause() string {
 	return strings.Join(ctx.causes, ".")
 }
 
-func (ctx *StateChangeContext) AddChange(seq uint64, what string, change interface{}) {
+func (ctx *StateChangeContext) AddChange(what string, change interface{}) {
 	if ctx == nil {
 		return
 	}
@@ -91,7 +91,6 @@ func (ctx *StateChangeContext) AddChange(seq uint64, what string, change interfa
 			Change:      change,
 		},
 		TransactionId: ctx.trxId,
-		Sequence: seq,
 	})
 }
 

@@ -44,7 +44,10 @@ func (a *MultiTrxsApplier) Apply(trxs []*TrxEntry) {
 
 // applyGroup applies transaction of given group one by one.
 func (a *MultiTrxsApplier) applyGroup(groupIdx int, group []*TrxEntry) {
-	branchId := strconv.Itoa(groupIdx)
+	branchId := iservices.DbTrunk
+	if groupIdx != 0 {
+		branchId += strconv.Itoa(groupIdx)
+	}
 	// first, set up a database patch to save all changes
 	groupDb := a.db.NewPatch(branchId)
 	for _, trx := range group {

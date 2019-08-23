@@ -6,9 +6,7 @@ import (
 	"github.com/coschain/contentos-go/app/table"
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/prototype"
-	"sort"
 	"sync"
-	"sync/atomic"
 )
 
 type WatcherCallback func(*BlockLog)
@@ -16,7 +14,6 @@ type WatcherCallback func(*BlockLog)
 type Watcher struct {
 	sync.RWMutex
 	dbSvc              uint32
-	sequence           uint64
 	callback           WatcherCallback
 	currBlock          *BlockLog
 	currBlockCtx       *StateChangeContext
@@ -34,16 +31,12 @@ func NewWatcher(dbSvcId uint32, callback WatcherCallback) (w *Watcher) {
 	return
 }
 
-func (w *Watcher) nextSequence() uint64 {
-	return atomic.AddUint64(&w.sequence, 1)
-}
-
 func (w *Watcher) newStateChangeContext(branch string, trxId string, op int, cause string) (ctx *StateChangeContext) {
 	if w.currBlock == nil {
 		return
 	}
-	if w.changeCtxsByBranch[branch] != nil {
-		return
+	if oldCtx := w.changeCtxsByBranch[branch]; oldCtx != nil {
+		return oldCtx
 	}
 	ctx = newBlockEffectContext(branch, trxId, op, cause)
 	w.changeCtxs = append(w.changeCtxs, ctx)
@@ -108,7 +101,6 @@ func (w *Watcher) EndBlock(ok bool, block *prototype.SignedBlock) error {
 		for _, ctx := range w.changeCtxs {
 			totalChanges = append(totalChanges, ctx.Changes()...)
 		}
-		sort.Sort(totalChanges)
 		w.currBlock.Changes = make([]*StateChange, len(totalChanges))
 		for i, c := range totalChanges {
 			if idx, ok := trxId2idx[c.TransactionId]; ok {
@@ -134,7 +126,7 @@ func (w *Watcher) recordChange(branch, what string, change interface{}) {
 	w.RLock()
 	defer w.RUnlock()
 	if ctx := w.changeCtxsByBranch[branch]; ctx != nil {
-		ctx.AddChange(w.nextSequence(), what, change)
+		ctx.AddChange(what, change)
 	}
 }
 
