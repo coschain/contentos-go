@@ -26,23 +26,23 @@ var sInterestedChanges = []InterestedChange{
 	{ AccountVest, table.AccountRecordType, "Name", "Vest", accountVestChange },
 }
 
-type AccountUint64ValueChange struct {
-	Name string			`json:"name"`
-	Before uint64		`json:"before"`
-	After uint64		`json:"after"`
+type Uint64ValueChange struct {
+	Id 		string			`json:"id"`
+	Before	uint64			`json:"before"`
+	After	uint64			`json:"after"`
 }
 
 func accountBalanceChange(key, before, after interface{}) interface{} {
-	return &AccountUint64ValueChange{
-		Name: 	key.(*prototype.AccountName).GetValue(),
+	return &Uint64ValueChange{
+		Id: 	key.(*prototype.AccountName).GetValue(),
 		Before: before.(*prototype.Coin).GetValue(),
 		After: 	after.(*prototype.Coin).GetValue(),
 	}
 }
 
 func accountVestChange(key, before, after interface{}) interface{} {
-	return &AccountUint64ValueChange{
-		Name: 	key.(*prototype.AccountName).GetValue(),
+	return &Uint64ValueChange{
+		Id: 	key.(*prototype.AccountName).GetValue(),
 		Before: before.(*prototype.Vest).GetValue(),
 		After: 	after.(*prototype.Vest).GetValue(),
 	}

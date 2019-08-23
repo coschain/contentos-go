@@ -3,29 +3,25 @@ package blocklog
 import "github.com/coschain/contentos-go/prototype"
 
 type StateChange struct {
-	// Type is the type of change, e.g. "account_balance"
 	Type string			`json:"type"`
-
-	// Transaction is ordinal of the transaction which made this change.
-	// -1 if the change is not caused by a transaction.
-	Transaction int		`json:"trx"`
-
-	// Operation is ordinal of the operation which made this change.
-	// -1 if the change is not caused by an operation.
-	Operation int		`json:"op"`
-
-	// Cause is a description about the reason of the change.
 	Cause string		`json:"cause"`
-
-	// Change is the detailed changes.
-	// The actual data type depends on Type.
 	Change interface{}	`json:"change"`
+}
+
+type OperationData struct {
+	Type	string							`json:"type"`
+	Data	prototype.BaseOperation			`json:"data"`
+}
+
+type OperationLog struct {
+	Op 		*OperationData					`json:"op"`
+	Changes	[]*StateChange					`json:"changes"`
 }
 
 type TransactionLog struct {
 	TrxId 		string							`json:"id"`
 	Receipt 	*prototype.TransactionReceipt	`json:"receipt"`
-	Operations 	[]*prototype.Operation			`json:"ops"`
+	Operations 	[]*OperationLog					`json:"ops"`
 }
 
 type BlockLog struct {
@@ -39,6 +35,8 @@ type BlockLog struct {
 type internalStateChange struct {
 	StateChange
 	TransactionId string
+	Transaction int
+	Operation int
 }
 
 type InternalStateChangeSlice []*internalStateChange

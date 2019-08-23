@@ -324,20 +324,16 @@ func (w *CosVMNative) SetUserFreeze(name string, value uint32, memo string) {
 }
 
 type ContractTableRecordChange struct {
-	Owner string			`json:"owner"`
-	Contract string			`json:"contract"`
 	Table string			`json:"table"`
-	Key interface{}			`json:"key"`
+	Id interface{}			`json:"id"`
 	Before interface{}		`json:"before"`
 	After interface{}		`json:"after"`
 }
 
 func (w *CosVMNative) addTableRecordChange(tableName, what string, key, before, after interface{}) {
 	w.cosVM.ctx.Injector.StateChangeContext().AddChange(what, &ContractTableRecordChange{
-		Owner: w.ReadContractOwner(),
-		Contract: w.ReadContractName(),
-		Table: tableName,
-		Key: key,
+		Table: strings.Join([]string{w.ReadContractOwner(), w.ReadContractName(), tableName}, "."),
+		Id: key,
 		Before: before,
 		After: after,
 	})

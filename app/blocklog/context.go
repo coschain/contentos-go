@@ -85,12 +85,12 @@ func (ctx *StateChangeContext) AddChange(what string, change interface{}) {
 	ctx.changes = append(ctx.changes, &internalStateChange{
 		StateChange: StateChange{
 			Type:        what,
-			Transaction: -1,
-			Operation:   ctx.op,
 			Cause:       ctx.Cause(),
 			Change:      change,
 		},
 		TransactionId: ctx.trxId,
+		Transaction:   -1,
+		Operation:     ctx.op,
 	})
 }
 

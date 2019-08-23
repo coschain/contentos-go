@@ -83,33 +83,7 @@ func (w *Watcher) EndBlock(ok bool, block *prototype.SignedBlock) error {
 		return errors.New("no block to end")
 	}
 	if ok {
-		blockId := block.Id()
-		w.currBlock.BlockId = fmt.Sprintf("%x", blockId.Data)
-		w.currBlock.BlockNum = blockId.BlockNum()
-		w.currBlock.BlockTime = block.GetSignedHeader().GetHeader().GetTimestamp().GetUtcSeconds()
-		w.currBlock.Transactions = make([]*TransactionLog, len(block.GetTransactions()))
-		trxId2idx := make(map[string]int)
-		for i, trxWrapper := range block.GetTransactions() {
-			trxId, _ := trxWrapper.GetSigTrx().Id()
-			sId := fmt.Sprintf("%x", trxId.Hash)
-			trxId2idx[sId] = i
-			w.currBlock.Transactions[i] = &TransactionLog{
-				TrxId:      sId,
-				Receipt:    trxWrapper.GetReceipt(),
-				Operations: trxWrapper.GetSigTrx().GetTrx().GetOperations(),
-			}
-		}
-		var totalChanges InternalStateChangeSlice
-		for _, ctx := range w.changeCtxs {
-			totalChanges = append(totalChanges, ctx.Changes()...)
-		}
-		w.currBlock.Changes = make([]*StateChange, len(totalChanges))
-		for i, c := range totalChanges {
-			if idx, ok := trxId2idx[c.TransactionId]; ok {
-				c.Transaction = idx
-			}
-			w.currBlock.Changes[i] = &c.StateChange
-		}
+		w.makeLog(block)
 		blockLog = w.currBlock
 	}
 	w.changeCtxs = w.changeCtxs[:0]
@@ -122,6 +96,56 @@ func (w *Watcher) EndBlock(ok bool, block *prototype.SignedBlock) error {
 		w.callback(blockLog)
 	}
 	return nil
+}
+
+func (w *Watcher) makeLog(block *prototype.SignedBlock) {
+	blockId := block.Id()
+	w.currBlock.BlockId = fmt.Sprintf("%x", blockId.Data)
+	w.currBlock.BlockNum = blockId.BlockNum()
+	w.currBlock.BlockTime = block.GetSignedHeader().GetHeader().GetTimestamp().GetUtcSeconds()
+	trxId2idx := make(map[string]int)
+
+	trxs := block.GetTransactions()
+	w.currBlock.Transactions = make([]*TransactionLog, len(block.GetTransactions()))
+	for i, trxWrapper := range trxs {
+		ops := trxWrapper.GetSigTrx().GetTrx().GetOperations()
+		opLogs := make([]*OperationLog, len(ops))
+		for i, op := range ops {
+			opLogs[i] = &OperationLog{
+				Op: &OperationData{
+					Type: prototype.GetGenericOperationName(op),
+					Data: prototype.GetBaseOperation(op),
+				},
+				Changes: make([]*StateChange, 0, 32),
+			}
+		}
+		trxId, _ := trxWrapper.GetSigTrx().Id()
+		sId := fmt.Sprintf("%x", trxId.Hash)
+		w.currBlock.Transactions[i] = &TransactionLog{
+			TrxId:      sId,
+			Receipt:    trxWrapper.GetReceipt(),
+			Operations: opLogs,
+		}
+		trxId2idx[sId] = i
+	}
+
+	w.currBlock.Changes = make([]*StateChange, 0, 128)
+	for _, ctx := range w.changeCtxs {
+		changes := ctx.Changes()
+		for _, change := range changes {
+			if change.Operation >= 0 && len(change.TransactionId) >= 32 {
+				if idx, ok := trxId2idx[change.TransactionId]; ok {
+					change.Transaction = idx
+				}
+			}
+			if change.Transaction >= 0 && change.Operation >= 0 {
+				opLog := w.currBlock.Transactions[change.Transaction].Operations[change.Operation]
+				opLog.Changes = append(opLog.Changes, &change.StateChange)
+			} else {
+				w.currBlock.Changes = append(w.currBlock.Changes, &change.StateChange)
+			}
+		}
+	}
 }
 
 func (w *Watcher) recordChange(branch, what string, change interface{}) {
