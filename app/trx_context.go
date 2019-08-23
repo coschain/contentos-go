@@ -2,6 +2,7 @@ package app
 
 import (
 	"fmt"
+	"github.com/coschain/contentos-go/app/blocklog"
 	"github.com/coschain/contentos-go/app/table"
 	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/iservices"
@@ -25,6 +26,7 @@ type TrxContext struct {
 	gasMap          map[string]*resourceUnit
 	netMap          map[string]*resourceUnit
 	resourceLimiter utils.IResourceLimiter
+	stateChangeCtx  *blocklog.StateChangeContext
 }
 
 type resourceUnit struct {
@@ -198,7 +200,7 @@ func (p *TrxContext) GetCpuUse() uint64 {
 	return all
 }
 
-func NewTrxContext(wrapper *prototype.TransactionWrapperWithInfo, db iservices.IDatabaseRW, signer string, control *TrxPool, observer iservices.ITrxObserver) *TrxContext {
+func NewTrxContext(wrapper *prototype.TransactionWrapperWithInfo, db iservices.IDatabaseRW, signer string, control *TrxPool, observer iservices.ITrxObserver, stateChangeCtx *blocklog.StateChangeContext) *TrxContext {
 	return &TrxContext{
 		DynamicGlobalPropsRW: DynamicGlobalPropsRW{ db:db },
 		Wrapper: wrapper,
@@ -208,6 +210,7 @@ func NewTrxContext(wrapper *prototype.TransactionWrapperWithInfo, db iservices.I
 		netMap: make(map[string]*resourceUnit),
 		resourceLimiter: control.resourceLimiter,
 		control:control,
+		stateChangeCtx: stateChangeCtx,
 	}
 }
 
@@ -216,9 +219,12 @@ func (p *TrxContext) Error(code uint32, msg string) {
 	//p.Wrapper.Receipt.Status = 500
 }
 
-func (p *TrxContext) StartNextOp() {
+func (p *TrxContext) StartNextOp(opIdx int, op *prototype.Operation) {
 	p.output = &prototype.OperationReceiptWithInfo{VmConsole: ""}
 	p.Wrapper.Receipt.OpResults = append(p.Wrapper.Receipt.OpResults, p.output)
+
+	p.stateChangeCtx.SetOperation(opIdx)
+	p.stateChangeCtx.SetCause(prototype.GetGenericOperationName(op))
 }
 
 func (p *TrxContext) Log(msg string) {
@@ -355,4 +361,8 @@ func (p *TrxContext) Logger() *logrus.Logger {
 
 func (p *TrxContext) VmCache() *vmcache.VmCache {
 	return p.control.vmCache
+}
+
+func (p *TrxContext) StateChangeContext() *blocklog.StateChangeContext {
+	return p.stateChangeCtx
 }

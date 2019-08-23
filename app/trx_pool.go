@@ -435,7 +435,7 @@ func (c *TrxPool) applyTransactionOnDb(db iservices.IDatabasePatch, entry *TrxEn
 	trxObserver.BeginTrx(hex.EncodeToString(trxHash))
 	trxId, _ := sigTrx.Id()
 	trxLogCtx := c.blockLogWatcher.NewStateChangeContext(db.BranchId(), fmt.Sprintf("%x", trxId.Hash), -1, "")
-	trxContext := NewTrxContext(result, trxDB, entry.GetTrxSigner(), c, trxObserver)
+	trxContext := NewTrxContext(result, trxDB, entry.GetTrxSigner(), c, trxObserver, trxLogCtx)
 
 	defer func() {
 		useGas := trxContext.HasGasFee()
@@ -468,9 +468,7 @@ func (c *TrxPool) applyTransactionOnDb(db iservices.IDatabasePatch, entry *TrxEn
 	trxContext.CheckNet(trxDB, uint64(proto.Size(sigTrx)))
 
 	for opIdx, op := range sigTrx.Trx.Operations {
-		trxContext.StartNextOp()
-		trxLogCtx.SetOperation(opIdx)
-		trxLogCtx.SetCause(prototype.GetGenericOperationName(op))
+		trxContext.StartNextOp(opIdx, op)
 		c.applyOperation(trxContext, op)
 	}
 }

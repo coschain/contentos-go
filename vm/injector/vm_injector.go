@@ -1,6 +1,7 @@
 package vminjector
 
 import (
+	"github.com/coschain/contentos-go/app/blocklog"
 	vmcache "github.com/coschain/contentos-go/vm/cache"
 	"github.com/go-interpreter/wagon/exec"
 )
@@ -20,4 +21,5 @@ type Injector interface {
 	GetBlockProducers() []string
 	DiscardAccountCache(name string)
 	VmCache() *vmcache.VmCache
+	StateChangeContext() *blocklog.StateChangeContext
 }
