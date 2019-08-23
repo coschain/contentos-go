@@ -179,10 +179,10 @@ func (w *CosVM) Validate() error {
 	return err
 }
 
-func (w *CosVM) wrapperForStateChange(name string, fn reflect.Value) reflect.Value {
+func wrapperForStateChange(name string, fn reflect.Value) reflect.Value {
 	return reflect.MakeFunc(fn.Type(), func(args []reflect.Value) (results []reflect.Value) {
-		stateChange := w.ctx.Injector.StateChangeContext()
-		stateChange.PushCause("api")
+		stateChange := args[0].Interface().(*exec.Process).GetTag().(*CosVMNative).cosVM.ctx.Injector.StateChangeContext()
+		stateChange.PushCause("vm_native")
 		stateChange.PushCause(name)
 		results = fn.Call(args)
 		stateChange.PopCause()
@@ -208,7 +208,7 @@ func (w *CosVM) register(funcName string, function interface{}, gas uint64) {
 		return
 	}
 	funcVal := reflect.ValueOf(function)
-	wrapperFunc := w.wrapperForStateChange(funcName, funcVal)
+	wrapperFunc := wrapperForStateChange(funcName, funcVal)
 	f := wasm.Function{Sig: &funcSig, Host: wrapperFunc, Body: &wasm.FunctionBody{}, Gas: gas}
 	w.nativeFuncName = append(w.nativeFuncName, funcName)
 	w.nativeFuncSigs = append(w.nativeFuncSigs, funcSig)
