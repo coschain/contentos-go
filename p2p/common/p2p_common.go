@@ -89,7 +89,7 @@ const (
 	BloomFilterOfRecvTrxArgK      = 10         // bloom filter hash func num
 
 	BATCH_LENGTH = 50   // length of id batch or block batch
-	BLOCKS_SIZE_LIMIT = 2 * constants.MaxBlockSize
+	BLOCKS_SIZE_LIMIT = constants.MaxBlockSize + constants.MaxBlockSizeTolerance
 	MAX_BLOCK_COUNT = 50           // max block count
 
 	HASH_SIZE = 32
