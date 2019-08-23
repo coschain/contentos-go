@@ -33,5 +33,5 @@ type HDWallet interface {
 
 	GenerateNewMnemonic() (string, error)
 
-	CreateFromMnemonic(name, passphrase, mnemonic string) error
+	GenerateFromMnemonic(mnemonic string) (string, string, error)
 }

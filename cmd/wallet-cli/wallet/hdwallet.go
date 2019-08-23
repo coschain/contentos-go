@@ -88,7 +88,7 @@ func (path DerivationPath) String() string {
 }
 
 type BaseHDWallet struct {
-	*BaseWallet
+	BaseWallet
 	mnemonic string
 	seed []byte
 	hdPath string
@@ -100,13 +100,13 @@ func NewBaseHDWallet(name string, path string) *BaseHDWallet {
 	b.name = "a"
 
 	return &BaseHDWallet{
-		BaseWallet: &BaseWallet{
+		BaseWallet: BaseWallet{
 			name:     name,
 			unlocked: make(map[string]*PrivAccount),
 			locked:   make(map[string]*EncryptAccount),
 			dirPath:  path,
 		},
-		hdPath: "44'/3077'/0'/0/0",
+		hdPath: "m/44'/3077'/0'/0/0",
 	}
 }
 
@@ -122,36 +122,33 @@ func (w *BaseHDWallet) GenerateNewMnemonic() (string, error) {
 	return mnemonic, err
 }
 
-func (w *BaseHDWallet) CreateFromMnemonic(name, passphrase, mnemonic string) error {
-	seed := bip39.NewSeed(mnemonic, passphrase)
+func (w *BaseHDWallet) GenerateFromMnemonic(mnemonic string) (string, string, error) {
+	seed := bip39.NewSeed(mnemonic, "")
 	path, err := ParseDerivationPath(w.hdPath)
 	if err != nil {
-		return err
+		return "", "", err
 	}
 	masterKey, err := bip32.NewMasterKey(seed)
 	if err != nil {
-		return  err
+		return  "", "", err
 	}
 	key := masterKey
 	for _, n := range path {
 		key, err = key.NewChildKey(n)
 		if err != nil {
-			return err
+			return "", "", err
 		}
 	}
-	sigRawKey, err := crypto.GenerateKeyFromBytes(key.Key)
-	if err != nil {
-		return err
-	}
+	sigRawKey := crypto.ToECDSAUnsafe(key.Key)
 	privKey := prototype.PrivateKeyFromECDSA(sigRawKey)
 
 	pubKey, err := privKey.PubKey()
 	if err != nil {
-		return err
+		return "", "", err
 	}
 	privKeyStr := privKey.ToWIF()
 	pubKeyStr := pubKey.ToWIF()
-	return w.Create(name, passphrase, pubKeyStr, privKeyStr)
+	return pubKeyStr, privKeyStr, nil
 }
 
 

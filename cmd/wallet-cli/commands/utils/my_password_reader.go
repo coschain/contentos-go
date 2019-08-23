@@ -1,6 +1,8 @@
 package utils
 
-import "golang.org/x/crypto/ssh/terminal"
+import (
+	"golang.org/x/crypto/ssh/terminal"
+)
 
 type MyPasswordReader struct{}
 

@@ -123,6 +123,7 @@ func homeDir() string {
 
 func addCommands() {
 	rootCmd.AddCommand(commands.CreateCmd())
+	rootCmd.AddCommand(commands.CreateFromMnemonic())
 	rootCmd.AddCommand(commands.LoadCmd())
 	rootCmd.AddCommand(commands.UnlockCmd())
 	rootCmd.AddCommand(commands.LockCmd())
@@ -132,7 +133,7 @@ func addCommands() {
 	rootCmd.AddCommand(commands.InfoCmd())
 	rootCmd.AddCommand(commands.CloseCmd())
 	rootCmd.AddCommand(commands.AccountCmd())
-	rootCmd.AddCommand(commands.GenKeyPairCmd())
+	rootCmd.AddCommand(commands.GenKeyPairWithMnemonicCmd())
 	rootCmd.AddCommand(commands.TransferCmd())
 	rootCmd.AddCommand(commands.TransferVestCmd())
 	rootCmd.AddCommand(commands.ConvertVestCmd())
@@ -151,8 +152,6 @@ func addCommands() {
 	rootCmd.AddCommand(commands.StressVMCmd())
 	rootCmd.AddCommand(commands.ContractCmd())
 
-	//rootCmd.AddCommand(commands.ClaimAllCmd())
-	//rootCmd.AddCommand(commands.ClaimCmd())
 	rootCmd.AddCommand(commands.DeployCmd())
 	rootCmd.AddCommand(commands.CallCmd())
 	rootCmd.AddCommand(commands.VmTableCmd())
@@ -179,7 +178,8 @@ func init() {
 }
 
 func main() {
-	localWallet := wallet.NewBaseWallet("default", DefaultDataDir())
+	//localWallet := wallet.NewBaseWallet("default", DefaultDataDir())
+	localWallet := wallet.NewBaseHDWallet("default", DefaultDataDir())
 	preader := utils.MyPasswordReader{}
 	_ = localWallet.LoadAll()
 	_ = localWallet.Start()
