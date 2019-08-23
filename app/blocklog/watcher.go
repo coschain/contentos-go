@@ -36,6 +36,8 @@ func (w *Watcher) newStateChangeContext(branch string, trxId string, op int, cau
 		return
 	}
 	if oldCtx := w.changeCtxsByBranch[branch]; oldCtx != nil {
+		oldCtx.SetTrxAndOperation(trxId, op)
+		oldCtx.SetCause(cause)
 		return oldCtx
 	}
 	ctx = newBlockEffectContext(branch, trxId, op, cause)
