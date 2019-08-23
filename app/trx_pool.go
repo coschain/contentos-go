@@ -434,8 +434,9 @@ func (c *TrxPool) applyTransactionOnDb(db iservices.IDatabasePatch, entry *TrxEn
 	trxHash, _ := sigTrx.GetTrxHash(c.ctx.ChainId())
 	trxObserver.BeginTrx(hex.EncodeToString(trxHash))
 	trxId, _ := sigTrx.Id()
-	trxLogCtx := c.blockLogWatcher.NewStateChangeContext(db.BranchId(), fmt.Sprintf("%x", trxId.Hash), -1, "")
-	trxContext := NewTrxContext(result, trxDB, entry.GetTrxSigner(), c, trxObserver, trxLogCtx)
+	trxStateChange := c.blockLogWatcher.GetOrCreateStateChangeContext(db.BranchId(), fmt.Sprintf("%x", trxId.Hash), -1, "")
+	restorePoint := trxStateChange.RestorePoint()
+	trxContext := NewTrxContext(result, trxDB, entry.GetTrxSigner(), c, trxObserver, trxStateChange)
 
 	defer func() {
 		useGas := trxContext.HasGasFee()
@@ -444,7 +445,7 @@ func (c *TrxPool) applyTransactionOnDb(db iservices.IDatabasePatch, entry *TrxEn
 			receipt.ErrorInfo = fmt.Sprintf("applyTransaction failed : %v", err)
 			c.log.Warnf("applyTransaction failed : %v", err)
 			trxObserver.EndTrx(false)
-			trxLogCtx.ClearChanges()
+			trxStateChange.Restore(restorePoint)
 			if useGas && constants.EnableResourceControl {
 				receipt.Status = prototype.StatusFailDeductStamina
 				c.notifyTrxApplyResult(sigTrx, true, receipt, blockNum)
@@ -460,10 +461,11 @@ func (c *TrxPool) applyTransactionOnDb(db iservices.IDatabasePatch, entry *TrxEn
 			trxObserver.EndTrx(true)
 			c.notifyTrxApplyResult(sigTrx, true, receipt, blockNum)
 		}
-		trxLogCtx.SetOperation(-1)
-		trxLogCtx.SetCause("pay_gas")
+		trxStateChange.SetOperation(-1)
+		trxStateChange.SetCause("pay_gas")
 		c.PayGas(db,trxContext)
-		trxLogCtx.SetTrxAndOperation("", -1)
+		trxStateChange.SetTrxAndOperation("", -1)
+		trxStateChange.SetCause("")
 	}()
 
 	trxContext.CheckNet(trxDB, uint64(proto.Size(sigTrx)))

@@ -31,7 +31,7 @@ func NewWatcher(dbSvcId uint32, callback WatcherCallback) (w *Watcher) {
 	return
 }
 
-func (w *Watcher) newStateChangeContext(branch string, trxId string, op int, cause string) (ctx *StateChangeContext) {
+func (w *Watcher) getOrCreateStateChangeContext(branch string, trxId string, op int, cause string) (ctx *StateChangeContext) {
 	if w.currBlock == nil {
 		return
 	}
@@ -46,11 +46,11 @@ func (w *Watcher) newStateChangeContext(branch string, trxId string, op int, cau
 	return
 }
 
-func (w *Watcher) NewStateChangeContext(branch string, trxId string, op int, cause string) (ctx *StateChangeContext) {
+func (w *Watcher) GetOrCreateStateChangeContext(branch string, trxId string, op int, cause string) (ctx *StateChangeContext) {
 	w.Lock()
 	defer w.Unlock()
 
-	return w.newStateChangeContext(branch, trxId, op, cause)
+	return w.getOrCreateStateChangeContext(branch, trxId, op, cause)
 }
 
 func (w *Watcher) CurrentBlockContext() (ctx *StateChangeContext) {
@@ -71,7 +71,7 @@ func (w *Watcher) BeginBlock(blockNum uint64) error {
 		return errors.New("found pending state change contexts")
 	}
 	w.currBlock = new(BlockLog)
-	w.currBlockCtx = w.newStateChangeContext(iservices.DbTrunk, "", -1, "")
+	w.currBlockCtx = w.getOrCreateStateChangeContext(iservices.DbTrunk, "", -1, "")
 	return nil
 }
 

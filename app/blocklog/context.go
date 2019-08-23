@@ -107,3 +107,19 @@ func (ctx *StateChangeContext) Changes() InternalStateChangeSlice {
 	}
 	return ctx.changes
 }
+
+func (ctx *StateChangeContext) RestorePoint() int {
+	if ctx == nil {
+		return 0
+	}
+	return len(ctx.changes)
+}
+
+func (ctx *StateChangeContext) Restore(restorePoint int) {
+	if ctx == nil {
+		return
+	}
+	if restorePoint >= 0 && restorePoint <= len(ctx.changes) {
+		ctx.changes = ctx.changes[:restorePoint]
+	}
+}
