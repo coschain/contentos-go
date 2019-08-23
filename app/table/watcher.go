@@ -68,10 +68,10 @@ func AddTableRecordFieldWatcher(dbSvcId uint32, recordType reflect.Type, primary
 	if watcherType.NumIn() != 5 ||
 		watcherType.In(0).Kind() != reflect.String ||
 		watcherType.In(1).Kind() != reflect.Int ||
-		watcherType.In(2) != keyType ||
-		watcherType.In(3) != valType ||
-		watcherType.In(4) != valType {
-		panic(fmt.Sprintf("watcher function type must be func(dbBranch string, event int, key %v, before, after %v)", keyType, valType))
+		!keyType.ConvertibleTo(watcherType.In(2)) ||
+		!valType.ConvertibleTo(watcherType.In(3)) ||
+		!valType.ConvertibleTo(watcherType.In(4)) {
+		panic(fmt.Sprintf("watcher function type must be compatible with func(dbBranch string, event int, key %v, before, after %v)", keyType, valType))
 	}
 
 	sTableWatchersLock.Lock()
@@ -146,7 +146,7 @@ func ReportTableRecordInsert(dbSvcId uint32, dbBranch string, key interface{}, r
 	}
 }
 
-func ReportTableRecordUpdate(dbSvcId uint32, dbBranch string, key interface{}, oldRecord, newRecord interface{}) {
+func ReportTableRecordUpdate(dbSvcId uint32, dbBranch string, key interface{}, oldRecord, newRecord interface{}, modified map[string]bool) {
 	sTableWatchersLock.RLock()
 	defer sTableWatchersLock.RUnlock()
 
@@ -156,6 +156,9 @@ func ReportTableRecordUpdate(dbSvcId uint32, dbBranch string, key interface{}, o
 			vKey := reflect.ValueOf(key)
 			vBranch := reflect.ValueOf(dbBranch)
 			for _, w := range watchers {
+				if len(w.field) > 0 && !modified[w.field] {
+					continue
+				}
 				oldData, newData := oldRec, newRec
 				if len(w.field) > 0 {
 					oldData, newData = oldRec.Elem().FieldByName(w.field), newRec.Elem().FieldByName(w.field)

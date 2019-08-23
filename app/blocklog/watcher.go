@@ -139,13 +139,13 @@ func (w *Watcher) recordChange(branch, what string, change interface{}) {
 }
 
 func (w *Watcher) setupWatchers() {
-	table.AddTableRecordFieldWatcher(w.dbSvc, table.AccountRecordType, "Name", "Balance", w.onAccountBalance)
+	for _, e := range sInterestedChanges {
+		table.AddTableRecordFieldWatcher(w.dbSvc, e.record, e.primary, e.field, w.makeWatcherFunc(e.what, e.maker))
+	}
 }
 
-func (w *Watcher) onAccountBalance(branch string, event int, name *prototype.AccountName, before, after *prototype.Coin) {
-	w.recordChange(branch, AccountBalance, &CoinChange{
-		Name:name.GetValue(),
-		Before:before.GetValue(),
-		After:after.GetValue(),
-	})
+func (w *Watcher) makeWatcherFunc(what string, changeMaker ChangeDataMaker) func(branch string, event int, key, before, after interface{}) {
+	return func(branch string, event int, key, before, after interface{}) {
+		w.recordChange(branch, what, changeMaker(key, before, after))
+	}
 }

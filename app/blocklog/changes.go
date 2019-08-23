@@ -1,11 +1,49 @@
 package blocklog
 
-const (
-	AccountBalance = "account_balance"
+import (
+	"github.com/coschain/contentos-go/app/table"
+	"github.com/coschain/contentos-go/prototype"
+	"reflect"
 )
 
-type CoinChange struct {
+const (
+	AccountBalance = "account_balance"
+	AccountVest = "account_vest"
+)
+
+type ChangeDataMaker func(key, before, after interface{}) interface{}
+
+type InterestedChange struct {
+	what string
+	record reflect.Type
+	primary string
+	field string
+	maker ChangeDataMaker
+}
+
+var sInterestedChanges = []InterestedChange{
+	{ AccountBalance, table.AccountRecordType, "Name", "Balance", accountBalanceChange },
+	{ AccountVest, table.AccountRecordType, "Name", "Vest", accountVestChange },
+}
+
+type AccountUint64ValueChange struct {
 	Name string			`json:"name"`
 	Before uint64		`json:"before"`
 	After uint64		`json:"after"`
+}
+
+func accountBalanceChange(key, before, after interface{}) interface{} {
+	return &AccountUint64ValueChange{
+		Name: 	key.(*prototype.AccountName).GetValue(),
+		Before: before.(*prototype.Coin).GetValue(),
+		After: 	after.(*prototype.Coin).GetValue(),
+	}
+}
+
+func accountVestChange(key, before, after interface{}) interface{} {
+	return &AccountUint64ValueChange{
+		Name: 	key.(*prototype.AccountName).GetValue(),
+		Before: before.(*prototype.Vest).GetValue(),
+		After: 	after.(*prototype.Vest).GetValue(),
+	}
 }
