@@ -993,7 +993,9 @@ func (ev *ContractApplyEvaluator) Apply() {
 	//	_ := recover()
 	//}()
 	if op.Amount != nil && op.Amount.Value > 0 {
+		vmCtx.Injector.StateChangeContext().PushCause("u2c")
 		vmCtx.Injector.TransferFromUserToContract(op.Caller.Value, op.Contract, op.Owner.Value, op.Amount.Value)
+		vmCtx.Injector.StateChangeContext().PopCause()
 	}
 
 	cosVM := vm.NewCosVM(vmCtx, ev.Database(), ev.GlobalProp().GetProps(), ev.Logger())
