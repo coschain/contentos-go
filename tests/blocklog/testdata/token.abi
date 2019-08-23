@@ -1,0 +1,116 @@
+{
+    "actions": [
+        {
+            "name": "create",
+            "type": "create"
+        },
+        {
+            "name": "transfer",
+            "type": "transfer"
+        }
+    ],
+    "structs": [
+        {
+            "base": "",
+            "fields": [
+                {
+                    "name": "tokenOwner",
+                    "type": "cosio::name"
+                },
+                {
+                    "name": "amount",
+                    "type": "uint64"
+                }
+            ],
+            "name": "balance"
+        },
+        {
+            "base": "",
+            "fields": [
+                {
+                    "name": "id",
+                    "type": "int32"
+                }
+            ],
+            "name": "singleton_record"
+        },
+        {
+            "base": "cosio::singleton_record",
+            "fields": [
+                {
+                    "name": "name",
+                    "type": "std::string"
+                },
+                {
+                    "name": "symbol",
+                    "type": "std::string"
+                },
+                {
+                    "name": "total_supply",
+                    "type": "uint64"
+                },
+                {
+                    "name": "decimals",
+                    "type": "uint32"
+                }
+            ],
+            "name": "stat"
+        },
+        {
+            "base": "",
+            "fields": [
+                {
+                    "name": "name",
+                    "type": "std::string"
+                },
+                {
+                    "name": "symbol",
+                    "type": "std::string"
+                },
+                {
+                    "name": "total_supply",
+                    "type": "uint64"
+                },
+                {
+                    "name": "decimals",
+                    "type": "uint32"
+                }
+            ],
+            "name": "create"
+        },
+        {
+            "base": "",
+            "fields": [
+                {
+                    "name": "from",
+                    "type": "cosio::name"
+                },
+                {
+                    "name": "to",
+                    "type": "cosio::name"
+                },
+                {
+                    "name": "amount",
+                    "type": "uint64"
+                }
+            ],
+            "name": "transfer"
+        }
+    ],
+    "tables": [
+        {
+            "name": "balances",
+            "primary": "tokenOwner",
+            "secondary": [],
+            "type": "balance"
+        },
+        {
+            "name": "stats",
+            "primary": "id",
+            "secondary": [],
+            "type": "stat"
+        }
+    ],
+    "types": null,
+    "version": "contentos::abi-1.0"
+}
