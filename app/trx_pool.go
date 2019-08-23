@@ -463,6 +463,7 @@ func (c *TrxPool) applyTransactionOnDb(db iservices.IDatabasePatch, entry *TrxEn
 		trxLogCtx.SetOperation(-1)
 		trxLogCtx.SetCause("pay_gas")
 		c.PayGas(db,trxContext)
+		trxLogCtx.SetTrxAndOperation("", -1)
 	}()
 
 	trxContext.CheckNet(trxDB, uint64(proto.Size(sigTrx)))

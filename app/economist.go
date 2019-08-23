@@ -164,6 +164,7 @@ func (e *Economist) Mint(trxObserver iservices.ITrxObserver) {
 	replyReward := creatorReward * constants.RewardRateReply / constants.PERCENT
 	voteReward := creatorReward - postReward - replyReward
 
+	e.stateChange.PushCause("bp_reward")
 	bpWrap, err := e.getAccount(globalProps.CurrentBlockProducer)
 	if err != nil {
 		panic("Mint failed when get bp wrap")
@@ -179,6 +180,7 @@ func (e *Economist) Mint(trxObserver iservices.ITrxObserver) {
 
 	updateBpVoteValue(e.db, globalProps.CurrentBlockProducer, oldVest, bpRewardVest)
 	trxObserver.AddOpState(iservices.Add, "mint", globalProps.CurrentBlockProducer.Value, bpReward)
+	e.stateChange.PopCause()
 
 	e.dgp.ModifyProps(func(props *prototype.DynamicProperties) {
 		props.PoolPostRewards.Add(&prototype.Vest{Value: postReward})
