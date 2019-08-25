@@ -842,7 +842,11 @@ type BlockProducerScheduleObjectWatcherFlag struct {
 }
 
 var (
-	BlockProducerScheduleObjectRecordType       = reflect.TypeOf((*SoBlockProducerScheduleObject)(nil)).Elem()
+	BlockProducerScheduleObjectTable = &TableInfo{
+		Name:    "BlockProducerScheduleObject",
+		Primary: "Id",
+		Record:  reflect.TypeOf((*SoBlockProducerScheduleObject)(nil)).Elem(),
+	}
 	BlockProducerScheduleObjectWatcherFlags     = make(map[uint32]BlockProducerScheduleObjectWatcherFlag)
 	BlockProducerScheduleObjectWatcherFlagsLock sync.RWMutex
 )
@@ -855,13 +859,13 @@ func BlockProducerScheduleObjectWatcherFlagOfDb(dbSvcId uint32) BlockProducerSch
 
 func BlockProducerScheduleObjectRecordWatcherChanged(dbSvcId uint32) {
 	var flag BlockProducerScheduleObjectWatcherFlag
-	flag.WholeWatcher = HasTableRecordWatcher(dbSvcId, BlockProducerScheduleObjectRecordType, "")
+	flag.WholeWatcher = HasTableRecordWatcher(dbSvcId, BlockProducerScheduleObjectTable.Record, "")
 	flag.AnyWatcher = flag.WholeWatcher
 
-	flag.HasCurrentShuffledBlockProducerWatcher = HasTableRecordWatcher(dbSvcId, BlockProducerScheduleObjectRecordType, "CurrentShuffledBlockProducer")
+	flag.HasCurrentShuffledBlockProducerWatcher = HasTableRecordWatcher(dbSvcId, BlockProducerScheduleObjectTable.Record, "CurrentShuffledBlockProducer")
 	flag.AnyWatcher = flag.AnyWatcher || flag.HasCurrentShuffledBlockProducerWatcher
 
-	flag.HasPubKeyWatcher = HasTableRecordWatcher(dbSvcId, BlockProducerScheduleObjectRecordType, "PubKey")
+	flag.HasPubKeyWatcher = HasTableRecordWatcher(dbSvcId, BlockProducerScheduleObjectTable.Record, "PubKey")
 	flag.AnyWatcher = flag.AnyWatcher || flag.HasPubKeyWatcher
 
 	BlockProducerScheduleObjectWatcherFlagsLock.Lock()
@@ -870,5 +874,5 @@ func BlockProducerScheduleObjectRecordWatcherChanged(dbSvcId uint32) {
 }
 
 func init() {
-	RegisterTableWatcherChangedCallback(BlockProducerScheduleObjectRecordType, BlockProducerScheduleObjectRecordWatcherChanged)
+	RegisterTableWatcherChangedCallback(BlockProducerScheduleObjectTable.Record, BlockProducerScheduleObjectRecordWatcherChanged)
 }

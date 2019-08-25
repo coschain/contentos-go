@@ -968,7 +968,11 @@ type ExtFollowCountWatcherFlag struct {
 }
 
 var (
-	ExtFollowCountRecordType       = reflect.TypeOf((*SoExtFollowCount)(nil)).Elem()
+	ExtFollowCountTable = &TableInfo{
+		Name:    "ExtFollowCount",
+		Primary: "Account",
+		Record:  reflect.TypeOf((*SoExtFollowCount)(nil)).Elem(),
+	}
 	ExtFollowCountWatcherFlags     = make(map[uint32]ExtFollowCountWatcherFlag)
 	ExtFollowCountWatcherFlagsLock sync.RWMutex
 )
@@ -981,16 +985,16 @@ func ExtFollowCountWatcherFlagOfDb(dbSvcId uint32) ExtFollowCountWatcherFlag {
 
 func ExtFollowCountRecordWatcherChanged(dbSvcId uint32) {
 	var flag ExtFollowCountWatcherFlag
-	flag.WholeWatcher = HasTableRecordWatcher(dbSvcId, ExtFollowCountRecordType, "")
+	flag.WholeWatcher = HasTableRecordWatcher(dbSvcId, ExtFollowCountTable.Record, "")
 	flag.AnyWatcher = flag.WholeWatcher
 
-	flag.HasFollowerCntWatcher = HasTableRecordWatcher(dbSvcId, ExtFollowCountRecordType, "FollowerCnt")
+	flag.HasFollowerCntWatcher = HasTableRecordWatcher(dbSvcId, ExtFollowCountTable.Record, "FollowerCnt")
 	flag.AnyWatcher = flag.AnyWatcher || flag.HasFollowerCntWatcher
 
-	flag.HasFollowingCntWatcher = HasTableRecordWatcher(dbSvcId, ExtFollowCountRecordType, "FollowingCnt")
+	flag.HasFollowingCntWatcher = HasTableRecordWatcher(dbSvcId, ExtFollowCountTable.Record, "FollowingCnt")
 	flag.AnyWatcher = flag.AnyWatcher || flag.HasFollowingCntWatcher
 
-	flag.HasUpdateTimeWatcher = HasTableRecordWatcher(dbSvcId, ExtFollowCountRecordType, "UpdateTime")
+	flag.HasUpdateTimeWatcher = HasTableRecordWatcher(dbSvcId, ExtFollowCountTable.Record, "UpdateTime")
 	flag.AnyWatcher = flag.AnyWatcher || flag.HasUpdateTimeWatcher
 
 	ExtFollowCountWatcherFlagsLock.Lock()
@@ -999,5 +1003,5 @@ func ExtFollowCountRecordWatcherChanged(dbSvcId uint32) {
 }
 
 func init() {
-	RegisterTableWatcherChangedCallback(ExtFollowCountRecordType, ExtFollowCountRecordWatcherChanged)
+	RegisterTableWatcherChangedCallback(ExtFollowCountTable.Record, ExtFollowCountRecordWatcherChanged)
 }

@@ -5164,7 +5164,11 @@ type AccountWatcherFlag struct {
 }
 
 var (
-	AccountRecordType       = reflect.TypeOf((*SoAccount)(nil)).Elem()
+	AccountTable = &TableInfo{
+		Name:    "Account",
+		Primary: "Name",
+		Record:  reflect.TypeOf((*SoAccount)(nil)).Elem(),
+	}
 	AccountWatcherFlags     = make(map[uint32]AccountWatcherFlag)
 	AccountWatcherFlagsLock sync.RWMutex
 )
@@ -5177,88 +5181,88 @@ func AccountWatcherFlagOfDb(dbSvcId uint32) AccountWatcherFlag {
 
 func AccountRecordWatcherChanged(dbSvcId uint32) {
 	var flag AccountWatcherFlag
-	flag.WholeWatcher = HasTableRecordWatcher(dbSvcId, AccountRecordType, "")
+	flag.WholeWatcher = HasTableRecordWatcher(dbSvcId, AccountTable.Record, "")
 	flag.AnyWatcher = flag.WholeWatcher
 
-	flag.HasBalanceWatcher = HasTableRecordWatcher(dbSvcId, AccountRecordType, "Balance")
+	flag.HasBalanceWatcher = HasTableRecordWatcher(dbSvcId, AccountTable.Record, "Balance")
 	flag.AnyWatcher = flag.AnyWatcher || flag.HasBalanceWatcher
 
-	flag.HasBpVoteCountWatcher = HasTableRecordWatcher(dbSvcId, AccountRecordType, "BpVoteCount")
+	flag.HasBpVoteCountWatcher = HasTableRecordWatcher(dbSvcId, AccountTable.Record, "BpVoteCount")
 	flag.AnyWatcher = flag.AnyWatcher || flag.HasBpVoteCountWatcher
 
-	flag.HasChargedTicketWatcher = HasTableRecordWatcher(dbSvcId, AccountRecordType, "ChargedTicket")
+	flag.HasChargedTicketWatcher = HasTableRecordWatcher(dbSvcId, AccountTable.Record, "ChargedTicket")
 	flag.AnyWatcher = flag.AnyWatcher || flag.HasChargedTicketWatcher
 
-	flag.HasCreatedTimeWatcher = HasTableRecordWatcher(dbSvcId, AccountRecordType, "CreatedTime")
+	flag.HasCreatedTimeWatcher = HasTableRecordWatcher(dbSvcId, AccountTable.Record, "CreatedTime")
 	flag.AnyWatcher = flag.AnyWatcher || flag.HasCreatedTimeWatcher
 
-	flag.HasCreatedTrxCountWatcher = HasTableRecordWatcher(dbSvcId, AccountRecordType, "CreatedTrxCount")
+	flag.HasCreatedTrxCountWatcher = HasTableRecordWatcher(dbSvcId, AccountTable.Record, "CreatedTrxCount")
 	flag.AnyWatcher = flag.AnyWatcher || flag.HasCreatedTrxCountWatcher
 
-	flag.HasCreatorWatcher = HasTableRecordWatcher(dbSvcId, AccountRecordType, "Creator")
+	flag.HasCreatorWatcher = HasTableRecordWatcher(dbSvcId, AccountTable.Record, "Creator")
 	flag.AnyWatcher = flag.AnyWatcher || flag.HasCreatorWatcher
 
-	flag.HasEachPowerdownRateWatcher = HasTableRecordWatcher(dbSvcId, AccountRecordType, "EachPowerdownRate")
+	flag.HasEachPowerdownRateWatcher = HasTableRecordWatcher(dbSvcId, AccountTable.Record, "EachPowerdownRate")
 	flag.AnyWatcher = flag.AnyWatcher || flag.HasEachPowerdownRateWatcher
 
-	flag.HasFreezeWatcher = HasTableRecordWatcher(dbSvcId, AccountRecordType, "Freeze")
+	flag.HasFreezeWatcher = HasTableRecordWatcher(dbSvcId, AccountTable.Record, "Freeze")
 	flag.AnyWatcher = flag.AnyWatcher || flag.HasFreezeWatcher
 
-	flag.HasFreezeMemoWatcher = HasTableRecordWatcher(dbSvcId, AccountRecordType, "FreezeMemo")
+	flag.HasFreezeMemoWatcher = HasTableRecordWatcher(dbSvcId, AccountTable.Record, "FreezeMemo")
 	flag.AnyWatcher = flag.AnyWatcher || flag.HasFreezeMemoWatcher
 
-	flag.HasHasPowerdownWatcher = HasTableRecordWatcher(dbSvcId, AccountRecordType, "HasPowerdown")
+	flag.HasHasPowerdownWatcher = HasTableRecordWatcher(dbSvcId, AccountTable.Record, "HasPowerdown")
 	flag.AnyWatcher = flag.AnyWatcher || flag.HasHasPowerdownWatcher
 
-	flag.HasLastPostTimeWatcher = HasTableRecordWatcher(dbSvcId, AccountRecordType, "LastPostTime")
+	flag.HasLastPostTimeWatcher = HasTableRecordWatcher(dbSvcId, AccountTable.Record, "LastPostTime")
 	flag.AnyWatcher = flag.AnyWatcher || flag.HasLastPostTimeWatcher
 
-	flag.HasLastStakeTimeWatcher = HasTableRecordWatcher(dbSvcId, AccountRecordType, "LastStakeTime")
+	flag.HasLastStakeTimeWatcher = HasTableRecordWatcher(dbSvcId, AccountTable.Record, "LastStakeTime")
 	flag.AnyWatcher = flag.AnyWatcher || flag.HasLastStakeTimeWatcher
 
-	flag.HasLastVoteTimeWatcher = HasTableRecordWatcher(dbSvcId, AccountRecordType, "LastVoteTime")
+	flag.HasLastVoteTimeWatcher = HasTableRecordWatcher(dbSvcId, AccountTable.Record, "LastVoteTime")
 	flag.AnyWatcher = flag.AnyWatcher || flag.HasLastVoteTimeWatcher
 
-	flag.HasNextPowerdownBlockNumWatcher = HasTableRecordWatcher(dbSvcId, AccountRecordType, "NextPowerdownBlockNum")
+	flag.HasNextPowerdownBlockNumWatcher = HasTableRecordWatcher(dbSvcId, AccountTable.Record, "NextPowerdownBlockNum")
 	flag.AnyWatcher = flag.AnyWatcher || flag.HasNextPowerdownBlockNumWatcher
 
-	flag.HasPostCountWatcher = HasTableRecordWatcher(dbSvcId, AccountRecordType, "PostCount")
+	flag.HasPostCountWatcher = HasTableRecordWatcher(dbSvcId, AccountTable.Record, "PostCount")
 	flag.AnyWatcher = flag.AnyWatcher || flag.HasPostCountWatcher
 
-	flag.HasPubKeyWatcher = HasTableRecordWatcher(dbSvcId, AccountRecordType, "PubKey")
+	flag.HasPubKeyWatcher = HasTableRecordWatcher(dbSvcId, AccountTable.Record, "PubKey")
 	flag.AnyWatcher = flag.AnyWatcher || flag.HasPubKeyWatcher
 
-	flag.HasReputationWatcher = HasTableRecordWatcher(dbSvcId, AccountRecordType, "Reputation")
+	flag.HasReputationWatcher = HasTableRecordWatcher(dbSvcId, AccountTable.Record, "Reputation")
 	flag.AnyWatcher = flag.AnyWatcher || flag.HasReputationWatcher
 
-	flag.HasReputationMemoWatcher = HasTableRecordWatcher(dbSvcId, AccountRecordType, "ReputationMemo")
+	flag.HasReputationMemoWatcher = HasTableRecordWatcher(dbSvcId, AccountTable.Record, "ReputationMemo")
 	flag.AnyWatcher = flag.AnyWatcher || flag.HasReputationMemoWatcher
 
-	flag.HasStakeVestForMeWatcher = HasTableRecordWatcher(dbSvcId, AccountRecordType, "StakeVestForMe")
+	flag.HasStakeVestForMeWatcher = HasTableRecordWatcher(dbSvcId, AccountTable.Record, "StakeVestForMe")
 	flag.AnyWatcher = flag.AnyWatcher || flag.HasStakeVestForMeWatcher
 
-	flag.HasStakeVestFromMeWatcher = HasTableRecordWatcher(dbSvcId, AccountRecordType, "StakeVestFromMe")
+	flag.HasStakeVestFromMeWatcher = HasTableRecordWatcher(dbSvcId, AccountTable.Record, "StakeVestFromMe")
 	flag.AnyWatcher = flag.AnyWatcher || flag.HasStakeVestFromMeWatcher
 
-	flag.HasStaminaWatcher = HasTableRecordWatcher(dbSvcId, AccountRecordType, "Stamina")
+	flag.HasStaminaWatcher = HasTableRecordWatcher(dbSvcId, AccountTable.Record, "Stamina")
 	flag.AnyWatcher = flag.AnyWatcher || flag.HasStaminaWatcher
 
-	flag.HasStaminaFreeWatcher = HasTableRecordWatcher(dbSvcId, AccountRecordType, "StaminaFree")
+	flag.HasStaminaFreeWatcher = HasTableRecordWatcher(dbSvcId, AccountTable.Record, "StaminaFree")
 	flag.AnyWatcher = flag.AnyWatcher || flag.HasStaminaFreeWatcher
 
-	flag.HasStaminaFreeUseBlockWatcher = HasTableRecordWatcher(dbSvcId, AccountRecordType, "StaminaFreeUseBlock")
+	flag.HasStaminaFreeUseBlockWatcher = HasTableRecordWatcher(dbSvcId, AccountTable.Record, "StaminaFreeUseBlock")
 	flag.AnyWatcher = flag.AnyWatcher || flag.HasStaminaFreeUseBlockWatcher
 
-	flag.HasStaminaUseBlockWatcher = HasTableRecordWatcher(dbSvcId, AccountRecordType, "StaminaUseBlock")
+	flag.HasStaminaUseBlockWatcher = HasTableRecordWatcher(dbSvcId, AccountTable.Record, "StaminaUseBlock")
 	flag.AnyWatcher = flag.AnyWatcher || flag.HasStaminaUseBlockWatcher
 
-	flag.HasToPowerdownWatcher = HasTableRecordWatcher(dbSvcId, AccountRecordType, "ToPowerdown")
+	flag.HasToPowerdownWatcher = HasTableRecordWatcher(dbSvcId, AccountTable.Record, "ToPowerdown")
 	flag.AnyWatcher = flag.AnyWatcher || flag.HasToPowerdownWatcher
 
-	flag.HasVestWatcher = HasTableRecordWatcher(dbSvcId, AccountRecordType, "Vest")
+	flag.HasVestWatcher = HasTableRecordWatcher(dbSvcId, AccountTable.Record, "Vest")
 	flag.AnyWatcher = flag.AnyWatcher || flag.HasVestWatcher
 
-	flag.HasVotePowerWatcher = HasTableRecordWatcher(dbSvcId, AccountRecordType, "VotePower")
+	flag.HasVotePowerWatcher = HasTableRecordWatcher(dbSvcId, AccountTable.Record, "VotePower")
 	flag.AnyWatcher = flag.AnyWatcher || flag.HasVotePowerWatcher
 
 	AccountWatcherFlagsLock.Lock()
@@ -5267,5 +5271,5 @@ func AccountRecordWatcherChanged(dbSvcId uint32) {
 }
 
 func init() {
-	RegisterTableWatcherChangedCallback(AccountRecordType, AccountRecordWatcherChanged)
+	RegisterTableWatcherChangedCallback(AccountTable.Record, AccountRecordWatcherChanged)
 }

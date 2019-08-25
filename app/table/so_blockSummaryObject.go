@@ -726,7 +726,11 @@ type BlockSummaryObjectWatcherFlag struct {
 }
 
 var (
-	BlockSummaryObjectRecordType       = reflect.TypeOf((*SoBlockSummaryObject)(nil)).Elem()
+	BlockSummaryObjectTable = &TableInfo{
+		Name:    "BlockSummaryObject",
+		Primary: "Id",
+		Record:  reflect.TypeOf((*SoBlockSummaryObject)(nil)).Elem(),
+	}
 	BlockSummaryObjectWatcherFlags     = make(map[uint32]BlockSummaryObjectWatcherFlag)
 	BlockSummaryObjectWatcherFlagsLock sync.RWMutex
 )
@@ -739,10 +743,10 @@ func BlockSummaryObjectWatcherFlagOfDb(dbSvcId uint32) BlockSummaryObjectWatcher
 
 func BlockSummaryObjectRecordWatcherChanged(dbSvcId uint32) {
 	var flag BlockSummaryObjectWatcherFlag
-	flag.WholeWatcher = HasTableRecordWatcher(dbSvcId, BlockSummaryObjectRecordType, "")
+	flag.WholeWatcher = HasTableRecordWatcher(dbSvcId, BlockSummaryObjectTable.Record, "")
 	flag.AnyWatcher = flag.WholeWatcher
 
-	flag.HasBlockIdWatcher = HasTableRecordWatcher(dbSvcId, BlockSummaryObjectRecordType, "BlockId")
+	flag.HasBlockIdWatcher = HasTableRecordWatcher(dbSvcId, BlockSummaryObjectTable.Record, "BlockId")
 	flag.AnyWatcher = flag.AnyWatcher || flag.HasBlockIdWatcher
 
 	BlockSummaryObjectWatcherFlagsLock.Lock()
@@ -751,5 +755,5 @@ func BlockSummaryObjectRecordWatcherChanged(dbSvcId uint32) {
 }
 
 func init() {
-	RegisterTableWatcherChangedCallback(BlockSummaryObjectRecordType, BlockSummaryObjectRecordWatcherChanged)
+	RegisterTableWatcherChangedCallback(BlockSummaryObjectTable.Record, BlockSummaryObjectRecordWatcherChanged)
 }

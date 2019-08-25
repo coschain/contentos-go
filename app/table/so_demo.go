@@ -3061,7 +3061,11 @@ type DemoWatcherFlag struct {
 }
 
 var (
-	DemoRecordType       = reflect.TypeOf((*SoDemo)(nil)).Elem()
+	DemoTable = &TableInfo{
+		Name:    "Demo",
+		Primary: "Owner",
+		Record:  reflect.TypeOf((*SoDemo)(nil)).Elem(),
+	}
 	DemoWatcherFlags     = make(map[uint32]DemoWatcherFlag)
 	DemoWatcherFlagsLock sync.RWMutex
 )
@@ -3074,34 +3078,34 @@ func DemoWatcherFlagOfDb(dbSvcId uint32) DemoWatcherFlag {
 
 func DemoRecordWatcherChanged(dbSvcId uint32) {
 	var flag DemoWatcherFlag
-	flag.WholeWatcher = HasTableRecordWatcher(dbSvcId, DemoRecordType, "")
+	flag.WholeWatcher = HasTableRecordWatcher(dbSvcId, DemoTable.Record, "")
 	flag.AnyWatcher = flag.WholeWatcher
 
-	flag.HasContentWatcher = HasTableRecordWatcher(dbSvcId, DemoRecordType, "Content")
+	flag.HasContentWatcher = HasTableRecordWatcher(dbSvcId, DemoTable.Record, "Content")
 	flag.AnyWatcher = flag.AnyWatcher || flag.HasContentWatcher
 
-	flag.HasIdxWatcher = HasTableRecordWatcher(dbSvcId, DemoRecordType, "Idx")
+	flag.HasIdxWatcher = HasTableRecordWatcher(dbSvcId, DemoTable.Record, "Idx")
 	flag.AnyWatcher = flag.AnyWatcher || flag.HasIdxWatcher
 
-	flag.HasLikeCountWatcher = HasTableRecordWatcher(dbSvcId, DemoRecordType, "LikeCount")
+	flag.HasLikeCountWatcher = HasTableRecordWatcher(dbSvcId, DemoTable.Record, "LikeCount")
 	flag.AnyWatcher = flag.AnyWatcher || flag.HasLikeCountWatcher
 
-	flag.HasNickNameWatcher = HasTableRecordWatcher(dbSvcId, DemoRecordType, "NickName")
+	flag.HasNickNameWatcher = HasTableRecordWatcher(dbSvcId, DemoTable.Record, "NickName")
 	flag.AnyWatcher = flag.AnyWatcher || flag.HasNickNameWatcher
 
-	flag.HasPostTimeWatcher = HasTableRecordWatcher(dbSvcId, DemoRecordType, "PostTime")
+	flag.HasPostTimeWatcher = HasTableRecordWatcher(dbSvcId, DemoTable.Record, "PostTime")
 	flag.AnyWatcher = flag.AnyWatcher || flag.HasPostTimeWatcher
 
-	flag.HasRegistTimeWatcher = HasTableRecordWatcher(dbSvcId, DemoRecordType, "RegistTime")
+	flag.HasRegistTimeWatcher = HasTableRecordWatcher(dbSvcId, DemoTable.Record, "RegistTime")
 	flag.AnyWatcher = flag.AnyWatcher || flag.HasRegistTimeWatcher
 
-	flag.HasReplayCountWatcher = HasTableRecordWatcher(dbSvcId, DemoRecordType, "ReplayCount")
+	flag.HasReplayCountWatcher = HasTableRecordWatcher(dbSvcId, DemoTable.Record, "ReplayCount")
 	flag.AnyWatcher = flag.AnyWatcher || flag.HasReplayCountWatcher
 
-	flag.HasTaglistWatcher = HasTableRecordWatcher(dbSvcId, DemoRecordType, "Taglist")
+	flag.HasTaglistWatcher = HasTableRecordWatcher(dbSvcId, DemoTable.Record, "Taglist")
 	flag.AnyWatcher = flag.AnyWatcher || flag.HasTaglistWatcher
 
-	flag.HasTitleWatcher = HasTableRecordWatcher(dbSvcId, DemoRecordType, "Title")
+	flag.HasTitleWatcher = HasTableRecordWatcher(dbSvcId, DemoTable.Record, "Title")
 	flag.AnyWatcher = flag.AnyWatcher || flag.HasTitleWatcher
 
 	DemoWatcherFlagsLock.Lock()
@@ -3110,5 +3114,5 @@ func DemoRecordWatcherChanged(dbSvcId uint32) {
 }
 
 func init() {
-	RegisterTableWatcherChangedCallback(DemoRecordType, DemoRecordWatcherChanged)
+	RegisterTableWatcherChangedCallback(DemoTable.Record, DemoRecordWatcherChanged)
 }

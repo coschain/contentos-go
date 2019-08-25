@@ -1296,7 +1296,11 @@ type StakeRecordWatcherFlag struct {
 }
 
 var (
-	StakeRecordRecordType       = reflect.TypeOf((*SoStakeRecord)(nil)).Elem()
+	StakeRecordTable = &TableInfo{
+		Name:    "StakeRecord",
+		Primary: "Record",
+		Record:  reflect.TypeOf((*SoStakeRecord)(nil)).Elem(),
+	}
 	StakeRecordWatcherFlags     = make(map[uint32]StakeRecordWatcherFlag)
 	StakeRecordWatcherFlagsLock sync.RWMutex
 )
@@ -1309,16 +1313,16 @@ func StakeRecordWatcherFlagOfDb(dbSvcId uint32) StakeRecordWatcherFlag {
 
 func StakeRecordRecordWatcherChanged(dbSvcId uint32) {
 	var flag StakeRecordWatcherFlag
-	flag.WholeWatcher = HasTableRecordWatcher(dbSvcId, StakeRecordRecordType, "")
+	flag.WholeWatcher = HasTableRecordWatcher(dbSvcId, StakeRecordTable.Record, "")
 	flag.AnyWatcher = flag.WholeWatcher
 
-	flag.HasLastStakeTimeWatcher = HasTableRecordWatcher(dbSvcId, StakeRecordRecordType, "LastStakeTime")
+	flag.HasLastStakeTimeWatcher = HasTableRecordWatcher(dbSvcId, StakeRecordTable.Record, "LastStakeTime")
 	flag.AnyWatcher = flag.AnyWatcher || flag.HasLastStakeTimeWatcher
 
-	flag.HasRecordReverseWatcher = HasTableRecordWatcher(dbSvcId, StakeRecordRecordType, "RecordReverse")
+	flag.HasRecordReverseWatcher = HasTableRecordWatcher(dbSvcId, StakeRecordTable.Record, "RecordReverse")
 	flag.AnyWatcher = flag.AnyWatcher || flag.HasRecordReverseWatcher
 
-	flag.HasStakeAmountWatcher = HasTableRecordWatcher(dbSvcId, StakeRecordRecordType, "StakeAmount")
+	flag.HasStakeAmountWatcher = HasTableRecordWatcher(dbSvcId, StakeRecordTable.Record, "StakeAmount")
 	flag.AnyWatcher = flag.AnyWatcher || flag.HasStakeAmountWatcher
 
 	StakeRecordWatcherFlagsLock.Lock()
@@ -1327,5 +1331,5 @@ func StakeRecordRecordWatcherChanged(dbSvcId uint32) {
 }
 
 func init() {
-	RegisterTableWatcherChangedCallback(StakeRecordRecordType, StakeRecordRecordWatcherChanged)
+	RegisterTableWatcherChangedCallback(StakeRecordTable.Record, StakeRecordRecordWatcherChanged)
 }

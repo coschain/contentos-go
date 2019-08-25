@@ -890,7 +890,11 @@ type ExtReplyCreatedWatcherFlag struct {
 }
 
 var (
-	ExtReplyCreatedRecordType       = reflect.TypeOf((*SoExtReplyCreated)(nil)).Elem()
+	ExtReplyCreatedTable = &TableInfo{
+		Name:    "ExtReplyCreated",
+		Primary: "PostId",
+		Record:  reflect.TypeOf((*SoExtReplyCreated)(nil)).Elem(),
+	}
 	ExtReplyCreatedWatcherFlags     = make(map[uint32]ExtReplyCreatedWatcherFlag)
 	ExtReplyCreatedWatcherFlagsLock sync.RWMutex
 )
@@ -903,10 +907,10 @@ func ExtReplyCreatedWatcherFlagOfDb(dbSvcId uint32) ExtReplyCreatedWatcherFlag {
 
 func ExtReplyCreatedRecordWatcherChanged(dbSvcId uint32) {
 	var flag ExtReplyCreatedWatcherFlag
-	flag.WholeWatcher = HasTableRecordWatcher(dbSvcId, ExtReplyCreatedRecordType, "")
+	flag.WholeWatcher = HasTableRecordWatcher(dbSvcId, ExtReplyCreatedTable.Record, "")
 	flag.AnyWatcher = flag.WholeWatcher
 
-	flag.HasCreatedOrderWatcher = HasTableRecordWatcher(dbSvcId, ExtReplyCreatedRecordType, "CreatedOrder")
+	flag.HasCreatedOrderWatcher = HasTableRecordWatcher(dbSvcId, ExtReplyCreatedTable.Record, "CreatedOrder")
 	flag.AnyWatcher = flag.AnyWatcher || flag.HasCreatedOrderWatcher
 
 	ExtReplyCreatedWatcherFlagsLock.Lock()
@@ -915,5 +919,5 @@ func ExtReplyCreatedRecordWatcherChanged(dbSvcId uint32) {
 }
 
 func init() {
-	RegisterTableWatcherChangedCallback(ExtReplyCreatedRecordType, ExtReplyCreatedRecordWatcherChanged)
+	RegisterTableWatcherChangedCallback(ExtReplyCreatedTable.Record, ExtReplyCreatedRecordWatcherChanged)
 }

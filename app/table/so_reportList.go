@@ -1121,7 +1121,11 @@ type ReportListWatcherFlag struct {
 }
 
 var (
-	ReportListRecordType       = reflect.TypeOf((*SoReportList)(nil)).Elem()
+	ReportListTable = &TableInfo{
+		Name:    "ReportList",
+		Primary: "Uuid",
+		Record:  reflect.TypeOf((*SoReportList)(nil)).Elem(),
+	}
 	ReportListWatcherFlags     = make(map[uint32]ReportListWatcherFlag)
 	ReportListWatcherFlagsLock sync.RWMutex
 )
@@ -1134,16 +1138,16 @@ func ReportListWatcherFlagOfDb(dbSvcId uint32) ReportListWatcherFlag {
 
 func ReportListRecordWatcherChanged(dbSvcId uint32) {
 	var flag ReportListWatcherFlag
-	flag.WholeWatcher = HasTableRecordWatcher(dbSvcId, ReportListRecordType, "")
+	flag.WholeWatcher = HasTableRecordWatcher(dbSvcId, ReportListTable.Record, "")
 	flag.AnyWatcher = flag.WholeWatcher
 
-	flag.HasIsArbitratedWatcher = HasTableRecordWatcher(dbSvcId, ReportListRecordType, "IsArbitrated")
+	flag.HasIsArbitratedWatcher = HasTableRecordWatcher(dbSvcId, ReportListTable.Record, "IsArbitrated")
 	flag.AnyWatcher = flag.AnyWatcher || flag.HasIsArbitratedWatcher
 
-	flag.HasReportedTimesWatcher = HasTableRecordWatcher(dbSvcId, ReportListRecordType, "ReportedTimes")
+	flag.HasReportedTimesWatcher = HasTableRecordWatcher(dbSvcId, ReportListTable.Record, "ReportedTimes")
 	flag.AnyWatcher = flag.AnyWatcher || flag.HasReportedTimesWatcher
 
-	flag.HasTagsWatcher = HasTableRecordWatcher(dbSvcId, ReportListRecordType, "Tags")
+	flag.HasTagsWatcher = HasTableRecordWatcher(dbSvcId, ReportListTable.Record, "Tags")
 	flag.AnyWatcher = flag.AnyWatcher || flag.HasTagsWatcher
 
 	ReportListWatcherFlagsLock.Lock()
@@ -1152,5 +1156,5 @@ func ReportListRecordWatcherChanged(dbSvcId uint32) {
 }
 
 func init() {
-	RegisterTableWatcherChangedCallback(ReportListRecordType, ReportListRecordWatcherChanged)
+	RegisterTableWatcherChangedCallback(ReportListTable.Record, ReportListRecordWatcherChanged)
 }

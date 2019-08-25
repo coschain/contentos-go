@@ -2,6 +2,7 @@ package table
 
 import (
 	"fmt"
+	"reflect"
 	"strings"
 	"unicode"
 )
@@ -14,6 +15,12 @@ const (
 	FieldMdHandleTypeDel    FieldMdHandleType = 1 //delete sort and unique struct
     FieldMdHandleTypeInsert FieldMdHandleType = 2 //insert sort and unique struct to table
 )
+
+type TableInfo struct {
+	Name   	string
+	Primary string
+	Record 	reflect.Type
+}
 
 func ConvTableFieldToPbFormat(fName string) string {
 	res := ""

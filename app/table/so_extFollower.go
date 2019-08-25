@@ -908,7 +908,11 @@ type ExtFollowerWatcherFlag struct {
 }
 
 var (
-	ExtFollowerRecordType       = reflect.TypeOf((*SoExtFollower)(nil)).Elem()
+	ExtFollowerTable = &TableInfo{
+		Name:    "ExtFollower",
+		Primary: "FollowerInfo",
+		Record:  reflect.TypeOf((*SoExtFollower)(nil)).Elem(),
+	}
 	ExtFollowerWatcherFlags     = make(map[uint32]ExtFollowerWatcherFlag)
 	ExtFollowerWatcherFlagsLock sync.RWMutex
 )
@@ -921,10 +925,10 @@ func ExtFollowerWatcherFlagOfDb(dbSvcId uint32) ExtFollowerWatcherFlag {
 
 func ExtFollowerRecordWatcherChanged(dbSvcId uint32) {
 	var flag ExtFollowerWatcherFlag
-	flag.WholeWatcher = HasTableRecordWatcher(dbSvcId, ExtFollowerRecordType, "")
+	flag.WholeWatcher = HasTableRecordWatcher(dbSvcId, ExtFollowerTable.Record, "")
 	flag.AnyWatcher = flag.WholeWatcher
 
-	flag.HasFollowerCreatedOrderWatcher = HasTableRecordWatcher(dbSvcId, ExtFollowerRecordType, "FollowerCreatedOrder")
+	flag.HasFollowerCreatedOrderWatcher = HasTableRecordWatcher(dbSvcId, ExtFollowerTable.Record, "FollowerCreatedOrder")
 	flag.AnyWatcher = flag.AnyWatcher || flag.HasFollowerCreatedOrderWatcher
 
 	ExtFollowerWatcherFlagsLock.Lock()
@@ -933,5 +937,5 @@ func ExtFollowerRecordWatcherChanged(dbSvcId uint32) {
 }
 
 func init() {
-	RegisterTableWatcherChangedCallback(ExtFollowerRecordType, ExtFollowerRecordWatcherChanged)
+	RegisterTableWatcherChangedCallback(ExtFollowerTable.Record, ExtFollowerRecordWatcherChanged)
 }

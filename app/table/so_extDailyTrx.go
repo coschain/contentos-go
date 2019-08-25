@@ -1058,7 +1058,11 @@ type ExtDailyTrxWatcherFlag struct {
 }
 
 var (
-	ExtDailyTrxRecordType       = reflect.TypeOf((*SoExtDailyTrx)(nil)).Elem()
+	ExtDailyTrxTable = &TableInfo{
+		Name:    "ExtDailyTrx",
+		Primary: "Date",
+		Record:  reflect.TypeOf((*SoExtDailyTrx)(nil)).Elem(),
+	}
 	ExtDailyTrxWatcherFlags     = make(map[uint32]ExtDailyTrxWatcherFlag)
 	ExtDailyTrxWatcherFlagsLock sync.RWMutex
 )
@@ -1071,10 +1075,10 @@ func ExtDailyTrxWatcherFlagOfDb(dbSvcId uint32) ExtDailyTrxWatcherFlag {
 
 func ExtDailyTrxRecordWatcherChanged(dbSvcId uint32) {
 	var flag ExtDailyTrxWatcherFlag
-	flag.WholeWatcher = HasTableRecordWatcher(dbSvcId, ExtDailyTrxRecordType, "")
+	flag.WholeWatcher = HasTableRecordWatcher(dbSvcId, ExtDailyTrxTable.Record, "")
 	flag.AnyWatcher = flag.WholeWatcher
 
-	flag.HasCountWatcher = HasTableRecordWatcher(dbSvcId, ExtDailyTrxRecordType, "Count")
+	flag.HasCountWatcher = HasTableRecordWatcher(dbSvcId, ExtDailyTrxTable.Record, "Count")
 	flag.AnyWatcher = flag.AnyWatcher || flag.HasCountWatcher
 
 	ExtDailyTrxWatcherFlagsLock.Lock()
@@ -1083,5 +1087,5 @@ func ExtDailyTrxRecordWatcherChanged(dbSvcId uint32) {
 }
 
 func init() {
-	RegisterTableWatcherChangedCallback(ExtDailyTrxRecordType, ExtDailyTrxRecordWatcherChanged)
+	RegisterTableWatcherChangedCallback(ExtDailyTrxTable.Record, ExtDailyTrxRecordWatcherChanged)
 }

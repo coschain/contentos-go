@@ -726,7 +726,11 @@ type GlobalWatcherFlag struct {
 }
 
 var (
-	GlobalRecordType       = reflect.TypeOf((*SoGlobal)(nil)).Elem()
+	GlobalTable = &TableInfo{
+		Name:    "Global",
+		Primary: "Id",
+		Record:  reflect.TypeOf((*SoGlobal)(nil)).Elem(),
+	}
 	GlobalWatcherFlags     = make(map[uint32]GlobalWatcherFlag)
 	GlobalWatcherFlagsLock sync.RWMutex
 )
@@ -739,10 +743,10 @@ func GlobalWatcherFlagOfDb(dbSvcId uint32) GlobalWatcherFlag {
 
 func GlobalRecordWatcherChanged(dbSvcId uint32) {
 	var flag GlobalWatcherFlag
-	flag.WholeWatcher = HasTableRecordWatcher(dbSvcId, GlobalRecordType, "")
+	flag.WholeWatcher = HasTableRecordWatcher(dbSvcId, GlobalTable.Record, "")
 	flag.AnyWatcher = flag.WholeWatcher
 
-	flag.HasPropsWatcher = HasTableRecordWatcher(dbSvcId, GlobalRecordType, "Props")
+	flag.HasPropsWatcher = HasTableRecordWatcher(dbSvcId, GlobalTable.Record, "Props")
 	flag.AnyWatcher = flag.AnyWatcher || flag.HasPropsWatcher
 
 	GlobalWatcherFlagsLock.Lock()
@@ -751,5 +755,5 @@ func GlobalRecordWatcherChanged(dbSvcId uint32) {
 }
 
 func init() {
-	RegisterTableWatcherChangedCallback(GlobalRecordType, GlobalRecordWatcherChanged)
+	RegisterTableWatcherChangedCallback(GlobalTable.Record, GlobalRecordWatcherChanged)
 }

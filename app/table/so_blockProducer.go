@@ -2334,7 +2334,11 @@ type BlockProducerWatcherFlag struct {
 }
 
 var (
-	BlockProducerRecordType       = reflect.TypeOf((*SoBlockProducer)(nil)).Elem()
+	BlockProducerTable = &TableInfo{
+		Name:    "BlockProducer",
+		Primary: "Owner",
+		Record:  reflect.TypeOf((*SoBlockProducer)(nil)).Elem(),
+	}
 	BlockProducerWatcherFlags     = make(map[uint32]BlockProducerWatcherFlag)
 	BlockProducerWatcherFlagsLock sync.RWMutex
 )
@@ -2347,43 +2351,43 @@ func BlockProducerWatcherFlagOfDb(dbSvcId uint32) BlockProducerWatcherFlag {
 
 func BlockProducerRecordWatcherChanged(dbSvcId uint32) {
 	var flag BlockProducerWatcherFlag
-	flag.WholeWatcher = HasTableRecordWatcher(dbSvcId, BlockProducerRecordType, "")
+	flag.WholeWatcher = HasTableRecordWatcher(dbSvcId, BlockProducerTable.Record, "")
 	flag.AnyWatcher = flag.WholeWatcher
 
-	flag.HasAccountCreateFeeWatcher = HasTableRecordWatcher(dbSvcId, BlockProducerRecordType, "AccountCreateFee")
+	flag.HasAccountCreateFeeWatcher = HasTableRecordWatcher(dbSvcId, BlockProducerTable.Record, "AccountCreateFee")
 	flag.AnyWatcher = flag.AnyWatcher || flag.HasAccountCreateFeeWatcher
 
-	flag.HasBpVestWatcher = HasTableRecordWatcher(dbSvcId, BlockProducerRecordType, "BpVest")
+	flag.HasBpVestWatcher = HasTableRecordWatcher(dbSvcId, BlockProducerTable.Record, "BpVest")
 	flag.AnyWatcher = flag.AnyWatcher || flag.HasBpVestWatcher
 
-	flag.HasCreatedTimeWatcher = HasTableRecordWatcher(dbSvcId, BlockProducerRecordType, "CreatedTime")
+	flag.HasCreatedTimeWatcher = HasTableRecordWatcher(dbSvcId, BlockProducerTable.Record, "CreatedTime")
 	flag.AnyWatcher = flag.AnyWatcher || flag.HasCreatedTimeWatcher
 
-	flag.HasEpochDurationWatcher = HasTableRecordWatcher(dbSvcId, BlockProducerRecordType, "EpochDuration")
+	flag.HasEpochDurationWatcher = HasTableRecordWatcher(dbSvcId, BlockProducerTable.Record, "EpochDuration")
 	flag.AnyWatcher = flag.AnyWatcher || flag.HasEpochDurationWatcher
 
-	flag.HasPerTicketPriceWatcher = HasTableRecordWatcher(dbSvcId, BlockProducerRecordType, "PerTicketPrice")
+	flag.HasPerTicketPriceWatcher = HasTableRecordWatcher(dbSvcId, BlockProducerTable.Record, "PerTicketPrice")
 	flag.AnyWatcher = flag.AnyWatcher || flag.HasPerTicketPriceWatcher
 
-	flag.HasPerTicketWeightWatcher = HasTableRecordWatcher(dbSvcId, BlockProducerRecordType, "PerTicketWeight")
+	flag.HasPerTicketWeightWatcher = HasTableRecordWatcher(dbSvcId, BlockProducerTable.Record, "PerTicketWeight")
 	flag.AnyWatcher = flag.AnyWatcher || flag.HasPerTicketWeightWatcher
 
-	flag.HasProposedStaminaFreeWatcher = HasTableRecordWatcher(dbSvcId, BlockProducerRecordType, "ProposedStaminaFree")
+	flag.HasProposedStaminaFreeWatcher = HasTableRecordWatcher(dbSvcId, BlockProducerTable.Record, "ProposedStaminaFree")
 	flag.AnyWatcher = flag.AnyWatcher || flag.HasProposedStaminaFreeWatcher
 
-	flag.HasSigningKeyWatcher = HasTableRecordWatcher(dbSvcId, BlockProducerRecordType, "SigningKey")
+	flag.HasSigningKeyWatcher = HasTableRecordWatcher(dbSvcId, BlockProducerTable.Record, "SigningKey")
 	flag.AnyWatcher = flag.AnyWatcher || flag.HasSigningKeyWatcher
 
-	flag.HasTopNAcquireFreeTokenWatcher = HasTableRecordWatcher(dbSvcId, BlockProducerRecordType, "TopNAcquireFreeToken")
+	flag.HasTopNAcquireFreeTokenWatcher = HasTableRecordWatcher(dbSvcId, BlockProducerTable.Record, "TopNAcquireFreeToken")
 	flag.AnyWatcher = flag.AnyWatcher || flag.HasTopNAcquireFreeTokenWatcher
 
-	flag.HasTpsExpectedWatcher = HasTableRecordWatcher(dbSvcId, BlockProducerRecordType, "TpsExpected")
+	flag.HasTpsExpectedWatcher = HasTableRecordWatcher(dbSvcId, BlockProducerTable.Record, "TpsExpected")
 	flag.AnyWatcher = flag.AnyWatcher || flag.HasTpsExpectedWatcher
 
-	flag.HasUrlWatcher = HasTableRecordWatcher(dbSvcId, BlockProducerRecordType, "Url")
+	flag.HasUrlWatcher = HasTableRecordWatcher(dbSvcId, BlockProducerTable.Record, "Url")
 	flag.AnyWatcher = flag.AnyWatcher || flag.HasUrlWatcher
 
-	flag.HasVoterCountWatcher = HasTableRecordWatcher(dbSvcId, BlockProducerRecordType, "VoterCount")
+	flag.HasVoterCountWatcher = HasTableRecordWatcher(dbSvcId, BlockProducerTable.Record, "VoterCount")
 	flag.AnyWatcher = flag.AnyWatcher || flag.HasVoterCountWatcher
 
 	BlockProducerWatcherFlagsLock.Lock()
@@ -2392,5 +2396,5 @@ func BlockProducerRecordWatcherChanged(dbSvcId uint32) {
 }
 
 func init() {
-	RegisterTableWatcherChangedCallback(BlockProducerRecordType, BlockProducerRecordWatcherChanged)
+	RegisterTableWatcherChangedCallback(BlockProducerTable.Record, BlockProducerRecordWatcherChanged)
 }

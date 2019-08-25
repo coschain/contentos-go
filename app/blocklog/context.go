@@ -78,13 +78,14 @@ func (ctx *StateChangeContext) Cause() string {
 	return strings.Join(ctx.causes, ".")
 }
 
-func (ctx *StateChangeContext) AddChange(what string, change interface{}) {
+func (ctx *StateChangeContext) AddChange(what, kind string, change *GenericChange) {
 	if ctx == nil {
 		return
 	}
 	ctx.changes = append(ctx.changes, &internalStateChange{
 		StateChange: StateChange{
-			Type:        what,
+			What:        what,
+			Kind:        kind,
 			Cause:       ctx.Cause(),
 			Change:      change,
 		},

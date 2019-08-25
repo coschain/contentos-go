@@ -1138,7 +1138,11 @@ type BlockProducerVoteWatcherFlag struct {
 }
 
 var (
-	BlockProducerVoteRecordType       = reflect.TypeOf((*SoBlockProducerVote)(nil)).Elem()
+	BlockProducerVoteTable = &TableInfo{
+		Name:    "BlockProducerVote",
+		Primary: "BlockProducerId",
+		Record:  reflect.TypeOf((*SoBlockProducerVote)(nil)).Elem(),
+	}
 	BlockProducerVoteWatcherFlags     = make(map[uint32]BlockProducerVoteWatcherFlag)
 	BlockProducerVoteWatcherFlagsLock sync.RWMutex
 )
@@ -1151,13 +1155,13 @@ func BlockProducerVoteWatcherFlagOfDb(dbSvcId uint32) BlockProducerVoteWatcherFl
 
 func BlockProducerVoteRecordWatcherChanged(dbSvcId uint32) {
 	var flag BlockProducerVoteWatcherFlag
-	flag.WholeWatcher = HasTableRecordWatcher(dbSvcId, BlockProducerVoteRecordType, "")
+	flag.WholeWatcher = HasTableRecordWatcher(dbSvcId, BlockProducerVoteTable.Record, "")
 	flag.AnyWatcher = flag.WholeWatcher
 
-	flag.HasVoteTimeWatcher = HasTableRecordWatcher(dbSvcId, BlockProducerVoteRecordType, "VoteTime")
+	flag.HasVoteTimeWatcher = HasTableRecordWatcher(dbSvcId, BlockProducerVoteTable.Record, "VoteTime")
 	flag.AnyWatcher = flag.AnyWatcher || flag.HasVoteTimeWatcher
 
-	flag.HasVoterNameWatcher = HasTableRecordWatcher(dbSvcId, BlockProducerVoteRecordType, "VoterName")
+	flag.HasVoterNameWatcher = HasTableRecordWatcher(dbSvcId, BlockProducerVoteTable.Record, "VoterName")
 	flag.AnyWatcher = flag.AnyWatcher || flag.HasVoterNameWatcher
 
 	BlockProducerVoteWatcherFlagsLock.Lock()
@@ -1166,5 +1170,5 @@ func BlockProducerVoteRecordWatcherChanged(dbSvcId uint32) {
 }
 
 func init() {
-	RegisterTableWatcherChangedCallback(BlockProducerVoteRecordType, BlockProducerVoteRecordWatcherChanged)
+	RegisterTableWatcherChangedCallback(BlockProducerVoteTable.Record, BlockProducerVoteRecordWatcherChanged)
 }

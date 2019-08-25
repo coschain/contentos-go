@@ -1578,7 +1578,11 @@ type VoteWatcherFlag struct {
 }
 
 var (
-	VoteRecordType       = reflect.TypeOf((*SoVote)(nil)).Elem()
+	VoteTable = &TableInfo{
+		Name:    "Vote",
+		Primary: "Voter",
+		Record:  reflect.TypeOf((*SoVote)(nil)).Elem(),
+	}
 	VoteWatcherFlags     = make(map[uint32]VoteWatcherFlag)
 	VoteWatcherFlagsLock sync.RWMutex
 )
@@ -1591,19 +1595,19 @@ func VoteWatcherFlagOfDb(dbSvcId uint32) VoteWatcherFlag {
 
 func VoteRecordWatcherChanged(dbSvcId uint32) {
 	var flag VoteWatcherFlag
-	flag.WholeWatcher = HasTableRecordWatcher(dbSvcId, VoteRecordType, "")
+	flag.WholeWatcher = HasTableRecordWatcher(dbSvcId, VoteTable.Record, "")
 	flag.AnyWatcher = flag.WholeWatcher
 
-	flag.HasPostIdWatcher = HasTableRecordWatcher(dbSvcId, VoteRecordType, "PostId")
+	flag.HasPostIdWatcher = HasTableRecordWatcher(dbSvcId, VoteTable.Record, "PostId")
 	flag.AnyWatcher = flag.AnyWatcher || flag.HasPostIdWatcher
 
-	flag.HasUpvoteWatcher = HasTableRecordWatcher(dbSvcId, VoteRecordType, "Upvote")
+	flag.HasUpvoteWatcher = HasTableRecordWatcher(dbSvcId, VoteTable.Record, "Upvote")
 	flag.AnyWatcher = flag.AnyWatcher || flag.HasUpvoteWatcher
 
-	flag.HasVoteTimeWatcher = HasTableRecordWatcher(dbSvcId, VoteRecordType, "VoteTime")
+	flag.HasVoteTimeWatcher = HasTableRecordWatcher(dbSvcId, VoteTable.Record, "VoteTime")
 	flag.AnyWatcher = flag.AnyWatcher || flag.HasVoteTimeWatcher
 
-	flag.HasWeightedVpWatcher = HasTableRecordWatcher(dbSvcId, VoteRecordType, "WeightedVp")
+	flag.HasWeightedVpWatcher = HasTableRecordWatcher(dbSvcId, VoteTable.Record, "WeightedVp")
 	flag.AnyWatcher = flag.AnyWatcher || flag.HasWeightedVpWatcher
 
 	VoteWatcherFlagsLock.Lock()
@@ -1612,5 +1616,5 @@ func VoteRecordWatcherChanged(dbSvcId uint32) {
 }
 
 func init() {
-	RegisterTableWatcherChangedCallback(VoteRecordType, VoteRecordWatcherChanged)
+	RegisterTableWatcherChangedCallback(VoteTable.Record, VoteRecordWatcherChanged)
 }

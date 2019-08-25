@@ -2,6 +2,7 @@ package vm
 
 import (
 	"fmt"
+	"github.com/coschain/contentos-go/app/blocklog"
 	"github.com/coschain/contentos-go/app/table"
 	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/iservices"
@@ -323,18 +324,19 @@ func (w *CosVMNative) SetUserFreeze(name string, value uint32, memo string) {
 	}
 }
 
-type ContractTableRecordChange struct {
-	Table string			`json:"table"`
-	Id interface{}			`json:"id"`
-	Before interface{}		`json:"before"`
-	After interface{}		`json:"after"`
+var sTableRecordEvent2Kind = map[string]string{
+	table2.RecordInsert: blocklog.ChangeKindCreate,
+	table2.RecordUpdate: blocklog.ChangeKindUpdate,
+	table2.RecordDelete: blocklog.ChangeKindDelete,
 }
 
-func (w *CosVMNative) addTableRecordChange(tableName, what string, key, before, after interface{}) {
-	w.cosVM.ctx.Injector.StateChangeContext().AddChange(what, &ContractTableRecordChange{
-		Table: strings.Join([]string{w.ReadContractOwner(), w.ReadContractName(), tableName}, "."),
-		Id: key,
-		Before: before,
-		After: after,
-	})
+func (w *CosVMNative) addTableRecordChange(tableName, kind string, key, before, after interface{}) {
+	w.cosVM.ctx.Injector.StateChangeContext().AddChange(
+		"@" + strings.Join([]string{w.ReadContractOwner(), w.ReadContractName(), tableName}, "."),
+		sTableRecordEvent2Kind[kind],
+		&blocklog.GenericChange{
+			Id:     key,
+			Before: before,
+			After:  after,
+		})
 }

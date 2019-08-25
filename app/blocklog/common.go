@@ -2,10 +2,23 @@ package blocklog
 
 import "github.com/coschain/contentos-go/prototype"
 
+const (
+	ChangeKindCreate = "create"
+	ChangeKindUpdate = "update"
+	ChangeKindDelete = "delete"
+)
+
+type GenericChange struct {
+	Id  interface{}		`json:"id"`
+	Before interface{}	`json:"before"`
+	After interface{}	`json:"after"`
+}
+
 type StateChange struct {
-	Type string			`json:"type"`
-	Cause string		`json:"cause"`
-	Change interface{}	`json:"change"`
+	What string				`json:"what"`
+	Kind string				`json:"kind"`
+	Cause string			`json:"cause"`
+	Change *GenericChange	`json:"change"`
 }
 
 type OperationData struct {

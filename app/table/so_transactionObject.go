@@ -908,7 +908,11 @@ type TransactionObjectWatcherFlag struct {
 }
 
 var (
-	TransactionObjectRecordType       = reflect.TypeOf((*SoTransactionObject)(nil)).Elem()
+	TransactionObjectTable = &TableInfo{
+		Name:    "TransactionObject",
+		Primary: "TrxId",
+		Record:  reflect.TypeOf((*SoTransactionObject)(nil)).Elem(),
+	}
 	TransactionObjectWatcherFlags     = make(map[uint32]TransactionObjectWatcherFlag)
 	TransactionObjectWatcherFlagsLock sync.RWMutex
 )
@@ -921,10 +925,10 @@ func TransactionObjectWatcherFlagOfDb(dbSvcId uint32) TransactionObjectWatcherFl
 
 func TransactionObjectRecordWatcherChanged(dbSvcId uint32) {
 	var flag TransactionObjectWatcherFlag
-	flag.WholeWatcher = HasTableRecordWatcher(dbSvcId, TransactionObjectRecordType, "")
+	flag.WholeWatcher = HasTableRecordWatcher(dbSvcId, TransactionObjectTable.Record, "")
 	flag.AnyWatcher = flag.WholeWatcher
 
-	flag.HasExpirationWatcher = HasTableRecordWatcher(dbSvcId, TransactionObjectRecordType, "Expiration")
+	flag.HasExpirationWatcher = HasTableRecordWatcher(dbSvcId, TransactionObjectTable.Record, "Expiration")
 	flag.AnyWatcher = flag.AnyWatcher || flag.HasExpirationWatcher
 
 	TransactionObjectWatcherFlagsLock.Lock()
@@ -933,5 +937,5 @@ func TransactionObjectRecordWatcherChanged(dbSvcId uint32) {
 }
 
 func init() {
-	RegisterTableWatcherChangedCallback(TransactionObjectRecordType, TransactionObjectRecordWatcherChanged)
+	RegisterTableWatcherChangedCallback(TransactionObjectTable.Record, TransactionObjectRecordWatcherChanged)
 }

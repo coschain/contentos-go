@@ -726,7 +726,11 @@ type VoteCashoutWatcherFlag struct {
 }
 
 var (
-	VoteCashoutRecordType       = reflect.TypeOf((*SoVoteCashout)(nil)).Elem()
+	VoteCashoutTable = &TableInfo{
+		Name:    "VoteCashout",
+		Primary: "CashoutBlock",
+		Record:  reflect.TypeOf((*SoVoteCashout)(nil)).Elem(),
+	}
 	VoteCashoutWatcherFlags     = make(map[uint32]VoteCashoutWatcherFlag)
 	VoteCashoutWatcherFlagsLock sync.RWMutex
 )
@@ -739,10 +743,10 @@ func VoteCashoutWatcherFlagOfDb(dbSvcId uint32) VoteCashoutWatcherFlag {
 
 func VoteCashoutRecordWatcherChanged(dbSvcId uint32) {
 	var flag VoteCashoutWatcherFlag
-	flag.WholeWatcher = HasTableRecordWatcher(dbSvcId, VoteCashoutRecordType, "")
+	flag.WholeWatcher = HasTableRecordWatcher(dbSvcId, VoteCashoutTable.Record, "")
 	flag.AnyWatcher = flag.WholeWatcher
 
-	flag.HasVoterIdsWatcher = HasTableRecordWatcher(dbSvcId, VoteCashoutRecordType, "VoterIds")
+	flag.HasVoterIdsWatcher = HasTableRecordWatcher(dbSvcId, VoteCashoutTable.Record, "VoterIds")
 	flag.AnyWatcher = flag.AnyWatcher || flag.HasVoterIdsWatcher
 
 	VoteCashoutWatcherFlagsLock.Lock()
@@ -751,5 +755,5 @@ func VoteCashoutRecordWatcherChanged(dbSvcId uint32) {
 }
 
 func init() {
-	RegisterTableWatcherChangedCallback(VoteCashoutRecordType, VoteCashoutRecordWatcherChanged)
+	RegisterTableWatcherChangedCallback(VoteCashoutTable.Record, VoteCashoutRecordWatcherChanged)
 }

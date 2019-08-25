@@ -725,7 +725,11 @@ type BlocktrxsWatcherFlag struct {
 }
 
 var (
-	BlocktrxsRecordType       = reflect.TypeOf((*SoBlocktrxs)(nil)).Elem()
+	BlocktrxsTable = &TableInfo{
+		Name:    "Blocktrxs",
+		Primary: "Block",
+		Record:  reflect.TypeOf((*SoBlocktrxs)(nil)).Elem(),
+	}
 	BlocktrxsWatcherFlags     = make(map[uint32]BlocktrxsWatcherFlag)
 	BlocktrxsWatcherFlagsLock sync.RWMutex
 )
@@ -738,10 +742,10 @@ func BlocktrxsWatcherFlagOfDb(dbSvcId uint32) BlocktrxsWatcherFlag {
 
 func BlocktrxsRecordWatcherChanged(dbSvcId uint32) {
 	var flag BlocktrxsWatcherFlag
-	flag.WholeWatcher = HasTableRecordWatcher(dbSvcId, BlocktrxsRecordType, "")
+	flag.WholeWatcher = HasTableRecordWatcher(dbSvcId, BlocktrxsTable.Record, "")
 	flag.AnyWatcher = flag.WholeWatcher
 
-	flag.HasTrxsWatcher = HasTableRecordWatcher(dbSvcId, BlocktrxsRecordType, "Trxs")
+	flag.HasTrxsWatcher = HasTableRecordWatcher(dbSvcId, BlocktrxsTable.Record, "Trxs")
 	flag.AnyWatcher = flag.AnyWatcher || flag.HasTrxsWatcher
 
 	BlocktrxsWatcherFlagsLock.Lock()
@@ -750,5 +754,5 @@ func BlocktrxsRecordWatcherChanged(dbSvcId uint32) {
 }
 
 func init() {
-	RegisterTableWatcherChangedCallback(BlocktrxsRecordType, BlocktrxsRecordWatcherChanged)
+	RegisterTableWatcherChangedCallback(BlocktrxsTable.Record, BlocktrxsRecordWatcherChanged)
 }

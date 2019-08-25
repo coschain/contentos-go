@@ -20,6 +20,7 @@ require (
 	github.com/gogo/protobuf v1.2.0
 	github.com/golang/mock v1.3.1
 	github.com/golang/protobuf v1.3.2
+	github.com/golang/snappy v0.0.1 // indirect
 	github.com/google/go-cmp v0.3.1 // indirect
 	github.com/google/gofuzz v0.0.0-20170612174753-24818f796faf // indirect
 	github.com/google/pprof v0.0.0-20190723021845-34ac40c74b70 // indirect

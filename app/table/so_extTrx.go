@@ -1974,7 +1974,11 @@ type ExtTrxWatcherFlag struct {
 }
 
 var (
-	ExtTrxRecordType       = reflect.TypeOf((*SoExtTrx)(nil)).Elem()
+	ExtTrxTable = &TableInfo{
+		Name:    "ExtTrx",
+		Primary: "TrxId",
+		Record:  reflect.TypeOf((*SoExtTrx)(nil)).Elem(),
+	}
 	ExtTrxWatcherFlags     = make(map[uint32]ExtTrxWatcherFlag)
 	ExtTrxWatcherFlagsLock sync.RWMutex
 )
@@ -1987,22 +1991,22 @@ func ExtTrxWatcherFlagOfDb(dbSvcId uint32) ExtTrxWatcherFlag {
 
 func ExtTrxRecordWatcherChanged(dbSvcId uint32) {
 	var flag ExtTrxWatcherFlag
-	flag.WholeWatcher = HasTableRecordWatcher(dbSvcId, ExtTrxRecordType, "")
+	flag.WholeWatcher = HasTableRecordWatcher(dbSvcId, ExtTrxTable.Record, "")
 	flag.AnyWatcher = flag.WholeWatcher
 
-	flag.HasBlockHeightWatcher = HasTableRecordWatcher(dbSvcId, ExtTrxRecordType, "BlockHeight")
+	flag.HasBlockHeightWatcher = HasTableRecordWatcher(dbSvcId, ExtTrxTable.Record, "BlockHeight")
 	flag.AnyWatcher = flag.AnyWatcher || flag.HasBlockHeightWatcher
 
-	flag.HasBlockIdWatcher = HasTableRecordWatcher(dbSvcId, ExtTrxRecordType, "BlockId")
+	flag.HasBlockIdWatcher = HasTableRecordWatcher(dbSvcId, ExtTrxTable.Record, "BlockId")
 	flag.AnyWatcher = flag.AnyWatcher || flag.HasBlockIdWatcher
 
-	flag.HasBlockTimeWatcher = HasTableRecordWatcher(dbSvcId, ExtTrxRecordType, "BlockTime")
+	flag.HasBlockTimeWatcher = HasTableRecordWatcher(dbSvcId, ExtTrxTable.Record, "BlockTime")
 	flag.AnyWatcher = flag.AnyWatcher || flag.HasBlockTimeWatcher
 
-	flag.HasTrxCreateOrderWatcher = HasTableRecordWatcher(dbSvcId, ExtTrxRecordType, "TrxCreateOrder")
+	flag.HasTrxCreateOrderWatcher = HasTableRecordWatcher(dbSvcId, ExtTrxTable.Record, "TrxCreateOrder")
 	flag.AnyWatcher = flag.AnyWatcher || flag.HasTrxCreateOrderWatcher
 
-	flag.HasTrxWrapWatcher = HasTableRecordWatcher(dbSvcId, ExtTrxRecordType, "TrxWrap")
+	flag.HasTrxWrapWatcher = HasTableRecordWatcher(dbSvcId, ExtTrxTable.Record, "TrxWrap")
 	flag.AnyWatcher = flag.AnyWatcher || flag.HasTrxWrapWatcher
 
 	ExtTrxWatcherFlagsLock.Lock()
@@ -2011,5 +2015,5 @@ func ExtTrxRecordWatcherChanged(dbSvcId uint32) {
 }
 
 func init() {
-	RegisterTableWatcherChangedCallback(ExtTrxRecordType, ExtTrxRecordWatcherChanged)
+	RegisterTableWatcherChangedCallback(ExtTrxTable.Record, ExtTrxRecordWatcherChanged)
 }

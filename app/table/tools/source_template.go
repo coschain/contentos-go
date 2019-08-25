@@ -1150,7 +1150,11 @@ type {{$.ClsName}}WatcherFlag struct {
 }
 
 var (
-	{{$.ClsName}}RecordType = reflect.TypeOf((*So{{.ClsName}})(nil)).Elem()
+	{{$.ClsName}}Table = &TableInfo{
+		Name: "{{$.ClsName}}",
+		Primary: "{{$.MainKeyName}}",
+		Record: reflect.TypeOf((*So{{.ClsName}})(nil)).Elem(),
+	} 
 	{{$.ClsName}}WatcherFlags = make(map[uint32]{{$.ClsName}}WatcherFlag)
 	{{$.ClsName}}WatcherFlagsLock sync.RWMutex
 )
@@ -1163,11 +1167,11 @@ func {{$.ClsName}}WatcherFlagOfDb(dbSvcId uint32) {{$.ClsName}}WatcherFlag {
 
 func {{$.ClsName}}RecordWatcherChanged(dbSvcId uint32) {
 	var flag {{$.ClsName}}WatcherFlag
-	flag.WholeWatcher = HasTableRecordWatcher(dbSvcId, {{$.ClsName}}RecordType, "")
+	flag.WholeWatcher = HasTableRecordWatcher(dbSvcId, {{$.ClsName}}Table.Record, "")
 	flag.AnyWatcher = flag.WholeWatcher
 	{{range $k1, $v1 := .MemberKeyMap}}
 	{{if ne $k1 $.MainKeyName}}
-	flag.Has{{$k1}}Watcher = HasTableRecordWatcher(dbSvcId, {{$.ClsName}}RecordType, "{{$k1}}")
+	flag.Has{{$k1}}Watcher = HasTableRecordWatcher(dbSvcId, {{$.ClsName}}Table.Record, "{{$k1}}")
 	flag.AnyWatcher = flag.AnyWatcher || flag.Has{{$k1}}Watcher
 	{{end}}
 	{{end}}
@@ -1178,7 +1182,7 @@ func {{$.ClsName}}RecordWatcherChanged(dbSvcId uint32) {
 }
 
 func init() {
-	RegisterTableWatcherChangedCallback({{$.ClsName}}RecordType, {{$.ClsName}}RecordWatcherChanged)
+	RegisterTableWatcherChangedCallback({{$.ClsName}}Table.Record, {{$.ClsName}}RecordWatcherChanged)
 }
 
 `

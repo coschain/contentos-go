@@ -6,6 +6,7 @@ import (
 	"github.com/coschain/contentos-go/app/table"
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/prototype"
+	"strings"
 	"sync"
 )
 
@@ -148,22 +149,28 @@ func (w *Watcher) makeLog(block *prototype.SignedBlock) {
 	}
 }
 
-func (w *Watcher) recordChange(branch, what string, change interface{}) {
+var sTableRecordEvent2Kind = map[int]string{
+	table.EventTableRecordInsert: ChangeKindCreate,
+	table.EventTableRecordUpdate: ChangeKindUpdate,
+	table.EventTableRecordDelete: ChangeKindDelete,
+}
+
+func (w *Watcher) recordChange(branch string, event int, what string, change *GenericChange) {
 	w.RLock()
 	defer w.RUnlock()
 	if ctx := w.changeCtxsByBranch[branch]; ctx != nil {
-		ctx.AddChange(what, change)
+		ctx.AddChange(what, sTableRecordEvent2Kind[event], change)
 	}
 }
 
 func (w *Watcher) setupWatchers() {
 	for _, e := range sInterestedChanges {
-		table.AddTableRecordFieldWatcher(w.dbSvc, e.record, e.primary, e.field, w.makeWatcherFunc(e.what, e.maker))
+		table.AddTableRecordFieldWatcher(w.dbSvc, e.Table.Record, e.Table.Primary, e.Field, w.makeWatcherFunc(strings.Join([]string{e.Table.Name, e.Field}, "."), e.Maker))
 	}
 }
 
 func (w *Watcher) makeWatcherFunc(what string, changeMaker ChangeDataMaker) func(branch string, event int, key, before, after interface{}) {
 	return func(branch string, event int, key, before, after interface{}) {
-		w.recordChange(branch, what, changeMaker(key, before, after))
+		w.recordChange(branch, event, what, changeMaker(key, before, after))
 	}
 }

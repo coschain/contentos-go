@@ -1338,7 +1338,11 @@ type GiftTicketWatcherFlag struct {
 }
 
 var (
-	GiftTicketRecordType       = reflect.TypeOf((*SoGiftTicket)(nil)).Elem()
+	GiftTicketTable = &TableInfo{
+		Name:    "GiftTicket",
+		Primary: "Ticket",
+		Record:  reflect.TypeOf((*SoGiftTicket)(nil)).Elem(),
+	}
 	GiftTicketWatcherFlags     = make(map[uint32]GiftTicketWatcherFlag)
 	GiftTicketWatcherFlagsLock sync.RWMutex
 )
@@ -1351,16 +1355,16 @@ func GiftTicketWatcherFlagOfDb(dbSvcId uint32) GiftTicketWatcherFlag {
 
 func GiftTicketRecordWatcherChanged(dbSvcId uint32) {
 	var flag GiftTicketWatcherFlag
-	flag.WholeWatcher = HasTableRecordWatcher(dbSvcId, GiftTicketRecordType, "")
+	flag.WholeWatcher = HasTableRecordWatcher(dbSvcId, GiftTicketTable.Record, "")
 	flag.AnyWatcher = flag.WholeWatcher
 
-	flag.HasCountWatcher = HasTableRecordWatcher(dbSvcId, GiftTicketRecordType, "Count")
+	flag.HasCountWatcher = HasTableRecordWatcher(dbSvcId, GiftTicketTable.Record, "Count")
 	flag.AnyWatcher = flag.AnyWatcher || flag.HasCountWatcher
 
-	flag.HasDenomWatcher = HasTableRecordWatcher(dbSvcId, GiftTicketRecordType, "Denom")
+	flag.HasDenomWatcher = HasTableRecordWatcher(dbSvcId, GiftTicketTable.Record, "Denom")
 	flag.AnyWatcher = flag.AnyWatcher || flag.HasDenomWatcher
 
-	flag.HasExpireBlockWatcher = HasTableRecordWatcher(dbSvcId, GiftTicketRecordType, "ExpireBlock")
+	flag.HasExpireBlockWatcher = HasTableRecordWatcher(dbSvcId, GiftTicketTable.Record, "ExpireBlock")
 	flag.AnyWatcher = flag.AnyWatcher || flag.HasExpireBlockWatcher
 
 	GiftTicketWatcherFlagsLock.Lock()
@@ -1369,5 +1373,5 @@ func GiftTicketRecordWatcherChanged(dbSvcId uint32) {
 }
 
 func init() {
-	RegisterTableWatcherChangedCallback(GiftTicketRecordType, GiftTicketRecordWatcherChanged)
+	RegisterTableWatcherChangedCallback(GiftTicketTable.Record, GiftTicketRecordWatcherChanged)
 }

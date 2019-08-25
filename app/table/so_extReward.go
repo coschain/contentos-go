@@ -1072,7 +1072,11 @@ type ExtRewardWatcherFlag struct {
 }
 
 var (
-	ExtRewardRecordType       = reflect.TypeOf((*SoExtReward)(nil)).Elem()
+	ExtRewardTable = &TableInfo{
+		Name:    "ExtReward",
+		Primary: "Id",
+		Record:  reflect.TypeOf((*SoExtReward)(nil)).Elem(),
+	}
 	ExtRewardWatcherFlags     = make(map[uint32]ExtRewardWatcherFlag)
 	ExtRewardWatcherFlagsLock sync.RWMutex
 )
@@ -1085,13 +1089,13 @@ func ExtRewardWatcherFlagOfDb(dbSvcId uint32) ExtRewardWatcherFlag {
 
 func ExtRewardRecordWatcherChanged(dbSvcId uint32) {
 	var flag ExtRewardWatcherFlag
-	flag.WholeWatcher = HasTableRecordWatcher(dbSvcId, ExtRewardRecordType, "")
+	flag.WholeWatcher = HasTableRecordWatcher(dbSvcId, ExtRewardTable.Record, "")
 	flag.AnyWatcher = flag.WholeWatcher
 
-	flag.HasBlockHeightWatcher = HasTableRecordWatcher(dbSvcId, ExtRewardRecordType, "BlockHeight")
+	flag.HasBlockHeightWatcher = HasTableRecordWatcher(dbSvcId, ExtRewardTable.Record, "BlockHeight")
 	flag.AnyWatcher = flag.AnyWatcher || flag.HasBlockHeightWatcher
 
-	flag.HasRewardWatcher = HasTableRecordWatcher(dbSvcId, ExtRewardRecordType, "Reward")
+	flag.HasRewardWatcher = HasTableRecordWatcher(dbSvcId, ExtRewardTable.Record, "Reward")
 	flag.AnyWatcher = flag.AnyWatcher || flag.HasRewardWatcher
 
 	ExtRewardWatcherFlagsLock.Lock()
@@ -1100,5 +1104,5 @@ func ExtRewardRecordWatcherChanged(dbSvcId uint32) {
 }
 
 func init() {
-	RegisterTableWatcherChangedCallback(ExtRewardRecordType, ExtRewardRecordWatcherChanged)
+	RegisterTableWatcherChangedCallback(ExtRewardTable.Record, ExtRewardRecordWatcherChanged)
 }
