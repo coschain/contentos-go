@@ -20,8 +20,8 @@ message operation{
         follow_operation op8 = 8;
         vote_operation op9 = 9;
         transfer_to_vest_operation op10 = 10;
-        claim_operation op11 = 11;
-        claim_all_operation op12 = 12;
+        //claim_operation op11 = 11;
+        //claim_all_operation op12 = 12;
         contract_deploy_operation op13 = 13;
         contract_apply_operation op14 = 14;
         //report_operation op15 = 15;
@@ -50,8 +50,8 @@ message signed_transaction{
 
 message operation_receipt_with_info {
     uint32 status = 1;
-    uint64 gas_usage = 5;
-    string vm_console = 6;
+    uint64 gas_usage = 2;
+    string vm_console = 3;
 }
 
 message transaction_receipt_with_info {

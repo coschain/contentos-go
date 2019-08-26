@@ -50,12 +50,12 @@ message gift_ticket_key_type {
 
 message chain_properties{
     coin account_creation_fee = 1;
-    uint64 stamina_free       = 3;
-    uint64 tps_expected       = 4;
-    uint32 top_n_acquire_free_token = 5;
-    uint64 epoch_duration = 6;
-    prototype.coin per_ticket_price = 7;
-    uint64 per_ticket_weight = 8;
+    uint64 stamina_free       = 2;
+    uint64 tps_expected       = 3;
+    uint32 top_n_acquire_free_token = 4;
+    uint64 epoch_duration = 5;
+    prototype.coin per_ticket_price = 6;
+    uint64 per_ticket_weight = 7;
 }
 
 message dynamic_properties {

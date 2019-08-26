@@ -183,15 +183,15 @@ func Reply(postId, parentId uint64, author, content string, beneficiaries []map[
 	})
 }
 
-func Report(reporter string, postId uint64, reason []prototype.ReportOperationTag, arbitration, approved bool) *prototype.Operation {
-	return prototype.GetPbOperation(&prototype.ReportOperation{
-		Reporter: prototype.NewAccountName(reporter),
-		Reported: postId,
-		ReportTag: reason,
-		IsArbitration: arbitration,
-		IsApproved: approved,
-	})
-}
+//func Report(reporter string, postId uint64, reason []prototype.ReportOperationTag, arbitration, approved bool) *prototype.Operation {
+//	return prototype.GetPbOperation(&prototype.ReportOperation{
+//		Reporter: prototype.NewAccountName(reporter),
+//		Reported: postId,
+//		ReportTag: reason,
+//		IsArbitration: arbitration,
+//		IsApproved: approved,
+//	})
+//}
 
 func ConvertVest(name string, vests uint64) *prototype.Operation {
 	return prototype.GetPbOperation(&prototype.ConvertVestOperation{

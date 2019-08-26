@@ -12,7 +12,7 @@ message account_create_operation{
     account_name creator = 2;
     account_name new_account_name = 3;
     public_key_type pub_key = 4;
-    string json_metadata = 8;
+    string json_metadata = 5;
 }
 
 message account_update_operation{
@@ -36,7 +36,7 @@ message transfer_to_vest_operation{
 
 message vote_operation{
     account_name voter = 1;
-    uint64 idx = 3 [jstype = JS_STRING];
+    uint64 idx = 2 [jstype = JS_STRING];
 }
 
 message bp_register_operation{
@@ -49,7 +49,7 @@ message bp_register_operation{
 
 message bp_update_operation {
     account_name owner = 1;
-    chain_properties  props = 9;
+    chain_properties  props = 2;
 }
 
 message bp_enable_operation {
@@ -117,31 +117,31 @@ message reply_operation{
     repeated beneficiary_route_type beneficiaries = 6;
 }
 
-message claim_all_operation {
-    account_name account = 1;
-}
-
-message claim_operation {
-    account_name account = 1;
-    uint64 amount = 2;
-}
-
-message report_operation {
-    enum tag {
-        CHILD_PORNOGRAPHY = 0;
-        RACISM = 1;
-        REACTIONARY = 2;
-        PLAGIARISM = 3;
-        SLANDER = 4;
-        FALSE_PROPAGANDA = 5;
-        PORNOGRAPHY = 6;
-    }
-    account_name reporter = 1;
-    uint64 reported = 2;
-    repeated tag report_tag = 3;
-    bool is_arbitration = 4;
-    bool is_approved = 5;
-}
+//message claim_all_operation {
+//    account_name account = 1;
+//}
+//
+//message claim_operation {
+//    account_name account = 1;
+//    uint64 amount = 2;
+//}
+//
+//message report_operation {
+//    enum tag {
+//        CHILD_PORNOGRAPHY = 0;
+//        RACISM = 1;
+//        REACTIONARY = 2;
+//        PLAGIARISM = 3;
+//        SLANDER = 4;
+//        FALSE_PROPAGANDA = 5;
+//        PORNOGRAPHY = 6;
+//    }
+//    account_name reporter = 1;
+//    uint64 reported = 2;
+//    repeated tag report_tag = 3;
+//    bool is_arbitration = 4;
+//    bool is_approved = 5;
+//}
 
 message convert_vest_operation {
     account_name from = 1;

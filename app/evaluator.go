@@ -100,11 +100,11 @@ type TransferToVestEvaluator struct {
 //	op  *prototype.ClaimOperation
 //}
 
-type ReportEvaluator struct {
-	BaseEvaluator
-	BaseDelegate
-	op  *prototype.ReportOperation
-}
+//type ReportEvaluator struct {
+//	BaseEvaluator
+//	BaseDelegate
+//	op  *prototype.ReportOperation
+//}
 
 type ConvertVestEvaluator struct {
 	BaseEvaluator
