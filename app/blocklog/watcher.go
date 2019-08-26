@@ -113,10 +113,8 @@ func (w *Watcher) makeLog(block *prototype.SignedBlock) {
 		opLogs := make([]*OperationLog, len(ops))
 		for i, op := range ops {
 			opLogs[i] = &OperationLog{
-				Op: &OperationData{
-					Type: prototype.GetGenericOperationName(op),
-					Data: prototype.GetBaseOperation(op),
-				},
+				Type: prototype.GetGenericOperationName(op),
+				Data: prototype.GetBaseOperation(op),
 				Changes: make([]*StateChange, 0, 32),
 			}
 		}

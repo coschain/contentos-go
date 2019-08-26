@@ -22,13 +22,10 @@ type StateChange struct {
 	Change *GenericChange				`json:"change"`
 }
 
-type OperationData struct {
-	Type	string							`json:"type"`
-	Data	prototype.BaseOperation			`json:"data"`
-}
 
 type OperationLog struct {
-	Op 		*OperationData					`json:"op"`
+	Type	string							`json:"type"`
+	Data	prototype.BaseOperation			`json:"data"`
 	Changes	[]*StateChange					`json:"changes"`
 }
 
