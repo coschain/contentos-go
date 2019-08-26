@@ -544,6 +544,7 @@ func (this *P2PServer) SendToPeer(p *peer.Peer, message interface{}) {
 	if this.Network.IsPeerEstablished(p) {
 		cmsg := message.(consmsg.ConsensusMessage)
 		msg := msgpack.NewConsMsg(cmsg, false)
+		this.log.Info("send message to a specific peer ", p.GetAddr())
 		go p.Send(msg, false, this.Network.GetMagic())
 		return
 	}
@@ -566,6 +567,7 @@ func (this *P2PServer) RandomSend(message interface{}) {
 		state := p.GetSyncState()
 		if state == common.ESTABLISH && !p.HasConsensusMsg(hash) {
 			p.RecordConsensusMsg(hash)
+			this.log.Info("send message to a random peer ", p.GetAddr(), " msg hash: ", hash)
 			go p.Send(msg, false, this.Network.GetMagic())
 			return
 		}
