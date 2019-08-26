@@ -1,7 +1,6 @@
 package plugins
 
 import (
-	"encoding/json"
 	"fmt"
 	"github.com/asaskevich/EventBus"
 	"github.com/coschain/contentos-go/app/blocklog"
@@ -61,13 +60,12 @@ func (s *BlockLogService) initDatabase() error {
 }
 
 func (s *BlockLogService) onBlockLog(blockLog *blocklog.BlockLog) {
-	jsonBytes, _ := json.Marshal(blockLog)
 	s.db.Create(&iservices.BlockLogRecord{
 		BlockId:     blockLog.BlockId,
 		BlockHeight: blockLog.BlockNum,
 		BlockTime:   time.Unix(int64(blockLog.BlockTime), 0),
 		Final:       false,
-		JsonLog:     string(jsonBytes),
+		JsonLog:     blockLog.ToJsonString(),
 	})
 }
 

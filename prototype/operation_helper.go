@@ -1,7 +1,9 @@
 package prototype
 
 import (
+	"bytes"
 	"fmt"
+	"github.com/golang/protobuf/jsonpb"
 )
 
 func GetBaseOperation(op *Operation) BaseOperation {
@@ -19,4 +21,16 @@ func GetPbOperation(op interface{}) *Operation {
 		return generic
 	}
 	panic(fmt.Sprintf("error op type %v", op))
+}
+
+func (op *Operation) MarshalJSON() ([]byte, error) {
+	buf := new(bytes.Buffer)
+	if err := new(jsonpb.Marshaler).Marshal(buf, op); err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
+}
+
+func (op *Operation) UnmarshalJSON(b []byte) error {
+	return jsonpb.Unmarshal(bytes.NewReader(b), op)
 }

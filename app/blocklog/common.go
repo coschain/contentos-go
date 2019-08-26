@@ -1,6 +1,10 @@
 package blocklog
 
-import "github.com/coschain/contentos-go/prototype"
+import (
+	"bytes"
+	"encoding/json"
+	"github.com/coschain/contentos-go/prototype"
+)
 
 const (
 	ChangeKindCreate = "create"
@@ -25,7 +29,7 @@ type StateChange struct {
 
 type OperationLog struct {
 	Type	string							`json:"type"`
-	Data	prototype.BaseOperation			`json:"data"`
+	Data	*prototype.Operation			`json:"data"`
 	Changes	[]*StateChange					`json:"changes"`
 }
 
@@ -41,6 +45,24 @@ type BlockLog struct {
 	BlockTime 		uint32					`json:"time"`
 	Transactions 	[]*TransactionLog		`json:"trxs"`
 	Changes     	[]*StateChange			`json:"changes"`
+}
+
+func (log *BlockLog) ToJsonString() string {
+	if j, err := json.Marshal(log); err == nil {
+		return string(j)
+	}
+	return ""
+}
+
+func (log *BlockLog) FromJsonString(j string) error {
+	dLog := new(BlockLog)
+	d := json.NewDecoder(bytes.NewReader([]byte(j)))
+	d.UseNumber()
+	if err := d.Decode(dLog); err != nil {
+		return err
+	}
+	*log = *dLog
+	return nil
 }
 
 type internalStateChange struct {
