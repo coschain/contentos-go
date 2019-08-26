@@ -15,7 +15,6 @@ import (
 	"github.com/sirupsen/logrus"
 	"math"
 	"math/big"
-	"strconv"
 )
 
 const CashoutCompleted uint64 = math.MaxUint64
@@ -380,7 +379,7 @@ func (e *Economist) Do(trxObserver iservices.ITrxObserver) {
 }
 
 func (e *Economist) cashoutPosts(postsItems []*PostItem) {
-	e.stateChange.PushCause("post")
+	e.stateChange.PushCause("post_author")
 	defer e.stateChange.PopCause()
 
 	if len(postsItems) == 0 {
@@ -405,13 +404,12 @@ func (e *Economist) cashoutPosts(postsItems []*PostItem) {
 	for _, postItem := range postsItems {
 		wvp := postItem.wvp
 		postReward := ProportionAlgorithm(wvp, currentGlobalPostsWvps, new(big.Int).SetUint64(globalPostRewards.Value))
-		e.stateChange.PushCause(strconv.FormatUint(postItem.postId, 10))
+		e.stateChange.PutCauseExtra("post", postItem.postId)
 		// result false: author banned
 		result := e.processRewardForAccount(postItem.beneficiary, postReward)
 		if !result {
 			postReward = new(big.Int).SetUint64(0)
 		}
-		e.stateChange.PopCause()
 		e.finalizePostCashout(postItem.postId, postReward)
 		claimedPostsReward = claimedPostsReward.Add(claimedPostsReward, postReward)
 		e.notifyPostCashoutResult(postItem.beneficiary, postItem.postId, wvp, postReward, globalProps)
@@ -427,7 +425,7 @@ func (e *Economist) cashoutPosts(postsItems []*PostItem) {
 }
 
 func (e *Economist) cashoutReplies(repliesItems []*PostItem) {
-	e.stateChange.PushCause("reply")
+	e.stateChange.PushCause("reply_author")
 	defer e.stateChange.PopCause()
 
 	if len(repliesItems) == 0 {
@@ -452,12 +450,11 @@ func (e *Economist) cashoutReplies(repliesItems []*PostItem) {
 	for _, replyItem := range repliesItems {
 		wvp := replyItem.wvp
 		replyReward := ProportionAlgorithm(wvp, currentGlobalRepliesWvps, new(big.Int).SetUint64(globalRepliesRewards.Value))
-		e.stateChange.PushCause(strconv.FormatUint(replyItem.postId, 10))
+		e.stateChange.PutCauseExtra("post", replyItem.postId)
 		result := e.processRewardForAccount(replyItem.beneficiary, replyReward)
 		if !result {
 			replyReward = new(big.Int).SetUint64(0)
 		}
-		e.stateChange.PopCause()
 		e.finalizePostCashout(replyItem.postId, replyReward)
 		claimedRepliesReward.Add(claimedRepliesReward, replyReward)
 		e.notifyReplyCashoutResult(replyItem.beneficiary, replyItem.postId, wvp, replyReward, globalProps)
@@ -496,12 +493,11 @@ func (e *Economist) cashoutDapps(dappsItems []*DappItem) {
 	for _, dappItem := range dappsItems {
 		wvp := dappItem.wvp
 		dappReward := ProportionAlgorithm(wvp, currentGlobalDappsWvps, new(big.Int).SetUint64(globalDappsRewards.Value))
-		e.stateChange.PushCause(strconv.FormatUint(dappItem.postId, 10))
+		e.stateChange.PutCauseExtra("post", dappItem.postId)
 		result := e.processRewardForAccount(dappItem.beneficiary, dappReward)
 		if !result {
 			dappReward = new(big.Int).SetUint64(0)
 		}
-		e.stateChange.PopCause()
 		e.finalizePostDappCashout(dappItem.postId, dappReward)
 		claimedDappReward.Add(claimedDappReward, dappReward)
 		e.notifyDappCashoutResult(dappItem.beneficiary, dappItem.postId, wvp, dappReward, globalProps)
@@ -515,7 +511,7 @@ func (e *Economist) cashoutDapps(dappsItems []*DappItem) {
 }
 
 func (e *Economist) cashoutVotes(votesItems []*VoteItem) {
-	e.stateChange.PushCause("vote")
+	e.stateChange.PushCause("voter")
 	defer e.stateChange.PopCause()
 
 	if len(votesItems) == 0 {
@@ -540,12 +536,11 @@ func (e *Economist) cashoutVotes(votesItems []*VoteItem) {
 	for _, voteItem := range votesItems {
 		wvp := voteItem.wvp
 		voteReward := ProportionAlgorithm(wvp, currentGlobalVotesWvp, new(big.Int).SetUint64(globalVotesRewards.Value))
-		e.stateChange.PushCause(strconv.FormatUint(voteItem.postId, 10))
+		e.stateChange.PutCauseExtra("post", voteItem.postId)
 		result := e.processRewardForAccount(voteItem.beneficiary, voteReward)
 		if !result {
 			voteReward = new(big.Int).SetUint64(0)
 		}
-		e.stateChange.PopCause()
 		claimedVoteReward.Add(claimedVoteReward, voteReward)
 		e.notifyVoteCashoutResult(voteItem.beneficiary, voteItem.postId, wvp, voteReward, globalProps)
 	}

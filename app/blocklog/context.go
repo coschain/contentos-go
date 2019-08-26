@@ -6,6 +6,7 @@ type StateChangeContext struct {
 	branch  string
 	trx, op int
 	causes  []string
+	causeExtras  []map[string]interface{}
 	trxId   string
 	changes InternalStateChangeSlice
 }
@@ -40,8 +41,10 @@ func (ctx *StateChangeContext) SetCause(cause string) {
 		return
 	}
 	ctx.causes = ctx.causes[:0]
+	ctx.causeExtras = ctx.causeExtras[:0]
 	if len(cause) > 0 {
 		ctx.causes = append(ctx.causes, cause)
+		ctx.causeExtras = append(ctx.causeExtras, make(map[string]interface{}))
 	}
 }
 
@@ -51,6 +54,7 @@ func (ctx *StateChangeContext) PushCause(cause string) {
 	}
 	if len(cause) > 0 {
 		ctx.causes = append(ctx.causes, cause)
+		ctx.causeExtras = append(ctx.causeExtras, make(map[string]interface{}))
 	}
 }
 
@@ -60,6 +64,7 @@ func (ctx *StateChangeContext) PopCause() {
 	}
 	if count := len(ctx.causes); count > 0 {
 		ctx.causes = ctx.causes[:count - 1]
+		ctx.causeExtras = ctx.causeExtras[:count - 1]
 	}
 }
 
@@ -78,6 +83,28 @@ func (ctx *StateChangeContext) Cause() string {
 	return strings.Join(ctx.causes, ".")
 }
 
+func (ctx *StateChangeContext) PutCauseExtra(key string, value interface{}) {
+	if ctx == nil {
+		return
+	}
+	if count := len(ctx.causeExtras); count > 0 {
+		ctx.causeExtras[count - 1][key] = value
+	}
+}
+
+func (ctx *StateChangeContext) CauseExtra() map[string]interface{} {
+	if ctx == nil {
+		return nil
+	}
+	result := make(map[string]interface{})
+	for _, extra := range ctx.causeExtras {
+		for k, v := range extra {
+			result[k] = v
+		}
+	}
+	return result
+}
+
 func (ctx *StateChangeContext) AddChange(what, kind string, change *GenericChange) {
 	if ctx == nil {
 		return
@@ -87,6 +114,7 @@ func (ctx *StateChangeContext) AddChange(what, kind string, change *GenericChang
 			What:        what,
 			Kind:        kind,
 			Cause:       ctx.Cause(),
+			CauseExtra:  ctx.CauseExtra(),
 			Change:      change,
 		},
 		TransactionId: ctx.trxId,

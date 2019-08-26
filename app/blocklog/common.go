@@ -15,10 +15,11 @@ type GenericChange struct {
 }
 
 type StateChange struct {
-	What string				`json:"what"`
-	Kind string				`json:"kind"`
-	Cause string			`json:"cause"`
-	Change *GenericChange	`json:"change"`
+	What string							`json:"what"`
+	Kind string							`json:"kind"`
+	Cause string						`json:"cause"`
+	CauseExtra map[string]interface{}	`json:"cause_extra"`
+	Change *GenericChange				`json:"change"`
 }
 
 type OperationData struct {
