@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"sync"
 
 	"github.com/coschain/contentos-go/common/encoding/kope"
 	"github.com/coschain/contentos-go/iservices"
@@ -20,19 +21,21 @@ var (
 
 ////////////// SECTION Wrap Define ///////////////
 type SoBlockProducerScheduleObjectWrap struct {
-	dba       iservices.IDatabaseRW
-	mainKey   *int32
-	mKeyFlag  int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
-	mKeyBuf   []byte //the buffer after the main key is encoded with prefix
-	mBuf      []byte //the value after the main key is encoded
-	mdFuncMap map[string]interface{}
+	dba         iservices.IDatabaseRW
+	mainKey     *int32
+	watcherFlag *BlockProducerScheduleObjectWatcherFlag
+	mKeyFlag    int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
+	mKeyBuf     []byte //the buffer after the main key is encoded with prefix
+	mBuf        []byte //the value after the main key is encoded
+	mdFuncMap   map[string]interface{}
 }
 
 func NewSoBlockProducerScheduleObjectWrap(dba iservices.IDatabaseRW, key *int32) *SoBlockProducerScheduleObjectWrap {
 	if dba == nil || key == nil {
 		return nil
 	}
-	result := &SoBlockProducerScheduleObjectWrap{dba, key, -1, nil, nil, nil}
+	result := &SoBlockProducerScheduleObjectWrap{dba, key, nil, -1, nil, nil, nil}
+	result.initWatcherFlag()
 	return result
 }
 
@@ -78,6 +81,13 @@ func (s *SoBlockProducerScheduleObjectWrap) MustNotExist(errMsgs ...interface{})
 	return s
 }
 
+func (s *SoBlockProducerScheduleObjectWrap) initWatcherFlag() {
+	if s.watcherFlag == nil {
+		s.watcherFlag = new(BlockProducerScheduleObjectWatcherFlag)
+		*(s.watcherFlag) = BlockProducerScheduleObjectWatcherFlagOfDb(s.dba.ServiceId())
+	}
+}
+
 func (s *SoBlockProducerScheduleObjectWrap) create(f func(tInfo *SoBlockProducerScheduleObject)) error {
 	if s.dba == nil {
 		return errors.New("the db is nil")
@@ -121,6 +131,13 @@ func (s *SoBlockProducerScheduleObjectWrap) create(f func(tInfo *SoBlockProducer
 	}
 
 	s.mKeyFlag = 1
+
+	// call watchers
+	s.initWatcherFlag()
+	if s.watcherFlag.AnyWatcher {
+		ReportTableRecordInsert(s.dba.ServiceId(), s.dba.BranchId(), s.mainKey, val)
+	}
+
 	return nil
 }
 
@@ -166,29 +183,30 @@ func (s *SoBlockProducerScheduleObjectWrap) modify(f func(tInfo *SoBlockProducer
 		return errors.New("primary key does not support modification")
 	}
 
-	fieldSli, err := s.getModifiedFields(oriTable, curTable)
+	s.initWatcherFlag()
+	modifiedFields, hasWatcher, err := s.getModifiedFields(oriTable, curTable)
 	if err != nil {
 		return err
 	}
 
-	if fieldSli == nil || len(fieldSli) < 1 {
+	if modifiedFields == nil || len(modifiedFields) < 1 {
 		return nil
 	}
 
 	//check whether modify sort and unique field to nil
-	err = s.checkSortAndUniFieldValidity(curTable, fieldSli)
+	err = s.checkSortAndUniFieldValidity(curTable, modifiedFields)
 	if err != nil {
 		return err
 	}
 
 	//check unique
-	err = s.handleFieldMd(FieldMdHandleTypeCheck, curTable, fieldSli)
+	err = s.handleFieldMd(FieldMdHandleTypeCheck, curTable, modifiedFields)
 	if err != nil {
 		return err
 	}
 
 	//delete sort and unique key
-	err = s.handleFieldMd(FieldMdHandleTypeDel, oriTable, fieldSli)
+	err = s.handleFieldMd(FieldMdHandleTypeDel, oriTable, modifiedFields)
 	if err != nil {
 		return err
 	}
@@ -200,9 +218,14 @@ func (s *SoBlockProducerScheduleObjectWrap) modify(f func(tInfo *SoBlockProducer
 	}
 
 	//insert sort and unique key
-	err = s.handleFieldMd(FieldMdHandleTypeInsert, curTable, fieldSli)
+	err = s.handleFieldMd(FieldMdHandleTypeInsert, curTable, modifiedFields)
 	if err != nil {
 		return err
+	}
+
+	// call watchers
+	if hasWatcher {
+		ReportTableRecordUpdate(s.dba.ServiceId(), s.dba.BranchId(), s.mainKey, oriTable, curTable, modifiedFields)
 	}
 
 	return nil
@@ -237,82 +260,79 @@ func (s *SoBlockProducerScheduleObjectWrap) SetPubKey(p []*prototype.PublicKeyTy
 	return s
 }
 
-func (s *SoBlockProducerScheduleObjectWrap) checkSortAndUniFieldValidity(curTable *SoBlockProducerScheduleObject, fieldSli []string) error {
-	if curTable != nil && fieldSli != nil && len(fieldSli) > 0 {
-		for _, fName := range fieldSli {
-			if len(fName) > 0 {
+func (s *SoBlockProducerScheduleObjectWrap) checkSortAndUniFieldValidity(curTable *SoBlockProducerScheduleObject, fields map[string]bool) error {
+	if curTable != nil && fields != nil && len(fields) > 0 {
 
-			}
-		}
 	}
 	return nil
 }
 
 //Get all the modified fields in the table
-func (s *SoBlockProducerScheduleObjectWrap) getModifiedFields(oriTable *SoBlockProducerScheduleObject, curTable *SoBlockProducerScheduleObject) ([]string, error) {
+func (s *SoBlockProducerScheduleObjectWrap) getModifiedFields(oriTable *SoBlockProducerScheduleObject, curTable *SoBlockProducerScheduleObject) (map[string]bool, bool, error) {
 	if oriTable == nil {
-		return nil, errors.New("table info is nil, can't get modified fields")
+		return nil, false, errors.New("table info is nil, can't get modified fields")
 	}
-	var list []string
+	hasWatcher := false
+	fields := make(map[string]bool)
 
 	if !reflect.DeepEqual(oriTable.CurrentShuffledBlockProducer, curTable.CurrentShuffledBlockProducer) {
-		list = append(list, "CurrentShuffledBlockProducer")
+		fields["CurrentShuffledBlockProducer"] = true
+		hasWatcher = hasWatcher || s.watcherFlag.HasCurrentShuffledBlockProducerWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.PubKey, curTable.PubKey) {
-		list = append(list, "PubKey")
+		fields["PubKey"] = true
+		hasWatcher = hasWatcher || s.watcherFlag.HasPubKeyWatcher
 	}
 
-	return list, nil
+	hasWatcher = hasWatcher || s.watcherFlag.WholeWatcher
+	return fields, hasWatcher, nil
 }
 
-func (s *SoBlockProducerScheduleObjectWrap) handleFieldMd(t FieldMdHandleType, so *SoBlockProducerScheduleObject, fSli []string) error {
+func (s *SoBlockProducerScheduleObjectWrap) handleFieldMd(t FieldMdHandleType, so *SoBlockProducerScheduleObject, fields map[string]bool) error {
 	if so == nil {
 		return errors.New("fail to modify empty table")
 	}
 
 	//there is no field need to modify
-	if fSli == nil || len(fSli) < 1 {
+	if fields == nil || len(fields) < 1 {
 		return nil
 	}
 
 	errStr := ""
-	for _, fName := range fSli {
 
-		if fName == "CurrentShuffledBlockProducer" {
-			res := true
-			if t == FieldMdHandleTypeCheck {
-				res = s.mdFieldCurrentShuffledBlockProducer(so.CurrentShuffledBlockProducer, true, false, false, so)
-				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
-			} else if t == FieldMdHandleTypeDel {
-				res = s.mdFieldCurrentShuffledBlockProducer(so.CurrentShuffledBlockProducer, false, true, false, so)
-				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
-			} else if t == FieldMdHandleTypeInsert {
-				res = s.mdFieldCurrentShuffledBlockProducer(so.CurrentShuffledBlockProducer, false, false, true, so)
-				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
-			}
-			if !res {
-				return errors.New(errStr)
-			}
+	if fields["CurrentShuffledBlockProducer"] {
+		res := true
+		if t == FieldMdHandleTypeCheck {
+			res = s.mdFieldCurrentShuffledBlockProducer(so.CurrentShuffledBlockProducer, true, false, false, so)
+			errStr = fmt.Sprintf("fail to modify exist value of %v", "CurrentShuffledBlockProducer")
+		} else if t == FieldMdHandleTypeDel {
+			res = s.mdFieldCurrentShuffledBlockProducer(so.CurrentShuffledBlockProducer, false, true, false, so)
+			errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", "CurrentShuffledBlockProducer")
+		} else if t == FieldMdHandleTypeInsert {
+			res = s.mdFieldCurrentShuffledBlockProducer(so.CurrentShuffledBlockProducer, false, false, true, so)
+			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "CurrentShuffledBlockProducer")
 		}
-
-		if fName == "PubKey" {
-			res := true
-			if t == FieldMdHandleTypeCheck {
-				res = s.mdFieldPubKey(so.PubKey, true, false, false, so)
-				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
-			} else if t == FieldMdHandleTypeDel {
-				res = s.mdFieldPubKey(so.PubKey, false, true, false, so)
-				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
-			} else if t == FieldMdHandleTypeInsert {
-				res = s.mdFieldPubKey(so.PubKey, false, false, true, so)
-				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
-			}
-			if !res {
-				return errors.New(errStr)
-			}
+		if !res {
+			return errors.New(errStr)
 		}
+	}
 
+	if fields["PubKey"] {
+		res := true
+		if t == FieldMdHandleTypeCheck {
+			res = s.mdFieldPubKey(so.PubKey, true, false, false, so)
+			errStr = fmt.Sprintf("fail to modify exist value of %v", "PubKey")
+		} else if t == FieldMdHandleTypeDel {
+			res = s.mdFieldPubKey(so.PubKey, false, true, false, so)
+			errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", "PubKey")
+		} else if t == FieldMdHandleTypeInsert {
+			res = s.mdFieldPubKey(so.PubKey, false, false, true, so)
+			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "PubKey")
+		}
+		if !res {
+			return errors.New(errStr)
+		}
 	}
 
 	return nil
@@ -346,6 +366,14 @@ func (s *SoBlockProducerScheduleObjectWrap) removeBlockProducerScheduleObject() 
 	if s.dba == nil {
 		return errors.New("database is nil")
 	}
+
+	s.initWatcherFlag()
+
+	var oldVal *SoBlockProducerScheduleObject
+	if s.watcherFlag.AnyWatcher {
+		oldVal = s.getBlockProducerScheduleObject()
+	}
+
 	//delete sort list key
 	if res := s.delAllSortKeys(true, nil); !res {
 		return errors.New("delAllSortKeys failed")
@@ -365,6 +393,11 @@ func (s *SoBlockProducerScheduleObjectWrap) removeBlockProducerScheduleObject() 
 	if err == nil {
 		s.mKeyBuf = nil
 		s.mKeyFlag = -1
+
+		// call watchers
+		if s.watcherFlag.AnyWatcher && oldVal != nil {
+			ReportTableRecordDelete(s.dba.ServiceId(), s.dba.BranchId(), s.mainKey, oldVal)
+		}
 		return nil
 	} else {
 		return fmt.Errorf("database.Delete failed: %s", err.Error())
@@ -795,4 +828,51 @@ func (s *UniBlockProducerScheduleObjectIdWrap) UniQueryId(start *int32) *SoBlock
 		}
 	}
 	return nil
+}
+
+////////////// SECTION Watchers ///////////////
+
+type BlockProducerScheduleObjectWatcherFlag struct {
+	HasCurrentShuffledBlockProducerWatcher bool
+
+	HasPubKeyWatcher bool
+
+	WholeWatcher bool
+	AnyWatcher   bool
+}
+
+var (
+	BlockProducerScheduleObjectTable = &TableInfo{
+		Name:    "BlockProducerScheduleObject",
+		Primary: "Id",
+		Record:  reflect.TypeOf((*SoBlockProducerScheduleObject)(nil)).Elem(),
+	}
+	BlockProducerScheduleObjectWatcherFlags     = make(map[uint32]BlockProducerScheduleObjectWatcherFlag)
+	BlockProducerScheduleObjectWatcherFlagsLock sync.RWMutex
+)
+
+func BlockProducerScheduleObjectWatcherFlagOfDb(dbSvcId uint32) BlockProducerScheduleObjectWatcherFlag {
+	BlockProducerScheduleObjectWatcherFlagsLock.RLock()
+	defer BlockProducerScheduleObjectWatcherFlagsLock.RUnlock()
+	return BlockProducerScheduleObjectWatcherFlags[dbSvcId]
+}
+
+func BlockProducerScheduleObjectRecordWatcherChanged(dbSvcId uint32) {
+	var flag BlockProducerScheduleObjectWatcherFlag
+	flag.WholeWatcher = HasTableRecordWatcher(dbSvcId, BlockProducerScheduleObjectTable.Record, "")
+	flag.AnyWatcher = flag.WholeWatcher
+
+	flag.HasCurrentShuffledBlockProducerWatcher = HasTableRecordWatcher(dbSvcId, BlockProducerScheduleObjectTable.Record, "CurrentShuffledBlockProducer")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasCurrentShuffledBlockProducerWatcher
+
+	flag.HasPubKeyWatcher = HasTableRecordWatcher(dbSvcId, BlockProducerScheduleObjectTable.Record, "PubKey")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasPubKeyWatcher
+
+	BlockProducerScheduleObjectWatcherFlagsLock.Lock()
+	BlockProducerScheduleObjectWatcherFlags[dbSvcId] = flag
+	BlockProducerScheduleObjectWatcherFlagsLock.Unlock()
+}
+
+func init() {
+	RegisterTableWatcherChangedCallback(BlockProducerScheduleObjectTable.Record, BlockProducerScheduleObjectRecordWatcherChanged)
 }

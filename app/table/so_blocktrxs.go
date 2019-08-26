@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"sync"
 
 	"github.com/coschain/contentos-go/common/encoding/kope"
 	"github.com/coschain/contentos-go/iservices"
@@ -19,19 +20,21 @@ var (
 
 ////////////// SECTION Wrap Define ///////////////
 type SoBlocktrxsWrap struct {
-	dba       iservices.IDatabaseRW
-	mainKey   *uint64
-	mKeyFlag  int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
-	mKeyBuf   []byte //the buffer after the main key is encoded with prefix
-	mBuf      []byte //the value after the main key is encoded
-	mdFuncMap map[string]interface{}
+	dba         iservices.IDatabaseRW
+	mainKey     *uint64
+	watcherFlag *BlocktrxsWatcherFlag
+	mKeyFlag    int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
+	mKeyBuf     []byte //the buffer after the main key is encoded with prefix
+	mBuf        []byte //the value after the main key is encoded
+	mdFuncMap   map[string]interface{}
 }
 
 func NewSoBlocktrxsWrap(dba iservices.IDatabaseRW, key *uint64) *SoBlocktrxsWrap {
 	if dba == nil || key == nil {
 		return nil
 	}
-	result := &SoBlocktrxsWrap{dba, key, -1, nil, nil, nil}
+	result := &SoBlocktrxsWrap{dba, key, nil, -1, nil, nil, nil}
+	result.initWatcherFlag()
 	return result
 }
 
@@ -77,6 +80,13 @@ func (s *SoBlocktrxsWrap) MustNotExist(errMsgs ...interface{}) *SoBlocktrxsWrap 
 	return s
 }
 
+func (s *SoBlocktrxsWrap) initWatcherFlag() {
+	if s.watcherFlag == nil {
+		s.watcherFlag = new(BlocktrxsWatcherFlag)
+		*(s.watcherFlag) = BlocktrxsWatcherFlagOfDb(s.dba.ServiceId())
+	}
+}
+
 func (s *SoBlocktrxsWrap) create(f func(tInfo *SoBlocktrxs)) error {
 	if s.dba == nil {
 		return errors.New("the db is nil")
@@ -120,6 +130,13 @@ func (s *SoBlocktrxsWrap) create(f func(tInfo *SoBlocktrxs)) error {
 	}
 
 	s.mKeyFlag = 1
+
+	// call watchers
+	s.initWatcherFlag()
+	if s.watcherFlag.AnyWatcher {
+		ReportTableRecordInsert(s.dba.ServiceId(), s.dba.BranchId(), s.mainKey, val)
+	}
+
 	return nil
 }
 
@@ -165,29 +182,30 @@ func (s *SoBlocktrxsWrap) modify(f func(tInfo *SoBlocktrxs)) error {
 		return errors.New("primary key does not support modification")
 	}
 
-	fieldSli, err := s.getModifiedFields(oriTable, curTable)
+	s.initWatcherFlag()
+	modifiedFields, hasWatcher, err := s.getModifiedFields(oriTable, curTable)
 	if err != nil {
 		return err
 	}
 
-	if fieldSli == nil || len(fieldSli) < 1 {
+	if modifiedFields == nil || len(modifiedFields) < 1 {
 		return nil
 	}
 
 	//check whether modify sort and unique field to nil
-	err = s.checkSortAndUniFieldValidity(curTable, fieldSli)
+	err = s.checkSortAndUniFieldValidity(curTable, modifiedFields)
 	if err != nil {
 		return err
 	}
 
 	//check unique
-	err = s.handleFieldMd(FieldMdHandleTypeCheck, curTable, fieldSli)
+	err = s.handleFieldMd(FieldMdHandleTypeCheck, curTable, modifiedFields)
 	if err != nil {
 		return err
 	}
 
 	//delete sort and unique key
-	err = s.handleFieldMd(FieldMdHandleTypeDel, oriTable, fieldSli)
+	err = s.handleFieldMd(FieldMdHandleTypeDel, oriTable, modifiedFields)
 	if err != nil {
 		return err
 	}
@@ -199,9 +217,14 @@ func (s *SoBlocktrxsWrap) modify(f func(tInfo *SoBlocktrxs)) error {
 	}
 
 	//insert sort and unique key
-	err = s.handleFieldMd(FieldMdHandleTypeInsert, curTable, fieldSli)
+	err = s.handleFieldMd(FieldMdHandleTypeInsert, curTable, modifiedFields)
 	if err != nil {
 		return err
+	}
+
+	// call watchers
+	if hasWatcher {
+		ReportTableRecordUpdate(s.dba.ServiceId(), s.dba.BranchId(), s.mainKey, oriTable, curTable, modifiedFields)
 	}
 
 	return nil
@@ -226,61 +249,57 @@ func (s *SoBlocktrxsWrap) SetTrxs(p []byte, errArgs ...interface{}) *SoBlocktrxs
 	return s
 }
 
-func (s *SoBlocktrxsWrap) checkSortAndUniFieldValidity(curTable *SoBlocktrxs, fieldSli []string) error {
-	if curTable != nil && fieldSli != nil && len(fieldSli) > 0 {
-		for _, fName := range fieldSli {
-			if len(fName) > 0 {
+func (s *SoBlocktrxsWrap) checkSortAndUniFieldValidity(curTable *SoBlocktrxs, fields map[string]bool) error {
+	if curTable != nil && fields != nil && len(fields) > 0 {
 
-			}
-		}
 	}
 	return nil
 }
 
 //Get all the modified fields in the table
-func (s *SoBlocktrxsWrap) getModifiedFields(oriTable *SoBlocktrxs, curTable *SoBlocktrxs) ([]string, error) {
+func (s *SoBlocktrxsWrap) getModifiedFields(oriTable *SoBlocktrxs, curTable *SoBlocktrxs) (map[string]bool, bool, error) {
 	if oriTable == nil {
-		return nil, errors.New("table info is nil, can't get modified fields")
+		return nil, false, errors.New("table info is nil, can't get modified fields")
 	}
-	var list []string
+	hasWatcher := false
+	fields := make(map[string]bool)
 
 	if !reflect.DeepEqual(oriTable.Trxs, curTable.Trxs) {
-		list = append(list, "Trxs")
+		fields["Trxs"] = true
+		hasWatcher = hasWatcher || s.watcherFlag.HasTrxsWatcher
 	}
 
-	return list, nil
+	hasWatcher = hasWatcher || s.watcherFlag.WholeWatcher
+	return fields, hasWatcher, nil
 }
 
-func (s *SoBlocktrxsWrap) handleFieldMd(t FieldMdHandleType, so *SoBlocktrxs, fSli []string) error {
+func (s *SoBlocktrxsWrap) handleFieldMd(t FieldMdHandleType, so *SoBlocktrxs, fields map[string]bool) error {
 	if so == nil {
 		return errors.New("fail to modify empty table")
 	}
 
 	//there is no field need to modify
-	if fSli == nil || len(fSli) < 1 {
+	if fields == nil || len(fields) < 1 {
 		return nil
 	}
 
 	errStr := ""
-	for _, fName := range fSli {
 
-		if fName == "Trxs" {
-			res := true
-			if t == FieldMdHandleTypeCheck {
-				res = s.mdFieldTrxs(so.Trxs, true, false, false, so)
-				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
-			} else if t == FieldMdHandleTypeDel {
-				res = s.mdFieldTrxs(so.Trxs, false, true, false, so)
-				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
-			} else if t == FieldMdHandleTypeInsert {
-				res = s.mdFieldTrxs(so.Trxs, false, false, true, so)
-				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
-			}
-			if !res {
-				return errors.New(errStr)
-			}
+	if fields["Trxs"] {
+		res := true
+		if t == FieldMdHandleTypeCheck {
+			res = s.mdFieldTrxs(so.Trxs, true, false, false, so)
+			errStr = fmt.Sprintf("fail to modify exist value of %v", "Trxs")
+		} else if t == FieldMdHandleTypeDel {
+			res = s.mdFieldTrxs(so.Trxs, false, true, false, so)
+			errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", "Trxs")
+		} else if t == FieldMdHandleTypeInsert {
+			res = s.mdFieldTrxs(so.Trxs, false, false, true, so)
+			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "Trxs")
 		}
-
+		if !res {
+			return errors.New(errStr)
+		}
 	}
 
 	return nil
@@ -314,6 +333,14 @@ func (s *SoBlocktrxsWrap) removeBlocktrxs() error {
 	if s.dba == nil {
 		return errors.New("database is nil")
 	}
+
+	s.initWatcherFlag()
+
+	var oldVal *SoBlocktrxs
+	if s.watcherFlag.AnyWatcher {
+		oldVal = s.getBlocktrxs()
+	}
+
 	//delete sort list key
 	if res := s.delAllSortKeys(true, nil); !res {
 		return errors.New("delAllSortKeys failed")
@@ -333,6 +360,11 @@ func (s *SoBlocktrxsWrap) removeBlocktrxs() error {
 	if err == nil {
 		s.mKeyBuf = nil
 		s.mKeyFlag = -1
+
+		// call watchers
+		if s.watcherFlag.AnyWatcher && oldVal != nil {
+			ReportTableRecordDelete(s.dba.ServiceId(), s.dba.BranchId(), s.mainKey, oldVal)
+		}
 		return nil
 	} else {
 		return fmt.Errorf("database.Delete failed: %s", err.Error())
@@ -681,4 +713,46 @@ func (s *UniBlocktrxsBlockWrap) UniQueryBlock(start *uint64) *SoBlocktrxsWrap {
 		}
 	}
 	return nil
+}
+
+////////////// SECTION Watchers ///////////////
+
+type BlocktrxsWatcherFlag struct {
+	HasTrxsWatcher bool
+
+	WholeWatcher bool
+	AnyWatcher   bool
+}
+
+var (
+	BlocktrxsTable = &TableInfo{
+		Name:    "Blocktrxs",
+		Primary: "Block",
+		Record:  reflect.TypeOf((*SoBlocktrxs)(nil)).Elem(),
+	}
+	BlocktrxsWatcherFlags     = make(map[uint32]BlocktrxsWatcherFlag)
+	BlocktrxsWatcherFlagsLock sync.RWMutex
+)
+
+func BlocktrxsWatcherFlagOfDb(dbSvcId uint32) BlocktrxsWatcherFlag {
+	BlocktrxsWatcherFlagsLock.RLock()
+	defer BlocktrxsWatcherFlagsLock.RUnlock()
+	return BlocktrxsWatcherFlags[dbSvcId]
+}
+
+func BlocktrxsRecordWatcherChanged(dbSvcId uint32) {
+	var flag BlocktrxsWatcherFlag
+	flag.WholeWatcher = HasTableRecordWatcher(dbSvcId, BlocktrxsTable.Record, "")
+	flag.AnyWatcher = flag.WholeWatcher
+
+	flag.HasTrxsWatcher = HasTableRecordWatcher(dbSvcId, BlocktrxsTable.Record, "Trxs")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasTrxsWatcher
+
+	BlocktrxsWatcherFlagsLock.Lock()
+	BlocktrxsWatcherFlags[dbSvcId] = flag
+	BlocktrxsWatcherFlagsLock.Unlock()
+}
+
+func init() {
+	RegisterTableWatcherChangedCallback(BlocktrxsTable.Record, BlocktrxsRecordWatcherChanged)
 }

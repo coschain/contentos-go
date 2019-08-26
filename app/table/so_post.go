@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"sync"
 
 	"github.com/coschain/contentos-go/common/encoding/kope"
 	"github.com/coschain/contentos-go/iservices"
@@ -23,19 +24,21 @@ var (
 
 ////////////// SECTION Wrap Define ///////////////
 type SoPostWrap struct {
-	dba       iservices.IDatabaseRW
-	mainKey   *uint64
-	mKeyFlag  int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
-	mKeyBuf   []byte //the buffer after the main key is encoded with prefix
-	mBuf      []byte //the value after the main key is encoded
-	mdFuncMap map[string]interface{}
+	dba         iservices.IDatabaseRW
+	mainKey     *uint64
+	watcherFlag *PostWatcherFlag
+	mKeyFlag    int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
+	mKeyBuf     []byte //the buffer after the main key is encoded with prefix
+	mBuf        []byte //the value after the main key is encoded
+	mdFuncMap   map[string]interface{}
 }
 
 func NewSoPostWrap(dba iservices.IDatabaseRW, key *uint64) *SoPostWrap {
 	if dba == nil || key == nil {
 		return nil
 	}
-	result := &SoPostWrap{dba, key, -1, nil, nil, nil}
+	result := &SoPostWrap{dba, key, nil, -1, nil, nil, nil}
+	result.initWatcherFlag()
 	return result
 }
 
@@ -81,6 +84,13 @@ func (s *SoPostWrap) MustNotExist(errMsgs ...interface{}) *SoPostWrap {
 	return s
 }
 
+func (s *SoPostWrap) initWatcherFlag() {
+	if s.watcherFlag == nil {
+		s.watcherFlag = new(PostWatcherFlag)
+		*(s.watcherFlag) = PostWatcherFlagOfDb(s.dba.ServiceId())
+	}
+}
+
 func (s *SoPostWrap) create(f func(tInfo *SoPost)) error {
 	if s.dba == nil {
 		return errors.New("the db is nil")
@@ -124,6 +134,13 @@ func (s *SoPostWrap) create(f func(tInfo *SoPost)) error {
 	}
 
 	s.mKeyFlag = 1
+
+	// call watchers
+	s.initWatcherFlag()
+	if s.watcherFlag.AnyWatcher {
+		ReportTableRecordInsert(s.dba.ServiceId(), s.dba.BranchId(), s.mainKey, val)
+	}
+
 	return nil
 }
 
@@ -169,29 +186,30 @@ func (s *SoPostWrap) modify(f func(tInfo *SoPost)) error {
 		return errors.New("primary key does not support modification")
 	}
 
-	fieldSli, err := s.getModifiedFields(oriTable, curTable)
+	s.initWatcherFlag()
+	modifiedFields, hasWatcher, err := s.getModifiedFields(oriTable, curTable)
 	if err != nil {
 		return err
 	}
 
-	if fieldSli == nil || len(fieldSli) < 1 {
+	if modifiedFields == nil || len(modifiedFields) < 1 {
 		return nil
 	}
 
 	//check whether modify sort and unique field to nil
-	err = s.checkSortAndUniFieldValidity(curTable, fieldSli)
+	err = s.checkSortAndUniFieldValidity(curTable, modifiedFields)
 	if err != nil {
 		return err
 	}
 
 	//check unique
-	err = s.handleFieldMd(FieldMdHandleTypeCheck, curTable, fieldSli)
+	err = s.handleFieldMd(FieldMdHandleTypeCheck, curTable, modifiedFields)
 	if err != nil {
 		return err
 	}
 
 	//delete sort and unique key
-	err = s.handleFieldMd(FieldMdHandleTypeDel, oriTable, fieldSli)
+	err = s.handleFieldMd(FieldMdHandleTypeDel, oriTable, modifiedFields)
 	if err != nil {
 		return err
 	}
@@ -203,9 +221,14 @@ func (s *SoPostWrap) modify(f func(tInfo *SoPost)) error {
 	}
 
 	//insert sort and unique key
-	err = s.handleFieldMd(FieldMdHandleTypeInsert, curTable, fieldSli)
+	err = s.handleFieldMd(FieldMdHandleTypeInsert, curTable, modifiedFields)
 	if err != nil {
 		return err
+	}
+
+	// call watchers
+	if hasWatcher {
+		ReportTableRecordUpdate(s.dba.ServiceId(), s.dba.BranchId(), s.mainKey, oriTable, curTable, modifiedFields)
 	}
 
 	return nil
@@ -420,468 +443,483 @@ func (s *SoPostWrap) SetWeightedVp(p string, errArgs ...interface{}) *SoPostWrap
 	return s
 }
 
-func (s *SoPostWrap) checkSortAndUniFieldValidity(curTable *SoPost, fieldSli []string) error {
-	if curTable != nil && fieldSli != nil && len(fieldSli) > 0 {
-		for _, fName := range fieldSli {
-			if len(fName) > 0 {
+func (s *SoPostWrap) checkSortAndUniFieldValidity(curTable *SoPost, fields map[string]bool) error {
+	if curTable != nil && fields != nil && len(fields) > 0 {
 
-				if fName == "Created" && curTable.Created == nil {
-					return errors.New("sort field Created can't be modified to nil")
-				}
-
-				if fName == "Rewards" && curTable.Rewards == nil {
-					return errors.New("sort field Rewards can't be modified to nil")
-				}
-
-			}
+		if fields["Created"] && curTable.Created == nil {
+			return errors.New("sort field Created can't be modified to nil")
 		}
+
+		if fields["Rewards"] && curTable.Rewards == nil {
+			return errors.New("sort field Rewards can't be modified to nil")
+		}
+
 	}
 	return nil
 }
 
 //Get all the modified fields in the table
-func (s *SoPostWrap) getModifiedFields(oriTable *SoPost, curTable *SoPost) ([]string, error) {
+func (s *SoPostWrap) getModifiedFields(oriTable *SoPost, curTable *SoPost) (map[string]bool, bool, error) {
 	if oriTable == nil {
-		return nil, errors.New("table info is nil, can't get modified fields")
+		return nil, false, errors.New("table info is nil, can't get modified fields")
 	}
-	var list []string
+	hasWatcher := false
+	fields := make(map[string]bool)
 
 	if !reflect.DeepEqual(oriTable.Author, curTable.Author) {
-		list = append(list, "Author")
+		fields["Author"] = true
+		hasWatcher = hasWatcher || s.watcherFlag.HasAuthorWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.Beneficiaries, curTable.Beneficiaries) {
-		list = append(list, "Beneficiaries")
+		fields["Beneficiaries"] = true
+		hasWatcher = hasWatcher || s.watcherFlag.HasBeneficiariesWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.Body, curTable.Body) {
-		list = append(list, "Body")
+		fields["Body"] = true
+		hasWatcher = hasWatcher || s.watcherFlag.HasBodyWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.CashoutBlockNum, curTable.CashoutBlockNum) {
-		list = append(list, "CashoutBlockNum")
+		fields["CashoutBlockNum"] = true
+		hasWatcher = hasWatcher || s.watcherFlag.HasCashoutBlockNumWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.Category, curTable.Category) {
-		list = append(list, "Category")
+		fields["Category"] = true
+		hasWatcher = hasWatcher || s.watcherFlag.HasCategoryWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.Children, curTable.Children) {
-		list = append(list, "Children")
+		fields["Children"] = true
+		hasWatcher = hasWatcher || s.watcherFlag.HasChildrenWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.Copyright, curTable.Copyright) {
-		list = append(list, "Copyright")
+		fields["Copyright"] = true
+		hasWatcher = hasWatcher || s.watcherFlag.HasCopyrightWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.CopyrightMemo, curTable.CopyrightMemo) {
-		list = append(list, "CopyrightMemo")
+		fields["CopyrightMemo"] = true
+		hasWatcher = hasWatcher || s.watcherFlag.HasCopyrightMemoWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.Created, curTable.Created) {
-		list = append(list, "Created")
+		fields["Created"] = true
+		hasWatcher = hasWatcher || s.watcherFlag.HasCreatedWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.DappRewards, curTable.DappRewards) {
-		list = append(list, "DappRewards")
+		fields["DappRewards"] = true
+		hasWatcher = hasWatcher || s.watcherFlag.HasDappRewardsWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.Depth, curTable.Depth) {
-		list = append(list, "Depth")
+		fields["Depth"] = true
+		hasWatcher = hasWatcher || s.watcherFlag.HasDepthWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.LastPayout, curTable.LastPayout) {
-		list = append(list, "LastPayout")
+		fields["LastPayout"] = true
+		hasWatcher = hasWatcher || s.watcherFlag.HasLastPayoutWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.ParentId, curTable.ParentId) {
-		list = append(list, "ParentId")
+		fields["ParentId"] = true
+		hasWatcher = hasWatcher || s.watcherFlag.HasParentIdWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.Rewards, curTable.Rewards) {
-		list = append(list, "Rewards")
+		fields["Rewards"] = true
+		hasWatcher = hasWatcher || s.watcherFlag.HasRewardsWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.RootId, curTable.RootId) {
-		list = append(list, "RootId")
+		fields["RootId"] = true
+		hasWatcher = hasWatcher || s.watcherFlag.HasRootIdWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.Tags, curTable.Tags) {
-		list = append(list, "Tags")
+		fields["Tags"] = true
+		hasWatcher = hasWatcher || s.watcherFlag.HasTagsWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.Ticket, curTable.Ticket) {
-		list = append(list, "Ticket")
+		fields["Ticket"] = true
+		hasWatcher = hasWatcher || s.watcherFlag.HasTicketWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.Title, curTable.Title) {
-		list = append(list, "Title")
+		fields["Title"] = true
+		hasWatcher = hasWatcher || s.watcherFlag.HasTitleWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.VoteCnt, curTable.VoteCnt) {
-		list = append(list, "VoteCnt")
+		fields["VoteCnt"] = true
+		hasWatcher = hasWatcher || s.watcherFlag.HasVoteCntWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.WeightedVp, curTable.WeightedVp) {
-		list = append(list, "WeightedVp")
+		fields["WeightedVp"] = true
+		hasWatcher = hasWatcher || s.watcherFlag.HasWeightedVpWatcher
 	}
 
-	return list, nil
+	hasWatcher = hasWatcher || s.watcherFlag.WholeWatcher
+	return fields, hasWatcher, nil
 }
 
-func (s *SoPostWrap) handleFieldMd(t FieldMdHandleType, so *SoPost, fSli []string) error {
+func (s *SoPostWrap) handleFieldMd(t FieldMdHandleType, so *SoPost, fields map[string]bool) error {
 	if so == nil {
 		return errors.New("fail to modify empty table")
 	}
 
 	//there is no field need to modify
-	if fSli == nil || len(fSli) < 1 {
+	if fields == nil || len(fields) < 1 {
 		return nil
 	}
 
 	errStr := ""
-	for _, fName := range fSli {
 
-		if fName == "Author" {
-			res := true
-			if t == FieldMdHandleTypeCheck {
-				res = s.mdFieldAuthor(so.Author, true, false, false, so)
-				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
-			} else if t == FieldMdHandleTypeDel {
-				res = s.mdFieldAuthor(so.Author, false, true, false, so)
-				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
-			} else if t == FieldMdHandleTypeInsert {
-				res = s.mdFieldAuthor(so.Author, false, false, true, so)
-				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
-			}
-			if !res {
-				return errors.New(errStr)
-			}
+	if fields["Author"] {
+		res := true
+		if t == FieldMdHandleTypeCheck {
+			res = s.mdFieldAuthor(so.Author, true, false, false, so)
+			errStr = fmt.Sprintf("fail to modify exist value of %v", "Author")
+		} else if t == FieldMdHandleTypeDel {
+			res = s.mdFieldAuthor(so.Author, false, true, false, so)
+			errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", "Author")
+		} else if t == FieldMdHandleTypeInsert {
+			res = s.mdFieldAuthor(so.Author, false, false, true, so)
+			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "Author")
 		}
-
-		if fName == "Beneficiaries" {
-			res := true
-			if t == FieldMdHandleTypeCheck {
-				res = s.mdFieldBeneficiaries(so.Beneficiaries, true, false, false, so)
-				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
-			} else if t == FieldMdHandleTypeDel {
-				res = s.mdFieldBeneficiaries(so.Beneficiaries, false, true, false, so)
-				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
-			} else if t == FieldMdHandleTypeInsert {
-				res = s.mdFieldBeneficiaries(so.Beneficiaries, false, false, true, so)
-				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
-			}
-			if !res {
-				return errors.New(errStr)
-			}
+		if !res {
+			return errors.New(errStr)
 		}
+	}
 
-		if fName == "Body" {
-			res := true
-			if t == FieldMdHandleTypeCheck {
-				res = s.mdFieldBody(so.Body, true, false, false, so)
-				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
-			} else if t == FieldMdHandleTypeDel {
-				res = s.mdFieldBody(so.Body, false, true, false, so)
-				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
-			} else if t == FieldMdHandleTypeInsert {
-				res = s.mdFieldBody(so.Body, false, false, true, so)
-				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
-			}
-			if !res {
-				return errors.New(errStr)
-			}
+	if fields["Beneficiaries"] {
+		res := true
+		if t == FieldMdHandleTypeCheck {
+			res = s.mdFieldBeneficiaries(so.Beneficiaries, true, false, false, so)
+			errStr = fmt.Sprintf("fail to modify exist value of %v", "Beneficiaries")
+		} else if t == FieldMdHandleTypeDel {
+			res = s.mdFieldBeneficiaries(so.Beneficiaries, false, true, false, so)
+			errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", "Beneficiaries")
+		} else if t == FieldMdHandleTypeInsert {
+			res = s.mdFieldBeneficiaries(so.Beneficiaries, false, false, true, so)
+			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "Beneficiaries")
 		}
-
-		if fName == "CashoutBlockNum" {
-			res := true
-			if t == FieldMdHandleTypeCheck {
-				res = s.mdFieldCashoutBlockNum(so.CashoutBlockNum, true, false, false, so)
-				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
-			} else if t == FieldMdHandleTypeDel {
-				res = s.mdFieldCashoutBlockNum(so.CashoutBlockNum, false, true, false, so)
-				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
-			} else if t == FieldMdHandleTypeInsert {
-				res = s.mdFieldCashoutBlockNum(so.CashoutBlockNum, false, false, true, so)
-				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
-			}
-			if !res {
-				return errors.New(errStr)
-			}
+		if !res {
+			return errors.New(errStr)
 		}
+	}
 
-		if fName == "Category" {
-			res := true
-			if t == FieldMdHandleTypeCheck {
-				res = s.mdFieldCategory(so.Category, true, false, false, so)
-				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
-			} else if t == FieldMdHandleTypeDel {
-				res = s.mdFieldCategory(so.Category, false, true, false, so)
-				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
-			} else if t == FieldMdHandleTypeInsert {
-				res = s.mdFieldCategory(so.Category, false, false, true, so)
-				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
-			}
-			if !res {
-				return errors.New(errStr)
-			}
+	if fields["Body"] {
+		res := true
+		if t == FieldMdHandleTypeCheck {
+			res = s.mdFieldBody(so.Body, true, false, false, so)
+			errStr = fmt.Sprintf("fail to modify exist value of %v", "Body")
+		} else if t == FieldMdHandleTypeDel {
+			res = s.mdFieldBody(so.Body, false, true, false, so)
+			errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", "Body")
+		} else if t == FieldMdHandleTypeInsert {
+			res = s.mdFieldBody(so.Body, false, false, true, so)
+			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "Body")
 		}
-
-		if fName == "Children" {
-			res := true
-			if t == FieldMdHandleTypeCheck {
-				res = s.mdFieldChildren(so.Children, true, false, false, so)
-				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
-			} else if t == FieldMdHandleTypeDel {
-				res = s.mdFieldChildren(so.Children, false, true, false, so)
-				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
-			} else if t == FieldMdHandleTypeInsert {
-				res = s.mdFieldChildren(so.Children, false, false, true, so)
-				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
-			}
-			if !res {
-				return errors.New(errStr)
-			}
+		if !res {
+			return errors.New(errStr)
 		}
+	}
 
-		if fName == "Copyright" {
-			res := true
-			if t == FieldMdHandleTypeCheck {
-				res = s.mdFieldCopyright(so.Copyright, true, false, false, so)
-				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
-			} else if t == FieldMdHandleTypeDel {
-				res = s.mdFieldCopyright(so.Copyright, false, true, false, so)
-				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
-			} else if t == FieldMdHandleTypeInsert {
-				res = s.mdFieldCopyright(so.Copyright, false, false, true, so)
-				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
-			}
-			if !res {
-				return errors.New(errStr)
-			}
+	if fields["CashoutBlockNum"] {
+		res := true
+		if t == FieldMdHandleTypeCheck {
+			res = s.mdFieldCashoutBlockNum(so.CashoutBlockNum, true, false, false, so)
+			errStr = fmt.Sprintf("fail to modify exist value of %v", "CashoutBlockNum")
+		} else if t == FieldMdHandleTypeDel {
+			res = s.mdFieldCashoutBlockNum(so.CashoutBlockNum, false, true, false, so)
+			errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", "CashoutBlockNum")
+		} else if t == FieldMdHandleTypeInsert {
+			res = s.mdFieldCashoutBlockNum(so.CashoutBlockNum, false, false, true, so)
+			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "CashoutBlockNum")
 		}
-
-		if fName == "CopyrightMemo" {
-			res := true
-			if t == FieldMdHandleTypeCheck {
-				res = s.mdFieldCopyrightMemo(so.CopyrightMemo, true, false, false, so)
-				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
-			} else if t == FieldMdHandleTypeDel {
-				res = s.mdFieldCopyrightMemo(so.CopyrightMemo, false, true, false, so)
-				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
-			} else if t == FieldMdHandleTypeInsert {
-				res = s.mdFieldCopyrightMemo(so.CopyrightMemo, false, false, true, so)
-				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
-			}
-			if !res {
-				return errors.New(errStr)
-			}
+		if !res {
+			return errors.New(errStr)
 		}
+	}
 
-		if fName == "Created" {
-			res := true
-			if t == FieldMdHandleTypeCheck {
-				res = s.mdFieldCreated(so.Created, true, false, false, so)
-				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
-			} else if t == FieldMdHandleTypeDel {
-				res = s.mdFieldCreated(so.Created, false, true, false, so)
-				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
-			} else if t == FieldMdHandleTypeInsert {
-				res = s.mdFieldCreated(so.Created, false, false, true, so)
-				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
-			}
-			if !res {
-				return errors.New(errStr)
-			}
+	if fields["Category"] {
+		res := true
+		if t == FieldMdHandleTypeCheck {
+			res = s.mdFieldCategory(so.Category, true, false, false, so)
+			errStr = fmt.Sprintf("fail to modify exist value of %v", "Category")
+		} else if t == FieldMdHandleTypeDel {
+			res = s.mdFieldCategory(so.Category, false, true, false, so)
+			errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", "Category")
+		} else if t == FieldMdHandleTypeInsert {
+			res = s.mdFieldCategory(so.Category, false, false, true, so)
+			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "Category")
 		}
-
-		if fName == "DappRewards" {
-			res := true
-			if t == FieldMdHandleTypeCheck {
-				res = s.mdFieldDappRewards(so.DappRewards, true, false, false, so)
-				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
-			} else if t == FieldMdHandleTypeDel {
-				res = s.mdFieldDappRewards(so.DappRewards, false, true, false, so)
-				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
-			} else if t == FieldMdHandleTypeInsert {
-				res = s.mdFieldDappRewards(so.DappRewards, false, false, true, so)
-				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
-			}
-			if !res {
-				return errors.New(errStr)
-			}
+		if !res {
+			return errors.New(errStr)
 		}
+	}
 
-		if fName == "Depth" {
-			res := true
-			if t == FieldMdHandleTypeCheck {
-				res = s.mdFieldDepth(so.Depth, true, false, false, so)
-				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
-			} else if t == FieldMdHandleTypeDel {
-				res = s.mdFieldDepth(so.Depth, false, true, false, so)
-				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
-			} else if t == FieldMdHandleTypeInsert {
-				res = s.mdFieldDepth(so.Depth, false, false, true, so)
-				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
-			}
-			if !res {
-				return errors.New(errStr)
-			}
+	if fields["Children"] {
+		res := true
+		if t == FieldMdHandleTypeCheck {
+			res = s.mdFieldChildren(so.Children, true, false, false, so)
+			errStr = fmt.Sprintf("fail to modify exist value of %v", "Children")
+		} else if t == FieldMdHandleTypeDel {
+			res = s.mdFieldChildren(so.Children, false, true, false, so)
+			errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", "Children")
+		} else if t == FieldMdHandleTypeInsert {
+			res = s.mdFieldChildren(so.Children, false, false, true, so)
+			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "Children")
 		}
-
-		if fName == "LastPayout" {
-			res := true
-			if t == FieldMdHandleTypeCheck {
-				res = s.mdFieldLastPayout(so.LastPayout, true, false, false, so)
-				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
-			} else if t == FieldMdHandleTypeDel {
-				res = s.mdFieldLastPayout(so.LastPayout, false, true, false, so)
-				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
-			} else if t == FieldMdHandleTypeInsert {
-				res = s.mdFieldLastPayout(so.LastPayout, false, false, true, so)
-				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
-			}
-			if !res {
-				return errors.New(errStr)
-			}
+		if !res {
+			return errors.New(errStr)
 		}
+	}
 
-		if fName == "ParentId" {
-			res := true
-			if t == FieldMdHandleTypeCheck {
-				res = s.mdFieldParentId(so.ParentId, true, false, false, so)
-				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
-			} else if t == FieldMdHandleTypeDel {
-				res = s.mdFieldParentId(so.ParentId, false, true, false, so)
-				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
-			} else if t == FieldMdHandleTypeInsert {
-				res = s.mdFieldParentId(so.ParentId, false, false, true, so)
-				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
-			}
-			if !res {
-				return errors.New(errStr)
-			}
+	if fields["Copyright"] {
+		res := true
+		if t == FieldMdHandleTypeCheck {
+			res = s.mdFieldCopyright(so.Copyright, true, false, false, so)
+			errStr = fmt.Sprintf("fail to modify exist value of %v", "Copyright")
+		} else if t == FieldMdHandleTypeDel {
+			res = s.mdFieldCopyright(so.Copyright, false, true, false, so)
+			errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", "Copyright")
+		} else if t == FieldMdHandleTypeInsert {
+			res = s.mdFieldCopyright(so.Copyright, false, false, true, so)
+			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "Copyright")
 		}
-
-		if fName == "Rewards" {
-			res := true
-			if t == FieldMdHandleTypeCheck {
-				res = s.mdFieldRewards(so.Rewards, true, false, false, so)
-				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
-			} else if t == FieldMdHandleTypeDel {
-				res = s.mdFieldRewards(so.Rewards, false, true, false, so)
-				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
-			} else if t == FieldMdHandleTypeInsert {
-				res = s.mdFieldRewards(so.Rewards, false, false, true, so)
-				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
-			}
-			if !res {
-				return errors.New(errStr)
-			}
+		if !res {
+			return errors.New(errStr)
 		}
+	}
 
-		if fName == "RootId" {
-			res := true
-			if t == FieldMdHandleTypeCheck {
-				res = s.mdFieldRootId(so.RootId, true, false, false, so)
-				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
-			} else if t == FieldMdHandleTypeDel {
-				res = s.mdFieldRootId(so.RootId, false, true, false, so)
-				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
-			} else if t == FieldMdHandleTypeInsert {
-				res = s.mdFieldRootId(so.RootId, false, false, true, so)
-				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
-			}
-			if !res {
-				return errors.New(errStr)
-			}
+	if fields["CopyrightMemo"] {
+		res := true
+		if t == FieldMdHandleTypeCheck {
+			res = s.mdFieldCopyrightMemo(so.CopyrightMemo, true, false, false, so)
+			errStr = fmt.Sprintf("fail to modify exist value of %v", "CopyrightMemo")
+		} else if t == FieldMdHandleTypeDel {
+			res = s.mdFieldCopyrightMemo(so.CopyrightMemo, false, true, false, so)
+			errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", "CopyrightMemo")
+		} else if t == FieldMdHandleTypeInsert {
+			res = s.mdFieldCopyrightMemo(so.CopyrightMemo, false, false, true, so)
+			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "CopyrightMemo")
 		}
-
-		if fName == "Tags" {
-			res := true
-			if t == FieldMdHandleTypeCheck {
-				res = s.mdFieldTags(so.Tags, true, false, false, so)
-				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
-			} else if t == FieldMdHandleTypeDel {
-				res = s.mdFieldTags(so.Tags, false, true, false, so)
-				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
-			} else if t == FieldMdHandleTypeInsert {
-				res = s.mdFieldTags(so.Tags, false, false, true, so)
-				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
-			}
-			if !res {
-				return errors.New(errStr)
-			}
+		if !res {
+			return errors.New(errStr)
 		}
+	}
 
-		if fName == "Ticket" {
-			res := true
-			if t == FieldMdHandleTypeCheck {
-				res = s.mdFieldTicket(so.Ticket, true, false, false, so)
-				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
-			} else if t == FieldMdHandleTypeDel {
-				res = s.mdFieldTicket(so.Ticket, false, true, false, so)
-				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
-			} else if t == FieldMdHandleTypeInsert {
-				res = s.mdFieldTicket(so.Ticket, false, false, true, so)
-				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
-			}
-			if !res {
-				return errors.New(errStr)
-			}
+	if fields["Created"] {
+		res := true
+		if t == FieldMdHandleTypeCheck {
+			res = s.mdFieldCreated(so.Created, true, false, false, so)
+			errStr = fmt.Sprintf("fail to modify exist value of %v", "Created")
+		} else if t == FieldMdHandleTypeDel {
+			res = s.mdFieldCreated(so.Created, false, true, false, so)
+			errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", "Created")
+		} else if t == FieldMdHandleTypeInsert {
+			res = s.mdFieldCreated(so.Created, false, false, true, so)
+			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "Created")
 		}
-
-		if fName == "Title" {
-			res := true
-			if t == FieldMdHandleTypeCheck {
-				res = s.mdFieldTitle(so.Title, true, false, false, so)
-				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
-			} else if t == FieldMdHandleTypeDel {
-				res = s.mdFieldTitle(so.Title, false, true, false, so)
-				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
-			} else if t == FieldMdHandleTypeInsert {
-				res = s.mdFieldTitle(so.Title, false, false, true, so)
-				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
-			}
-			if !res {
-				return errors.New(errStr)
-			}
+		if !res {
+			return errors.New(errStr)
 		}
+	}
 
-		if fName == "VoteCnt" {
-			res := true
-			if t == FieldMdHandleTypeCheck {
-				res = s.mdFieldVoteCnt(so.VoteCnt, true, false, false, so)
-				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
-			} else if t == FieldMdHandleTypeDel {
-				res = s.mdFieldVoteCnt(so.VoteCnt, false, true, false, so)
-				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
-			} else if t == FieldMdHandleTypeInsert {
-				res = s.mdFieldVoteCnt(so.VoteCnt, false, false, true, so)
-				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
-			}
-			if !res {
-				return errors.New(errStr)
-			}
+	if fields["DappRewards"] {
+		res := true
+		if t == FieldMdHandleTypeCheck {
+			res = s.mdFieldDappRewards(so.DappRewards, true, false, false, so)
+			errStr = fmt.Sprintf("fail to modify exist value of %v", "DappRewards")
+		} else if t == FieldMdHandleTypeDel {
+			res = s.mdFieldDappRewards(so.DappRewards, false, true, false, so)
+			errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", "DappRewards")
+		} else if t == FieldMdHandleTypeInsert {
+			res = s.mdFieldDappRewards(so.DappRewards, false, false, true, so)
+			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "DappRewards")
 		}
-
-		if fName == "WeightedVp" {
-			res := true
-			if t == FieldMdHandleTypeCheck {
-				res = s.mdFieldWeightedVp(so.WeightedVp, true, false, false, so)
-				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
-			} else if t == FieldMdHandleTypeDel {
-				res = s.mdFieldWeightedVp(so.WeightedVp, false, true, false, so)
-				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
-			} else if t == FieldMdHandleTypeInsert {
-				res = s.mdFieldWeightedVp(so.WeightedVp, false, false, true, so)
-				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
-			}
-			if !res {
-				return errors.New(errStr)
-			}
+		if !res {
+			return errors.New(errStr)
 		}
+	}
 
+	if fields["Depth"] {
+		res := true
+		if t == FieldMdHandleTypeCheck {
+			res = s.mdFieldDepth(so.Depth, true, false, false, so)
+			errStr = fmt.Sprintf("fail to modify exist value of %v", "Depth")
+		} else if t == FieldMdHandleTypeDel {
+			res = s.mdFieldDepth(so.Depth, false, true, false, so)
+			errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", "Depth")
+		} else if t == FieldMdHandleTypeInsert {
+			res = s.mdFieldDepth(so.Depth, false, false, true, so)
+			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "Depth")
+		}
+		if !res {
+			return errors.New(errStr)
+		}
+	}
+
+	if fields["LastPayout"] {
+		res := true
+		if t == FieldMdHandleTypeCheck {
+			res = s.mdFieldLastPayout(so.LastPayout, true, false, false, so)
+			errStr = fmt.Sprintf("fail to modify exist value of %v", "LastPayout")
+		} else if t == FieldMdHandleTypeDel {
+			res = s.mdFieldLastPayout(so.LastPayout, false, true, false, so)
+			errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", "LastPayout")
+		} else if t == FieldMdHandleTypeInsert {
+			res = s.mdFieldLastPayout(so.LastPayout, false, false, true, so)
+			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "LastPayout")
+		}
+		if !res {
+			return errors.New(errStr)
+		}
+	}
+
+	if fields["ParentId"] {
+		res := true
+		if t == FieldMdHandleTypeCheck {
+			res = s.mdFieldParentId(so.ParentId, true, false, false, so)
+			errStr = fmt.Sprintf("fail to modify exist value of %v", "ParentId")
+		} else if t == FieldMdHandleTypeDel {
+			res = s.mdFieldParentId(so.ParentId, false, true, false, so)
+			errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", "ParentId")
+		} else if t == FieldMdHandleTypeInsert {
+			res = s.mdFieldParentId(so.ParentId, false, false, true, so)
+			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "ParentId")
+		}
+		if !res {
+			return errors.New(errStr)
+		}
+	}
+
+	if fields["Rewards"] {
+		res := true
+		if t == FieldMdHandleTypeCheck {
+			res = s.mdFieldRewards(so.Rewards, true, false, false, so)
+			errStr = fmt.Sprintf("fail to modify exist value of %v", "Rewards")
+		} else if t == FieldMdHandleTypeDel {
+			res = s.mdFieldRewards(so.Rewards, false, true, false, so)
+			errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", "Rewards")
+		} else if t == FieldMdHandleTypeInsert {
+			res = s.mdFieldRewards(so.Rewards, false, false, true, so)
+			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "Rewards")
+		}
+		if !res {
+			return errors.New(errStr)
+		}
+	}
+
+	if fields["RootId"] {
+		res := true
+		if t == FieldMdHandleTypeCheck {
+			res = s.mdFieldRootId(so.RootId, true, false, false, so)
+			errStr = fmt.Sprintf("fail to modify exist value of %v", "RootId")
+		} else if t == FieldMdHandleTypeDel {
+			res = s.mdFieldRootId(so.RootId, false, true, false, so)
+			errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", "RootId")
+		} else if t == FieldMdHandleTypeInsert {
+			res = s.mdFieldRootId(so.RootId, false, false, true, so)
+			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "RootId")
+		}
+		if !res {
+			return errors.New(errStr)
+		}
+	}
+
+	if fields["Tags"] {
+		res := true
+		if t == FieldMdHandleTypeCheck {
+			res = s.mdFieldTags(so.Tags, true, false, false, so)
+			errStr = fmt.Sprintf("fail to modify exist value of %v", "Tags")
+		} else if t == FieldMdHandleTypeDel {
+			res = s.mdFieldTags(so.Tags, false, true, false, so)
+			errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", "Tags")
+		} else if t == FieldMdHandleTypeInsert {
+			res = s.mdFieldTags(so.Tags, false, false, true, so)
+			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "Tags")
+		}
+		if !res {
+			return errors.New(errStr)
+		}
+	}
+
+	if fields["Ticket"] {
+		res := true
+		if t == FieldMdHandleTypeCheck {
+			res = s.mdFieldTicket(so.Ticket, true, false, false, so)
+			errStr = fmt.Sprintf("fail to modify exist value of %v", "Ticket")
+		} else if t == FieldMdHandleTypeDel {
+			res = s.mdFieldTicket(so.Ticket, false, true, false, so)
+			errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", "Ticket")
+		} else if t == FieldMdHandleTypeInsert {
+			res = s.mdFieldTicket(so.Ticket, false, false, true, so)
+			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "Ticket")
+		}
+		if !res {
+			return errors.New(errStr)
+		}
+	}
+
+	if fields["Title"] {
+		res := true
+		if t == FieldMdHandleTypeCheck {
+			res = s.mdFieldTitle(so.Title, true, false, false, so)
+			errStr = fmt.Sprintf("fail to modify exist value of %v", "Title")
+		} else if t == FieldMdHandleTypeDel {
+			res = s.mdFieldTitle(so.Title, false, true, false, so)
+			errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", "Title")
+		} else if t == FieldMdHandleTypeInsert {
+			res = s.mdFieldTitle(so.Title, false, false, true, so)
+			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "Title")
+		}
+		if !res {
+			return errors.New(errStr)
+		}
+	}
+
+	if fields["VoteCnt"] {
+		res := true
+		if t == FieldMdHandleTypeCheck {
+			res = s.mdFieldVoteCnt(so.VoteCnt, true, false, false, so)
+			errStr = fmt.Sprintf("fail to modify exist value of %v", "VoteCnt")
+		} else if t == FieldMdHandleTypeDel {
+			res = s.mdFieldVoteCnt(so.VoteCnt, false, true, false, so)
+			errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", "VoteCnt")
+		} else if t == FieldMdHandleTypeInsert {
+			res = s.mdFieldVoteCnt(so.VoteCnt, false, false, true, so)
+			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "VoteCnt")
+		}
+		if !res {
+			return errors.New(errStr)
+		}
+	}
+
+	if fields["WeightedVp"] {
+		res := true
+		if t == FieldMdHandleTypeCheck {
+			res = s.mdFieldWeightedVp(so.WeightedVp, true, false, false, so)
+			errStr = fmt.Sprintf("fail to modify exist value of %v", "WeightedVp")
+		} else if t == FieldMdHandleTypeDel {
+			res = s.mdFieldWeightedVp(so.WeightedVp, false, true, false, so)
+			errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", "WeightedVp")
+		} else if t == FieldMdHandleTypeInsert {
+			res = s.mdFieldWeightedVp(so.WeightedVp, false, false, true, so)
+			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "WeightedVp")
+		}
+		if !res {
+			return errors.New(errStr)
+		}
 	}
 
 	return nil
@@ -1062,6 +1100,14 @@ func (s *SoPostWrap) removePost() error {
 	if s.dba == nil {
 		return errors.New("database is nil")
 	}
+
+	s.initWatcherFlag()
+
+	var oldVal *SoPost
+	if s.watcherFlag.AnyWatcher {
+		oldVal = s.getPost()
+	}
+
 	//delete sort list key
 	if res := s.delAllSortKeys(true, nil); !res {
 		return errors.New("delAllSortKeys failed")
@@ -1081,6 +1127,11 @@ func (s *SoPostWrap) removePost() error {
 	if err == nil {
 		s.mKeyBuf = nil
 		s.mKeyFlag = -1
+
+		// call watchers
+		if s.watcherFlag.AnyWatcher && oldVal != nil {
+			ReportTableRecordDelete(s.dba.ServiceId(), s.dba.BranchId(), s.mainKey, oldVal)
+		}
 		return nil
 	} else {
 		return fmt.Errorf("database.Delete failed: %s", err.Error())
@@ -3381,4 +3432,141 @@ func (s *UniPostPostIdWrap) UniQueryPostId(start *uint64) *SoPostWrap {
 		}
 	}
 	return nil
+}
+
+////////////// SECTION Watchers ///////////////
+
+type PostWatcherFlag struct {
+	HasAuthorWatcher bool
+
+	HasBeneficiariesWatcher bool
+
+	HasBodyWatcher bool
+
+	HasCashoutBlockNumWatcher bool
+
+	HasCategoryWatcher bool
+
+	HasChildrenWatcher bool
+
+	HasCopyrightWatcher bool
+
+	HasCopyrightMemoWatcher bool
+
+	HasCreatedWatcher bool
+
+	HasDappRewardsWatcher bool
+
+	HasDepthWatcher bool
+
+	HasLastPayoutWatcher bool
+
+	HasParentIdWatcher bool
+
+	HasRewardsWatcher bool
+
+	HasRootIdWatcher bool
+
+	HasTagsWatcher bool
+
+	HasTicketWatcher bool
+
+	HasTitleWatcher bool
+
+	HasVoteCntWatcher bool
+
+	HasWeightedVpWatcher bool
+
+	WholeWatcher bool
+	AnyWatcher   bool
+}
+
+var (
+	PostTable = &TableInfo{
+		Name:    "Post",
+		Primary: "PostId",
+		Record:  reflect.TypeOf((*SoPost)(nil)).Elem(),
+	}
+	PostWatcherFlags     = make(map[uint32]PostWatcherFlag)
+	PostWatcherFlagsLock sync.RWMutex
+)
+
+func PostWatcherFlagOfDb(dbSvcId uint32) PostWatcherFlag {
+	PostWatcherFlagsLock.RLock()
+	defer PostWatcherFlagsLock.RUnlock()
+	return PostWatcherFlags[dbSvcId]
+}
+
+func PostRecordWatcherChanged(dbSvcId uint32) {
+	var flag PostWatcherFlag
+	flag.WholeWatcher = HasTableRecordWatcher(dbSvcId, PostTable.Record, "")
+	flag.AnyWatcher = flag.WholeWatcher
+
+	flag.HasAuthorWatcher = HasTableRecordWatcher(dbSvcId, PostTable.Record, "Author")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasAuthorWatcher
+
+	flag.HasBeneficiariesWatcher = HasTableRecordWatcher(dbSvcId, PostTable.Record, "Beneficiaries")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasBeneficiariesWatcher
+
+	flag.HasBodyWatcher = HasTableRecordWatcher(dbSvcId, PostTable.Record, "Body")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasBodyWatcher
+
+	flag.HasCashoutBlockNumWatcher = HasTableRecordWatcher(dbSvcId, PostTable.Record, "CashoutBlockNum")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasCashoutBlockNumWatcher
+
+	flag.HasCategoryWatcher = HasTableRecordWatcher(dbSvcId, PostTable.Record, "Category")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasCategoryWatcher
+
+	flag.HasChildrenWatcher = HasTableRecordWatcher(dbSvcId, PostTable.Record, "Children")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasChildrenWatcher
+
+	flag.HasCopyrightWatcher = HasTableRecordWatcher(dbSvcId, PostTable.Record, "Copyright")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasCopyrightWatcher
+
+	flag.HasCopyrightMemoWatcher = HasTableRecordWatcher(dbSvcId, PostTable.Record, "CopyrightMemo")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasCopyrightMemoWatcher
+
+	flag.HasCreatedWatcher = HasTableRecordWatcher(dbSvcId, PostTable.Record, "Created")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasCreatedWatcher
+
+	flag.HasDappRewardsWatcher = HasTableRecordWatcher(dbSvcId, PostTable.Record, "DappRewards")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasDappRewardsWatcher
+
+	flag.HasDepthWatcher = HasTableRecordWatcher(dbSvcId, PostTable.Record, "Depth")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasDepthWatcher
+
+	flag.HasLastPayoutWatcher = HasTableRecordWatcher(dbSvcId, PostTable.Record, "LastPayout")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasLastPayoutWatcher
+
+	flag.HasParentIdWatcher = HasTableRecordWatcher(dbSvcId, PostTable.Record, "ParentId")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasParentIdWatcher
+
+	flag.HasRewardsWatcher = HasTableRecordWatcher(dbSvcId, PostTable.Record, "Rewards")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasRewardsWatcher
+
+	flag.HasRootIdWatcher = HasTableRecordWatcher(dbSvcId, PostTable.Record, "RootId")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasRootIdWatcher
+
+	flag.HasTagsWatcher = HasTableRecordWatcher(dbSvcId, PostTable.Record, "Tags")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasTagsWatcher
+
+	flag.HasTicketWatcher = HasTableRecordWatcher(dbSvcId, PostTable.Record, "Ticket")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasTicketWatcher
+
+	flag.HasTitleWatcher = HasTableRecordWatcher(dbSvcId, PostTable.Record, "Title")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasTitleWatcher
+
+	flag.HasVoteCntWatcher = HasTableRecordWatcher(dbSvcId, PostTable.Record, "VoteCnt")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasVoteCntWatcher
+
+	flag.HasWeightedVpWatcher = HasTableRecordWatcher(dbSvcId, PostTable.Record, "WeightedVp")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasWeightedVpWatcher
+
+	PostWatcherFlagsLock.Lock()
+	PostWatcherFlags[dbSvcId] = flag
+	PostWatcherFlagsLock.Unlock()
+}
+
+func init() {
+	RegisterTableWatcherChangedCallback(PostTable.Record, PostRecordWatcherChanged)
 }

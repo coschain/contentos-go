@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"sync"
 
 	"github.com/coschain/contentos-go/common/encoding/kope"
 	"github.com/coschain/contentos-go/iservices"
@@ -20,19 +21,21 @@ var (
 
 ////////////// SECTION Wrap Define ///////////////
 type SoVoteCashoutWrap struct {
-	dba       iservices.IDatabaseRW
-	mainKey   *uint64
-	mKeyFlag  int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
-	mKeyBuf   []byte //the buffer after the main key is encoded with prefix
-	mBuf      []byte //the value after the main key is encoded
-	mdFuncMap map[string]interface{}
+	dba         iservices.IDatabaseRW
+	mainKey     *uint64
+	watcherFlag *VoteCashoutWatcherFlag
+	mKeyFlag    int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
+	mKeyBuf     []byte //the buffer after the main key is encoded with prefix
+	mBuf        []byte //the value after the main key is encoded
+	mdFuncMap   map[string]interface{}
 }
 
 func NewSoVoteCashoutWrap(dba iservices.IDatabaseRW, key *uint64) *SoVoteCashoutWrap {
 	if dba == nil || key == nil {
 		return nil
 	}
-	result := &SoVoteCashoutWrap{dba, key, -1, nil, nil, nil}
+	result := &SoVoteCashoutWrap{dba, key, nil, -1, nil, nil, nil}
+	result.initWatcherFlag()
 	return result
 }
 
@@ -78,6 +81,13 @@ func (s *SoVoteCashoutWrap) MustNotExist(errMsgs ...interface{}) *SoVoteCashoutW
 	return s
 }
 
+func (s *SoVoteCashoutWrap) initWatcherFlag() {
+	if s.watcherFlag == nil {
+		s.watcherFlag = new(VoteCashoutWatcherFlag)
+		*(s.watcherFlag) = VoteCashoutWatcherFlagOfDb(s.dba.ServiceId())
+	}
+}
+
 func (s *SoVoteCashoutWrap) create(f func(tInfo *SoVoteCashout)) error {
 	if s.dba == nil {
 		return errors.New("the db is nil")
@@ -121,6 +131,13 @@ func (s *SoVoteCashoutWrap) create(f func(tInfo *SoVoteCashout)) error {
 	}
 
 	s.mKeyFlag = 1
+
+	// call watchers
+	s.initWatcherFlag()
+	if s.watcherFlag.AnyWatcher {
+		ReportTableRecordInsert(s.dba.ServiceId(), s.dba.BranchId(), s.mainKey, val)
+	}
+
 	return nil
 }
 
@@ -154,51 +171,61 @@ func (s *SoVoteCashoutWrap) modify(f func(tInfo *SoVoteCashout)) error {
 	if oriTable == nil {
 		return errors.New("fail to get origin table SoVoteCashout")
 	}
-	curTable := *oriTable
-	f(&curTable)
+
+	curTable := s.getVoteCashout()
+	if curTable == nil {
+		return errors.New("fail to create current table SoVoteCashout")
+	}
+	f(curTable)
 
 	//the main key is not support modify
 	if !reflect.DeepEqual(curTable.CashoutBlock, oriTable.CashoutBlock) {
 		return errors.New("primary key does not support modification")
 	}
 
-	fieldSli, err := s.getModifiedFields(oriTable, &curTable)
+	s.initWatcherFlag()
+	modifiedFields, hasWatcher, err := s.getModifiedFields(oriTable, curTable)
 	if err != nil {
 		return err
 	}
 
-	if fieldSli == nil || len(fieldSli) < 1 {
+	if modifiedFields == nil || len(modifiedFields) < 1 {
 		return nil
 	}
 
 	//check whether modify sort and unique field to nil
-	err = s.checkSortAndUniFieldValidity(&curTable, fieldSli)
+	err = s.checkSortAndUniFieldValidity(curTable, modifiedFields)
 	if err != nil {
 		return err
 	}
 
 	//check unique
-	err = s.handleFieldMd(FieldMdHandleTypeCheck, &curTable, fieldSli)
+	err = s.handleFieldMd(FieldMdHandleTypeCheck, curTable, modifiedFields)
 	if err != nil {
 		return err
 	}
 
 	//delete sort and unique key
-	err = s.handleFieldMd(FieldMdHandleTypeDel, oriTable, fieldSli)
+	err = s.handleFieldMd(FieldMdHandleTypeDel, oriTable, modifiedFields)
 	if err != nil {
 		return err
 	}
 
 	//update table
-	err = s.updateVoteCashout(&curTable)
+	err = s.updateVoteCashout(curTable)
 	if err != nil {
 		return err
 	}
 
 	//insert sort and unique key
-	err = s.handleFieldMd(FieldMdHandleTypeInsert, &curTable, fieldSli)
+	err = s.handleFieldMd(FieldMdHandleTypeInsert, curTable, modifiedFields)
 	if err != nil {
 		return err
+	}
+
+	// call watchers
+	if hasWatcher {
+		ReportTableRecordUpdate(s.dba.ServiceId(), s.dba.BranchId(), s.mainKey, oriTable, curTable, modifiedFields)
 	}
 
 	return nil
@@ -223,61 +250,57 @@ func (s *SoVoteCashoutWrap) SetVoterIds(p []*prototype.VoterId, errArgs ...inter
 	return s
 }
 
-func (s *SoVoteCashoutWrap) checkSortAndUniFieldValidity(curTable *SoVoteCashout, fieldSli []string) error {
-	if curTable != nil && fieldSli != nil && len(fieldSli) > 0 {
-		for _, fName := range fieldSli {
-			if len(fName) > 0 {
+func (s *SoVoteCashoutWrap) checkSortAndUniFieldValidity(curTable *SoVoteCashout, fields map[string]bool) error {
+	if curTable != nil && fields != nil && len(fields) > 0 {
 
-			}
-		}
 	}
 	return nil
 }
 
 //Get all the modified fields in the table
-func (s *SoVoteCashoutWrap) getModifiedFields(oriTable *SoVoteCashout, curTable *SoVoteCashout) ([]string, error) {
+func (s *SoVoteCashoutWrap) getModifiedFields(oriTable *SoVoteCashout, curTable *SoVoteCashout) (map[string]bool, bool, error) {
 	if oriTable == nil {
-		return nil, errors.New("table info is nil, can't get modified fields")
+		return nil, false, errors.New("table info is nil, can't get modified fields")
 	}
-	var list []string
+	hasWatcher := false
+	fields := make(map[string]bool)
 
 	if !reflect.DeepEqual(oriTable.VoterIds, curTable.VoterIds) {
-		list = append(list, "VoterIds")
+		fields["VoterIds"] = true
+		hasWatcher = hasWatcher || s.watcherFlag.HasVoterIdsWatcher
 	}
 
-	return list, nil
+	hasWatcher = hasWatcher || s.watcherFlag.WholeWatcher
+	return fields, hasWatcher, nil
 }
 
-func (s *SoVoteCashoutWrap) handleFieldMd(t FieldMdHandleType, so *SoVoteCashout, fSli []string) error {
+func (s *SoVoteCashoutWrap) handleFieldMd(t FieldMdHandleType, so *SoVoteCashout, fields map[string]bool) error {
 	if so == nil {
 		return errors.New("fail to modify empty table")
 	}
 
 	//there is no field need to modify
-	if fSli == nil || len(fSli) < 1 {
+	if fields == nil || len(fields) < 1 {
 		return nil
 	}
 
 	errStr := ""
-	for _, fName := range fSli {
 
-		if fName == "VoterIds" {
-			res := true
-			if t == FieldMdHandleTypeCheck {
-				res = s.mdFieldVoterIds(so.VoterIds, true, false, false, so)
-				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
-			} else if t == FieldMdHandleTypeDel {
-				res = s.mdFieldVoterIds(so.VoterIds, false, true, false, so)
-				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
-			} else if t == FieldMdHandleTypeInsert {
-				res = s.mdFieldVoterIds(so.VoterIds, false, false, true, so)
-				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
-			}
-			if !res {
-				return errors.New(errStr)
-			}
+	if fields["VoterIds"] {
+		res := true
+		if t == FieldMdHandleTypeCheck {
+			res = s.mdFieldVoterIds(so.VoterIds, true, false, false, so)
+			errStr = fmt.Sprintf("fail to modify exist value of %v", "VoterIds")
+		} else if t == FieldMdHandleTypeDel {
+			res = s.mdFieldVoterIds(so.VoterIds, false, true, false, so)
+			errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", "VoterIds")
+		} else if t == FieldMdHandleTypeInsert {
+			res = s.mdFieldVoterIds(so.VoterIds, false, false, true, so)
+			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "VoterIds")
 		}
-
+		if !res {
+			return errors.New(errStr)
+		}
 	}
 
 	return nil
@@ -311,6 +334,14 @@ func (s *SoVoteCashoutWrap) removeVoteCashout() error {
 	if s.dba == nil {
 		return errors.New("database is nil")
 	}
+
+	s.initWatcherFlag()
+
+	var oldVal *SoVoteCashout
+	if s.watcherFlag.AnyWatcher {
+		oldVal = s.getVoteCashout()
+	}
+
 	//delete sort list key
 	if res := s.delAllSortKeys(true, nil); !res {
 		return errors.New("delAllSortKeys failed")
@@ -330,6 +361,11 @@ func (s *SoVoteCashoutWrap) removeVoteCashout() error {
 	if err == nil {
 		s.mKeyBuf = nil
 		s.mKeyFlag = -1
+
+		// call watchers
+		if s.watcherFlag.AnyWatcher && oldVal != nil {
+			ReportTableRecordDelete(s.dba.ServiceId(), s.dba.BranchId(), s.mainKey, oldVal)
+		}
 		return nil
 	} else {
 		return fmt.Errorf("database.Delete failed: %s", err.Error())
@@ -678,4 +714,46 @@ func (s *UniVoteCashoutCashoutBlockWrap) UniQueryCashoutBlock(start *uint64) *So
 		}
 	}
 	return nil
+}
+
+////////////// SECTION Watchers ///////////////
+
+type VoteCashoutWatcherFlag struct {
+	HasVoterIdsWatcher bool
+
+	WholeWatcher bool
+	AnyWatcher   bool
+}
+
+var (
+	VoteCashoutTable = &TableInfo{
+		Name:    "VoteCashout",
+		Primary: "CashoutBlock",
+		Record:  reflect.TypeOf((*SoVoteCashout)(nil)).Elem(),
+	}
+	VoteCashoutWatcherFlags     = make(map[uint32]VoteCashoutWatcherFlag)
+	VoteCashoutWatcherFlagsLock sync.RWMutex
+)
+
+func VoteCashoutWatcherFlagOfDb(dbSvcId uint32) VoteCashoutWatcherFlag {
+	VoteCashoutWatcherFlagsLock.RLock()
+	defer VoteCashoutWatcherFlagsLock.RUnlock()
+	return VoteCashoutWatcherFlags[dbSvcId]
+}
+
+func VoteCashoutRecordWatcherChanged(dbSvcId uint32) {
+	var flag VoteCashoutWatcherFlag
+	flag.WholeWatcher = HasTableRecordWatcher(dbSvcId, VoteCashoutTable.Record, "")
+	flag.AnyWatcher = flag.WholeWatcher
+
+	flag.HasVoterIdsWatcher = HasTableRecordWatcher(dbSvcId, VoteCashoutTable.Record, "VoterIds")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasVoterIdsWatcher
+
+	VoteCashoutWatcherFlagsLock.Lock()
+	VoteCashoutWatcherFlags[dbSvcId] = flag
+	VoteCashoutWatcherFlagsLock.Unlock()
+}
+
+func init() {
+	RegisterTableWatcherChangedCallback(VoteCashoutTable.Record, VoteCashoutRecordWatcherChanged)
 }

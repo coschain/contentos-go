@@ -5,6 +5,7 @@ package iservices
 //
 
 var DbServerName = "db"
+var DbTrunk = ""
 
 //
 // interface for transaction executor
@@ -26,7 +27,14 @@ type IDatabaseBatch interface {
 	Reset()
 }
 
+type IDatabaseServiceId interface {
+	ServiceId() uint32
+	BranchId() string
+}
+
 type IDatabaseRW interface {
+	IDatabaseServiceId
+
 	// check existence of the given key
 	Has(key []byte) (bool, error)
 
@@ -60,7 +68,7 @@ type IDatabasePatch interface {
 	Apply() error
 
 	// patch on patch
-	NewPatch() IDatabasePatch
+	NewPatch(branchId...string) IDatabasePatch
 }
 
 //
@@ -152,5 +160,5 @@ type IDatabaseService interface {
 	RLock()
 	RUnlock()
 
-	NewPatch() IDatabasePatch
+	NewPatch(branchId...string) IDatabasePatch
 }

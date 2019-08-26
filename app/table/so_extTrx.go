@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"sync"
 
 	"github.com/coschain/contentos-go/common/encoding/kope"
 	"github.com/coschain/contentos-go/iservices"
@@ -24,19 +25,21 @@ var (
 
 ////////////// SECTION Wrap Define ///////////////
 type SoExtTrxWrap struct {
-	dba       iservices.IDatabaseRW
-	mainKey   *prototype.Sha256
-	mKeyFlag  int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
-	mKeyBuf   []byte //the buffer after the main key is encoded with prefix
-	mBuf      []byte //the value after the main key is encoded
-	mdFuncMap map[string]interface{}
+	dba         iservices.IDatabaseRW
+	mainKey     *prototype.Sha256
+	watcherFlag *ExtTrxWatcherFlag
+	mKeyFlag    int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
+	mKeyBuf     []byte //the buffer after the main key is encoded with prefix
+	mBuf        []byte //the value after the main key is encoded
+	mdFuncMap   map[string]interface{}
 }
 
 func NewSoExtTrxWrap(dba iservices.IDatabaseRW, key *prototype.Sha256) *SoExtTrxWrap {
 	if dba == nil || key == nil {
 		return nil
 	}
-	result := &SoExtTrxWrap{dba, key, -1, nil, nil, nil}
+	result := &SoExtTrxWrap{dba, key, nil, -1, nil, nil, nil}
+	result.initWatcherFlag()
 	return result
 }
 
@@ -80,6 +83,13 @@ func (s *SoExtTrxWrap) MustNotExist(errMsgs ...interface{}) *SoExtTrxWrap {
 		panic(bindErrorInfo(fmt.Sprintf("SoExtTrxWrap.MustNotExist: %v already exists", s.mainKey), errMsgs...))
 	}
 	return s
+}
+
+func (s *SoExtTrxWrap) initWatcherFlag() {
+	if s.watcherFlag == nil {
+		s.watcherFlag = new(ExtTrxWatcherFlag)
+		*(s.watcherFlag) = ExtTrxWatcherFlagOfDb(s.dba.ServiceId())
+	}
 }
 
 func (s *SoExtTrxWrap) create(f func(tInfo *SoExtTrx)) error {
@@ -128,6 +138,13 @@ func (s *SoExtTrxWrap) create(f func(tInfo *SoExtTrx)) error {
 	}
 
 	s.mKeyFlag = 1
+
+	// call watchers
+	s.initWatcherFlag()
+	if s.watcherFlag.AnyWatcher {
+		ReportTableRecordInsert(s.dba.ServiceId(), s.dba.BranchId(), s.mainKey, val)
+	}
+
 	return nil
 }
 
@@ -173,29 +190,30 @@ func (s *SoExtTrxWrap) modify(f func(tInfo *SoExtTrx)) error {
 		return errors.New("primary key does not support modification")
 	}
 
-	fieldSli, err := s.getModifiedFields(oriTable, curTable)
+	s.initWatcherFlag()
+	modifiedFields, hasWatcher, err := s.getModifiedFields(oriTable, curTable)
 	if err != nil {
 		return err
 	}
 
-	if fieldSli == nil || len(fieldSli) < 1 {
+	if modifiedFields == nil || len(modifiedFields) < 1 {
 		return nil
 	}
 
 	//check whether modify sort and unique field to nil
-	err = s.checkSortAndUniFieldValidity(curTable, fieldSli)
+	err = s.checkSortAndUniFieldValidity(curTable, modifiedFields)
 	if err != nil {
 		return err
 	}
 
 	//check unique
-	err = s.handleFieldMd(FieldMdHandleTypeCheck, curTable, fieldSli)
+	err = s.handleFieldMd(FieldMdHandleTypeCheck, curTable, modifiedFields)
 	if err != nil {
 		return err
 	}
 
 	//delete sort and unique key
-	err = s.handleFieldMd(FieldMdHandleTypeDel, oriTable, fieldSli)
+	err = s.handleFieldMd(FieldMdHandleTypeDel, oriTable, modifiedFields)
 	if err != nil {
 		return err
 	}
@@ -207,9 +225,14 @@ func (s *SoExtTrxWrap) modify(f func(tInfo *SoExtTrx)) error {
 	}
 
 	//insert sort and unique key
-	err = s.handleFieldMd(FieldMdHandleTypeInsert, curTable, fieldSli)
+	err = s.handleFieldMd(FieldMdHandleTypeInsert, curTable, modifiedFields)
 	if err != nil {
 		return err
+	}
+
+	// call watchers
+	if hasWatcher {
+		ReportTableRecordUpdate(s.dba.ServiceId(), s.dba.BranchId(), s.mainKey, oriTable, curTable, modifiedFields)
 	}
 
 	return nil
@@ -274,153 +297,153 @@ func (s *SoExtTrxWrap) SetTrxWrap(p *prototype.TransactionWrapper, errArgs ...in
 	return s
 }
 
-func (s *SoExtTrxWrap) checkSortAndUniFieldValidity(curTable *SoExtTrx, fieldSli []string) error {
-	if curTable != nil && fieldSli != nil && len(fieldSli) > 0 {
-		for _, fName := range fieldSli {
-			if len(fName) > 0 {
+func (s *SoExtTrxWrap) checkSortAndUniFieldValidity(curTable *SoExtTrx, fields map[string]bool) error {
+	if curTable != nil && fields != nil && len(fields) > 0 {
 
-				if fName == "BlockTime" && curTable.BlockTime == nil {
-					return errors.New("sort field BlockTime can't be modified to nil")
-				}
-
-				if fName == "TrxCreateOrder" && curTable.TrxCreateOrder == nil {
-					return errors.New("sort field TrxCreateOrder can't be modified to nil")
-				}
-
-			}
+		if fields["BlockTime"] && curTable.BlockTime == nil {
+			return errors.New("sort field BlockTime can't be modified to nil")
 		}
+
+		if fields["TrxCreateOrder"] && curTable.TrxCreateOrder == nil {
+			return errors.New("sort field TrxCreateOrder can't be modified to nil")
+		}
+
 	}
 	return nil
 }
 
 //Get all the modified fields in the table
-func (s *SoExtTrxWrap) getModifiedFields(oriTable *SoExtTrx, curTable *SoExtTrx) ([]string, error) {
+func (s *SoExtTrxWrap) getModifiedFields(oriTable *SoExtTrx, curTable *SoExtTrx) (map[string]bool, bool, error) {
 	if oriTable == nil {
-		return nil, errors.New("table info is nil, can't get modified fields")
+		return nil, false, errors.New("table info is nil, can't get modified fields")
 	}
-	var list []string
+	hasWatcher := false
+	fields := make(map[string]bool)
 
 	if !reflect.DeepEqual(oriTable.BlockHeight, curTable.BlockHeight) {
-		list = append(list, "BlockHeight")
+		fields["BlockHeight"] = true
+		hasWatcher = hasWatcher || s.watcherFlag.HasBlockHeightWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.BlockId, curTable.BlockId) {
-		list = append(list, "BlockId")
+		fields["BlockId"] = true
+		hasWatcher = hasWatcher || s.watcherFlag.HasBlockIdWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.BlockTime, curTable.BlockTime) {
-		list = append(list, "BlockTime")
+		fields["BlockTime"] = true
+		hasWatcher = hasWatcher || s.watcherFlag.HasBlockTimeWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.TrxCreateOrder, curTable.TrxCreateOrder) {
-		list = append(list, "TrxCreateOrder")
+		fields["TrxCreateOrder"] = true
+		hasWatcher = hasWatcher || s.watcherFlag.HasTrxCreateOrderWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.TrxWrap, curTable.TrxWrap) {
-		list = append(list, "TrxWrap")
+		fields["TrxWrap"] = true
+		hasWatcher = hasWatcher || s.watcherFlag.HasTrxWrapWatcher
 	}
 
-	return list, nil
+	hasWatcher = hasWatcher || s.watcherFlag.WholeWatcher
+	return fields, hasWatcher, nil
 }
 
-func (s *SoExtTrxWrap) handleFieldMd(t FieldMdHandleType, so *SoExtTrx, fSli []string) error {
+func (s *SoExtTrxWrap) handleFieldMd(t FieldMdHandleType, so *SoExtTrx, fields map[string]bool) error {
 	if so == nil {
 		return errors.New("fail to modify empty table")
 	}
 
 	//there is no field need to modify
-	if fSli == nil || len(fSli) < 1 {
+	if fields == nil || len(fields) < 1 {
 		return nil
 	}
 
 	errStr := ""
-	for _, fName := range fSli {
 
-		if fName == "BlockHeight" {
-			res := true
-			if t == FieldMdHandleTypeCheck {
-				res = s.mdFieldBlockHeight(so.BlockHeight, true, false, false, so)
-				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
-			} else if t == FieldMdHandleTypeDel {
-				res = s.mdFieldBlockHeight(so.BlockHeight, false, true, false, so)
-				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
-			} else if t == FieldMdHandleTypeInsert {
-				res = s.mdFieldBlockHeight(so.BlockHeight, false, false, true, so)
-				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
-			}
-			if !res {
-				return errors.New(errStr)
-			}
+	if fields["BlockHeight"] {
+		res := true
+		if t == FieldMdHandleTypeCheck {
+			res = s.mdFieldBlockHeight(so.BlockHeight, true, false, false, so)
+			errStr = fmt.Sprintf("fail to modify exist value of %v", "BlockHeight")
+		} else if t == FieldMdHandleTypeDel {
+			res = s.mdFieldBlockHeight(so.BlockHeight, false, true, false, so)
+			errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", "BlockHeight")
+		} else if t == FieldMdHandleTypeInsert {
+			res = s.mdFieldBlockHeight(so.BlockHeight, false, false, true, so)
+			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "BlockHeight")
 		}
-
-		if fName == "BlockId" {
-			res := true
-			if t == FieldMdHandleTypeCheck {
-				res = s.mdFieldBlockId(so.BlockId, true, false, false, so)
-				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
-			} else if t == FieldMdHandleTypeDel {
-				res = s.mdFieldBlockId(so.BlockId, false, true, false, so)
-				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
-			} else if t == FieldMdHandleTypeInsert {
-				res = s.mdFieldBlockId(so.BlockId, false, false, true, so)
-				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
-			}
-			if !res {
-				return errors.New(errStr)
-			}
+		if !res {
+			return errors.New(errStr)
 		}
+	}
 
-		if fName == "BlockTime" {
-			res := true
-			if t == FieldMdHandleTypeCheck {
-				res = s.mdFieldBlockTime(so.BlockTime, true, false, false, so)
-				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
-			} else if t == FieldMdHandleTypeDel {
-				res = s.mdFieldBlockTime(so.BlockTime, false, true, false, so)
-				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
-			} else if t == FieldMdHandleTypeInsert {
-				res = s.mdFieldBlockTime(so.BlockTime, false, false, true, so)
-				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
-			}
-			if !res {
-				return errors.New(errStr)
-			}
+	if fields["BlockId"] {
+		res := true
+		if t == FieldMdHandleTypeCheck {
+			res = s.mdFieldBlockId(so.BlockId, true, false, false, so)
+			errStr = fmt.Sprintf("fail to modify exist value of %v", "BlockId")
+		} else if t == FieldMdHandleTypeDel {
+			res = s.mdFieldBlockId(so.BlockId, false, true, false, so)
+			errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", "BlockId")
+		} else if t == FieldMdHandleTypeInsert {
+			res = s.mdFieldBlockId(so.BlockId, false, false, true, so)
+			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "BlockId")
 		}
-
-		if fName == "TrxCreateOrder" {
-			res := true
-			if t == FieldMdHandleTypeCheck {
-				res = s.mdFieldTrxCreateOrder(so.TrxCreateOrder, true, false, false, so)
-				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
-			} else if t == FieldMdHandleTypeDel {
-				res = s.mdFieldTrxCreateOrder(so.TrxCreateOrder, false, true, false, so)
-				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
-			} else if t == FieldMdHandleTypeInsert {
-				res = s.mdFieldTrxCreateOrder(so.TrxCreateOrder, false, false, true, so)
-				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
-			}
-			if !res {
-				return errors.New(errStr)
-			}
+		if !res {
+			return errors.New(errStr)
 		}
+	}
 
-		if fName == "TrxWrap" {
-			res := true
-			if t == FieldMdHandleTypeCheck {
-				res = s.mdFieldTrxWrap(so.TrxWrap, true, false, false, so)
-				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
-			} else if t == FieldMdHandleTypeDel {
-				res = s.mdFieldTrxWrap(so.TrxWrap, false, true, false, so)
-				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
-			} else if t == FieldMdHandleTypeInsert {
-				res = s.mdFieldTrxWrap(so.TrxWrap, false, false, true, so)
-				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
-			}
-			if !res {
-				return errors.New(errStr)
-			}
+	if fields["BlockTime"] {
+		res := true
+		if t == FieldMdHandleTypeCheck {
+			res = s.mdFieldBlockTime(so.BlockTime, true, false, false, so)
+			errStr = fmt.Sprintf("fail to modify exist value of %v", "BlockTime")
+		} else if t == FieldMdHandleTypeDel {
+			res = s.mdFieldBlockTime(so.BlockTime, false, true, false, so)
+			errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", "BlockTime")
+		} else if t == FieldMdHandleTypeInsert {
+			res = s.mdFieldBlockTime(so.BlockTime, false, false, true, so)
+			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "BlockTime")
 		}
+		if !res {
+			return errors.New(errStr)
+		}
+	}
 
+	if fields["TrxCreateOrder"] {
+		res := true
+		if t == FieldMdHandleTypeCheck {
+			res = s.mdFieldTrxCreateOrder(so.TrxCreateOrder, true, false, false, so)
+			errStr = fmt.Sprintf("fail to modify exist value of %v", "TrxCreateOrder")
+		} else if t == FieldMdHandleTypeDel {
+			res = s.mdFieldTrxCreateOrder(so.TrxCreateOrder, false, true, false, so)
+			errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", "TrxCreateOrder")
+		} else if t == FieldMdHandleTypeInsert {
+			res = s.mdFieldTrxCreateOrder(so.TrxCreateOrder, false, false, true, so)
+			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "TrxCreateOrder")
+		}
+		if !res {
+			return errors.New(errStr)
+		}
+	}
+
+	if fields["TrxWrap"] {
+		res := true
+		if t == FieldMdHandleTypeCheck {
+			res = s.mdFieldTrxWrap(so.TrxWrap, true, false, false, so)
+			errStr = fmt.Sprintf("fail to modify exist value of %v", "TrxWrap")
+		} else if t == FieldMdHandleTypeDel {
+			res = s.mdFieldTrxWrap(so.TrxWrap, false, true, false, so)
+			errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", "TrxWrap")
+		} else if t == FieldMdHandleTypeInsert {
+			res = s.mdFieldTrxWrap(so.TrxWrap, false, false, true, so)
+			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "TrxWrap")
+		}
+		if !res {
+			return errors.New(errStr)
+		}
 	}
 
 	return nil
@@ -650,6 +673,14 @@ func (s *SoExtTrxWrap) removeExtTrx() error {
 	if s.dba == nil {
 		return errors.New("database is nil")
 	}
+
+	s.initWatcherFlag()
+
+	var oldVal *SoExtTrx
+	if s.watcherFlag.AnyWatcher {
+		oldVal = s.getExtTrx()
+	}
+
 	//delete sort list key
 	if res := s.delAllSortKeys(true, nil); !res {
 		return errors.New("delAllSortKeys failed")
@@ -669,6 +700,11 @@ func (s *SoExtTrxWrap) removeExtTrx() error {
 	if err == nil {
 		s.mKeyBuf = nil
 		s.mKeyFlag = -1
+
+		// call watchers
+		if s.watcherFlag.AnyWatcher && oldVal != nil {
+			ReportTableRecordDelete(s.dba.ServiceId(), s.dba.BranchId(), s.mainKey, oldVal)
+		}
 		return nil
 	} else {
 		return fmt.Errorf("database.Delete failed: %s", err.Error())
@@ -1918,4 +1954,66 @@ func (s *UniExtTrxTrxIdWrap) UniQueryTrxId(start *prototype.Sha256) *SoExtTrxWra
 		}
 	}
 	return nil
+}
+
+////////////// SECTION Watchers ///////////////
+
+type ExtTrxWatcherFlag struct {
+	HasBlockHeightWatcher bool
+
+	HasBlockIdWatcher bool
+
+	HasBlockTimeWatcher bool
+
+	HasTrxCreateOrderWatcher bool
+
+	HasTrxWrapWatcher bool
+
+	WholeWatcher bool
+	AnyWatcher   bool
+}
+
+var (
+	ExtTrxTable = &TableInfo{
+		Name:    "ExtTrx",
+		Primary: "TrxId",
+		Record:  reflect.TypeOf((*SoExtTrx)(nil)).Elem(),
+	}
+	ExtTrxWatcherFlags     = make(map[uint32]ExtTrxWatcherFlag)
+	ExtTrxWatcherFlagsLock sync.RWMutex
+)
+
+func ExtTrxWatcherFlagOfDb(dbSvcId uint32) ExtTrxWatcherFlag {
+	ExtTrxWatcherFlagsLock.RLock()
+	defer ExtTrxWatcherFlagsLock.RUnlock()
+	return ExtTrxWatcherFlags[dbSvcId]
+}
+
+func ExtTrxRecordWatcherChanged(dbSvcId uint32) {
+	var flag ExtTrxWatcherFlag
+	flag.WholeWatcher = HasTableRecordWatcher(dbSvcId, ExtTrxTable.Record, "")
+	flag.AnyWatcher = flag.WholeWatcher
+
+	flag.HasBlockHeightWatcher = HasTableRecordWatcher(dbSvcId, ExtTrxTable.Record, "BlockHeight")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasBlockHeightWatcher
+
+	flag.HasBlockIdWatcher = HasTableRecordWatcher(dbSvcId, ExtTrxTable.Record, "BlockId")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasBlockIdWatcher
+
+	flag.HasBlockTimeWatcher = HasTableRecordWatcher(dbSvcId, ExtTrxTable.Record, "BlockTime")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasBlockTimeWatcher
+
+	flag.HasTrxCreateOrderWatcher = HasTableRecordWatcher(dbSvcId, ExtTrxTable.Record, "TrxCreateOrder")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasTrxCreateOrderWatcher
+
+	flag.HasTrxWrapWatcher = HasTableRecordWatcher(dbSvcId, ExtTrxTable.Record, "TrxWrap")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasTrxWrapWatcher
+
+	ExtTrxWatcherFlagsLock.Lock()
+	ExtTrxWatcherFlags[dbSvcId] = flag
+	ExtTrxWatcherFlagsLock.Unlock()
+}
+
+func init() {
+	RegisterTableWatcherChangedCallback(ExtTrxTable.Record, ExtTrxRecordWatcherChanged)
 }

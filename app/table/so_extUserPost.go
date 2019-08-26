@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"sync"
 
 	"github.com/coschain/contentos-go/common/encoding/kope"
 	"github.com/coschain/contentos-go/iservices"
@@ -21,19 +22,21 @@ var (
 
 ////////////// SECTION Wrap Define ///////////////
 type SoExtUserPostWrap struct {
-	dba       iservices.IDatabaseRW
-	mainKey   *uint64
-	mKeyFlag  int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
-	mKeyBuf   []byte //the buffer after the main key is encoded with prefix
-	mBuf      []byte //the value after the main key is encoded
-	mdFuncMap map[string]interface{}
+	dba         iservices.IDatabaseRW
+	mainKey     *uint64
+	watcherFlag *ExtUserPostWatcherFlag
+	mKeyFlag    int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
+	mKeyBuf     []byte //the buffer after the main key is encoded with prefix
+	mBuf        []byte //the value after the main key is encoded
+	mdFuncMap   map[string]interface{}
 }
 
 func NewSoExtUserPostWrap(dba iservices.IDatabaseRW, key *uint64) *SoExtUserPostWrap {
 	if dba == nil || key == nil {
 		return nil
 	}
-	result := &SoExtUserPostWrap{dba, key, -1, nil, nil, nil}
+	result := &SoExtUserPostWrap{dba, key, nil, -1, nil, nil, nil}
+	result.initWatcherFlag()
 	return result
 }
 
@@ -79,6 +82,13 @@ func (s *SoExtUserPostWrap) MustNotExist(errMsgs ...interface{}) *SoExtUserPostW
 	return s
 }
 
+func (s *SoExtUserPostWrap) initWatcherFlag() {
+	if s.watcherFlag == nil {
+		s.watcherFlag = new(ExtUserPostWatcherFlag)
+		*(s.watcherFlag) = ExtUserPostWatcherFlagOfDb(s.dba.ServiceId())
+	}
+}
+
 func (s *SoExtUserPostWrap) create(f func(tInfo *SoExtUserPost)) error {
 	if s.dba == nil {
 		return errors.New("the db is nil")
@@ -122,6 +132,13 @@ func (s *SoExtUserPostWrap) create(f func(tInfo *SoExtUserPost)) error {
 	}
 
 	s.mKeyFlag = 1
+
+	// call watchers
+	s.initWatcherFlag()
+	if s.watcherFlag.AnyWatcher {
+		ReportTableRecordInsert(s.dba.ServiceId(), s.dba.BranchId(), s.mainKey, val)
+	}
+
 	return nil
 }
 
@@ -167,29 +184,30 @@ func (s *SoExtUserPostWrap) modify(f func(tInfo *SoExtUserPost)) error {
 		return errors.New("primary key does not support modification")
 	}
 
-	fieldSli, err := s.getModifiedFields(oriTable, curTable)
+	s.initWatcherFlag()
+	modifiedFields, hasWatcher, err := s.getModifiedFields(oriTable, curTable)
 	if err != nil {
 		return err
 	}
 
-	if fieldSli == nil || len(fieldSli) < 1 {
+	if modifiedFields == nil || len(modifiedFields) < 1 {
 		return nil
 	}
 
 	//check whether modify sort and unique field to nil
-	err = s.checkSortAndUniFieldValidity(curTable, fieldSli)
+	err = s.checkSortAndUniFieldValidity(curTable, modifiedFields)
 	if err != nil {
 		return err
 	}
 
 	//check unique
-	err = s.handleFieldMd(FieldMdHandleTypeCheck, curTable, fieldSli)
+	err = s.handleFieldMd(FieldMdHandleTypeCheck, curTable, modifiedFields)
 	if err != nil {
 		return err
 	}
 
 	//delete sort and unique key
-	err = s.handleFieldMd(FieldMdHandleTypeDel, oriTable, fieldSli)
+	err = s.handleFieldMd(FieldMdHandleTypeDel, oriTable, modifiedFields)
 	if err != nil {
 		return err
 	}
@@ -201,9 +219,14 @@ func (s *SoExtUserPostWrap) modify(f func(tInfo *SoExtUserPost)) error {
 	}
 
 	//insert sort and unique key
-	err = s.handleFieldMd(FieldMdHandleTypeInsert, curTable, fieldSli)
+	err = s.handleFieldMd(FieldMdHandleTypeInsert, curTable, modifiedFields)
 	if err != nil {
 		return err
+	}
+
+	// call watchers
+	if hasWatcher {
+		ReportTableRecordUpdate(s.dba.ServiceId(), s.dba.BranchId(), s.mainKey, oriTable, curTable, modifiedFields)
 	}
 
 	return nil
@@ -228,65 +251,61 @@ func (s *SoExtUserPostWrap) SetPostCreatedOrder(p *prototype.UserPostCreateOrder
 	return s
 }
 
-func (s *SoExtUserPostWrap) checkSortAndUniFieldValidity(curTable *SoExtUserPost, fieldSli []string) error {
-	if curTable != nil && fieldSli != nil && len(fieldSli) > 0 {
-		for _, fName := range fieldSli {
-			if len(fName) > 0 {
+func (s *SoExtUserPostWrap) checkSortAndUniFieldValidity(curTable *SoExtUserPost, fields map[string]bool) error {
+	if curTable != nil && fields != nil && len(fields) > 0 {
 
-				if fName == "PostCreatedOrder" && curTable.PostCreatedOrder == nil {
-					return errors.New("sort field PostCreatedOrder can't be modified to nil")
-				}
-
-			}
+		if fields["PostCreatedOrder"] && curTable.PostCreatedOrder == nil {
+			return errors.New("sort field PostCreatedOrder can't be modified to nil")
 		}
+
 	}
 	return nil
 }
 
 //Get all the modified fields in the table
-func (s *SoExtUserPostWrap) getModifiedFields(oriTable *SoExtUserPost, curTable *SoExtUserPost) ([]string, error) {
+func (s *SoExtUserPostWrap) getModifiedFields(oriTable *SoExtUserPost, curTable *SoExtUserPost) (map[string]bool, bool, error) {
 	if oriTable == nil {
-		return nil, errors.New("table info is nil, can't get modified fields")
+		return nil, false, errors.New("table info is nil, can't get modified fields")
 	}
-	var list []string
+	hasWatcher := false
+	fields := make(map[string]bool)
 
 	if !reflect.DeepEqual(oriTable.PostCreatedOrder, curTable.PostCreatedOrder) {
-		list = append(list, "PostCreatedOrder")
+		fields["PostCreatedOrder"] = true
+		hasWatcher = hasWatcher || s.watcherFlag.HasPostCreatedOrderWatcher
 	}
 
-	return list, nil
+	hasWatcher = hasWatcher || s.watcherFlag.WholeWatcher
+	return fields, hasWatcher, nil
 }
 
-func (s *SoExtUserPostWrap) handleFieldMd(t FieldMdHandleType, so *SoExtUserPost, fSli []string) error {
+func (s *SoExtUserPostWrap) handleFieldMd(t FieldMdHandleType, so *SoExtUserPost, fields map[string]bool) error {
 	if so == nil {
 		return errors.New("fail to modify empty table")
 	}
 
 	//there is no field need to modify
-	if fSli == nil || len(fSli) < 1 {
+	if fields == nil || len(fields) < 1 {
 		return nil
 	}
 
 	errStr := ""
-	for _, fName := range fSli {
 
-		if fName == "PostCreatedOrder" {
-			res := true
-			if t == FieldMdHandleTypeCheck {
-				res = s.mdFieldPostCreatedOrder(so.PostCreatedOrder, true, false, false, so)
-				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
-			} else if t == FieldMdHandleTypeDel {
-				res = s.mdFieldPostCreatedOrder(so.PostCreatedOrder, false, true, false, so)
-				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
-			} else if t == FieldMdHandleTypeInsert {
-				res = s.mdFieldPostCreatedOrder(so.PostCreatedOrder, false, false, true, so)
-				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
-			}
-			if !res {
-				return errors.New(errStr)
-			}
+	if fields["PostCreatedOrder"] {
+		res := true
+		if t == FieldMdHandleTypeCheck {
+			res = s.mdFieldPostCreatedOrder(so.PostCreatedOrder, true, false, false, so)
+			errStr = fmt.Sprintf("fail to modify exist value of %v", "PostCreatedOrder")
+		} else if t == FieldMdHandleTypeDel {
+			res = s.mdFieldPostCreatedOrder(so.PostCreatedOrder, false, true, false, so)
+			errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", "PostCreatedOrder")
+		} else if t == FieldMdHandleTypeInsert {
+			res = s.mdFieldPostCreatedOrder(so.PostCreatedOrder, false, false, true, so)
+			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "PostCreatedOrder")
 		}
-
+		if !res {
+			return errors.New(errStr)
+		}
 	}
 
 	return nil
@@ -369,6 +388,14 @@ func (s *SoExtUserPostWrap) removeExtUserPost() error {
 	if s.dba == nil {
 		return errors.New("database is nil")
 	}
+
+	s.initWatcherFlag()
+
+	var oldVal *SoExtUserPost
+	if s.watcherFlag.AnyWatcher {
+		oldVal = s.getExtUserPost()
+	}
+
 	//delete sort list key
 	if res := s.delAllSortKeys(true, nil); !res {
 		return errors.New("delAllSortKeys failed")
@@ -388,6 +415,11 @@ func (s *SoExtUserPostWrap) removeExtUserPost() error {
 	if err == nil {
 		s.mKeyBuf = nil
 		s.mKeyFlag = -1
+
+		// call watchers
+		if s.watcherFlag.AnyWatcher && oldVal != nil {
+			ReportTableRecordDelete(s.dba.ServiceId(), s.dba.BranchId(), s.mainKey, oldVal)
+		}
 		return nil
 	} else {
 		return fmt.Errorf("database.Delete failed: %s", err.Error())
@@ -906,4 +938,46 @@ func (s *UniExtUserPostPostIdWrap) UniQueryPostId(start *uint64) *SoExtUserPostW
 		}
 	}
 	return nil
+}
+
+////////////// SECTION Watchers ///////////////
+
+type ExtUserPostWatcherFlag struct {
+	HasPostCreatedOrderWatcher bool
+
+	WholeWatcher bool
+	AnyWatcher   bool
+}
+
+var (
+	ExtUserPostTable = &TableInfo{
+		Name:    "ExtUserPost",
+		Primary: "PostId",
+		Record:  reflect.TypeOf((*SoExtUserPost)(nil)).Elem(),
+	}
+	ExtUserPostWatcherFlags     = make(map[uint32]ExtUserPostWatcherFlag)
+	ExtUserPostWatcherFlagsLock sync.RWMutex
+)
+
+func ExtUserPostWatcherFlagOfDb(dbSvcId uint32) ExtUserPostWatcherFlag {
+	ExtUserPostWatcherFlagsLock.RLock()
+	defer ExtUserPostWatcherFlagsLock.RUnlock()
+	return ExtUserPostWatcherFlags[dbSvcId]
+}
+
+func ExtUserPostRecordWatcherChanged(dbSvcId uint32) {
+	var flag ExtUserPostWatcherFlag
+	flag.WholeWatcher = HasTableRecordWatcher(dbSvcId, ExtUserPostTable.Record, "")
+	flag.AnyWatcher = flag.WholeWatcher
+
+	flag.HasPostCreatedOrderWatcher = HasTableRecordWatcher(dbSvcId, ExtUserPostTable.Record, "PostCreatedOrder")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasPostCreatedOrderWatcher
+
+	ExtUserPostWatcherFlagsLock.Lock()
+	ExtUserPostWatcherFlags[dbSvcId] = flag
+	ExtUserPostWatcherFlagsLock.Unlock()
+}
+
+func init() {
+	RegisterTableWatcherChangedCallback(ExtUserPostTable.Record, ExtUserPostRecordWatcherChanged)
 }

@@ -25,6 +25,7 @@ const (
 	NoticeCashout      = "rewardCashout"
 	NoticeState        = "blockstate"
 	NoticeLibChange    = "LibChange"
+	NoticeBlockLog     = "blockLog"
 
 	GenesisTime = 0
 

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"sync"
 
 	"github.com/coschain/contentos-go/common/encoding/kope"
 	"github.com/coschain/contentos-go/iservices"
@@ -21,19 +22,21 @@ var (
 
 ////////////// SECTION Wrap Define ///////////////
 type SoExtFollowingWrap struct {
-	dba       iservices.IDatabaseRW
-	mainKey   *prototype.FollowingRelation
-	mKeyFlag  int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
-	mKeyBuf   []byte //the buffer after the main key is encoded with prefix
-	mBuf      []byte //the value after the main key is encoded
-	mdFuncMap map[string]interface{}
+	dba         iservices.IDatabaseRW
+	mainKey     *prototype.FollowingRelation
+	watcherFlag *ExtFollowingWatcherFlag
+	mKeyFlag    int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
+	mKeyBuf     []byte //the buffer after the main key is encoded with prefix
+	mBuf        []byte //the value after the main key is encoded
+	mdFuncMap   map[string]interface{}
 }
 
 func NewSoExtFollowingWrap(dba iservices.IDatabaseRW, key *prototype.FollowingRelation) *SoExtFollowingWrap {
 	if dba == nil || key == nil {
 		return nil
 	}
-	result := &SoExtFollowingWrap{dba, key, -1, nil, nil, nil}
+	result := &SoExtFollowingWrap{dba, key, nil, -1, nil, nil, nil}
+	result.initWatcherFlag()
 	return result
 }
 
@@ -77,6 +80,13 @@ func (s *SoExtFollowingWrap) MustNotExist(errMsgs ...interface{}) *SoExtFollowin
 		panic(bindErrorInfo(fmt.Sprintf("SoExtFollowingWrap.MustNotExist: %v already exists", s.mainKey), errMsgs...))
 	}
 	return s
+}
+
+func (s *SoExtFollowingWrap) initWatcherFlag() {
+	if s.watcherFlag == nil {
+		s.watcherFlag = new(ExtFollowingWatcherFlag)
+		*(s.watcherFlag) = ExtFollowingWatcherFlagOfDb(s.dba.ServiceId())
+	}
 }
 
 func (s *SoExtFollowingWrap) create(f func(tInfo *SoExtFollowing)) error {
@@ -125,6 +135,13 @@ func (s *SoExtFollowingWrap) create(f func(tInfo *SoExtFollowing)) error {
 	}
 
 	s.mKeyFlag = 1
+
+	// call watchers
+	s.initWatcherFlag()
+	if s.watcherFlag.AnyWatcher {
+		ReportTableRecordInsert(s.dba.ServiceId(), s.dba.BranchId(), s.mainKey, val)
+	}
+
 	return nil
 }
 
@@ -170,29 +187,30 @@ func (s *SoExtFollowingWrap) modify(f func(tInfo *SoExtFollowing)) error {
 		return errors.New("primary key does not support modification")
 	}
 
-	fieldSli, err := s.getModifiedFields(oriTable, curTable)
+	s.initWatcherFlag()
+	modifiedFields, hasWatcher, err := s.getModifiedFields(oriTable, curTable)
 	if err != nil {
 		return err
 	}
 
-	if fieldSli == nil || len(fieldSli) < 1 {
+	if modifiedFields == nil || len(modifiedFields) < 1 {
 		return nil
 	}
 
 	//check whether modify sort and unique field to nil
-	err = s.checkSortAndUniFieldValidity(curTable, fieldSli)
+	err = s.checkSortAndUniFieldValidity(curTable, modifiedFields)
 	if err != nil {
 		return err
 	}
 
 	//check unique
-	err = s.handleFieldMd(FieldMdHandleTypeCheck, curTable, fieldSli)
+	err = s.handleFieldMd(FieldMdHandleTypeCheck, curTable, modifiedFields)
 	if err != nil {
 		return err
 	}
 
 	//delete sort and unique key
-	err = s.handleFieldMd(FieldMdHandleTypeDel, oriTable, fieldSli)
+	err = s.handleFieldMd(FieldMdHandleTypeDel, oriTable, modifiedFields)
 	if err != nil {
 		return err
 	}
@@ -204,9 +222,14 @@ func (s *SoExtFollowingWrap) modify(f func(tInfo *SoExtFollowing)) error {
 	}
 
 	//insert sort and unique key
-	err = s.handleFieldMd(FieldMdHandleTypeInsert, curTable, fieldSli)
+	err = s.handleFieldMd(FieldMdHandleTypeInsert, curTable, modifiedFields)
 	if err != nil {
 		return err
+	}
+
+	// call watchers
+	if hasWatcher {
+		ReportTableRecordUpdate(s.dba.ServiceId(), s.dba.BranchId(), s.mainKey, oriTable, curTable, modifiedFields)
 	}
 
 	return nil
@@ -231,65 +254,61 @@ func (s *SoExtFollowingWrap) SetFollowingCreatedOrder(p *prototype.FollowingCrea
 	return s
 }
 
-func (s *SoExtFollowingWrap) checkSortAndUniFieldValidity(curTable *SoExtFollowing, fieldSli []string) error {
-	if curTable != nil && fieldSli != nil && len(fieldSli) > 0 {
-		for _, fName := range fieldSli {
-			if len(fName) > 0 {
+func (s *SoExtFollowingWrap) checkSortAndUniFieldValidity(curTable *SoExtFollowing, fields map[string]bool) error {
+	if curTable != nil && fields != nil && len(fields) > 0 {
 
-				if fName == "FollowingCreatedOrder" && curTable.FollowingCreatedOrder == nil {
-					return errors.New("sort field FollowingCreatedOrder can't be modified to nil")
-				}
-
-			}
+		if fields["FollowingCreatedOrder"] && curTable.FollowingCreatedOrder == nil {
+			return errors.New("sort field FollowingCreatedOrder can't be modified to nil")
 		}
+
 	}
 	return nil
 }
 
 //Get all the modified fields in the table
-func (s *SoExtFollowingWrap) getModifiedFields(oriTable *SoExtFollowing, curTable *SoExtFollowing) ([]string, error) {
+func (s *SoExtFollowingWrap) getModifiedFields(oriTable *SoExtFollowing, curTable *SoExtFollowing) (map[string]bool, bool, error) {
 	if oriTable == nil {
-		return nil, errors.New("table info is nil, can't get modified fields")
+		return nil, false, errors.New("table info is nil, can't get modified fields")
 	}
-	var list []string
+	hasWatcher := false
+	fields := make(map[string]bool)
 
 	if !reflect.DeepEqual(oriTable.FollowingCreatedOrder, curTable.FollowingCreatedOrder) {
-		list = append(list, "FollowingCreatedOrder")
+		fields["FollowingCreatedOrder"] = true
+		hasWatcher = hasWatcher || s.watcherFlag.HasFollowingCreatedOrderWatcher
 	}
 
-	return list, nil
+	hasWatcher = hasWatcher || s.watcherFlag.WholeWatcher
+	return fields, hasWatcher, nil
 }
 
-func (s *SoExtFollowingWrap) handleFieldMd(t FieldMdHandleType, so *SoExtFollowing, fSli []string) error {
+func (s *SoExtFollowingWrap) handleFieldMd(t FieldMdHandleType, so *SoExtFollowing, fields map[string]bool) error {
 	if so == nil {
 		return errors.New("fail to modify empty table")
 	}
 
 	//there is no field need to modify
-	if fSli == nil || len(fSli) < 1 {
+	if fields == nil || len(fields) < 1 {
 		return nil
 	}
 
 	errStr := ""
-	for _, fName := range fSli {
 
-		if fName == "FollowingCreatedOrder" {
-			res := true
-			if t == FieldMdHandleTypeCheck {
-				res = s.mdFieldFollowingCreatedOrder(so.FollowingCreatedOrder, true, false, false, so)
-				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
-			} else if t == FieldMdHandleTypeDel {
-				res = s.mdFieldFollowingCreatedOrder(so.FollowingCreatedOrder, false, true, false, so)
-				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
-			} else if t == FieldMdHandleTypeInsert {
-				res = s.mdFieldFollowingCreatedOrder(so.FollowingCreatedOrder, false, false, true, so)
-				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
-			}
-			if !res {
-				return errors.New(errStr)
-			}
+	if fields["FollowingCreatedOrder"] {
+		res := true
+		if t == FieldMdHandleTypeCheck {
+			res = s.mdFieldFollowingCreatedOrder(so.FollowingCreatedOrder, true, false, false, so)
+			errStr = fmt.Sprintf("fail to modify exist value of %v", "FollowingCreatedOrder")
+		} else if t == FieldMdHandleTypeDel {
+			res = s.mdFieldFollowingCreatedOrder(so.FollowingCreatedOrder, false, true, false, so)
+			errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", "FollowingCreatedOrder")
+		} else if t == FieldMdHandleTypeInsert {
+			res = s.mdFieldFollowingCreatedOrder(so.FollowingCreatedOrder, false, false, true, so)
+			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "FollowingCreatedOrder")
 		}
-
+		if !res {
+			return errors.New(errStr)
+		}
 	}
 
 	return nil
@@ -373,6 +392,14 @@ func (s *SoExtFollowingWrap) removeExtFollowing() error {
 	if s.dba == nil {
 		return errors.New("database is nil")
 	}
+
+	s.initWatcherFlag()
+
+	var oldVal *SoExtFollowing
+	if s.watcherFlag.AnyWatcher {
+		oldVal = s.getExtFollowing()
+	}
+
 	//delete sort list key
 	if res := s.delAllSortKeys(true, nil); !res {
 		return errors.New("delAllSortKeys failed")
@@ -392,6 +419,11 @@ func (s *SoExtFollowingWrap) removeExtFollowing() error {
 	if err == nil {
 		s.mKeyBuf = nil
 		s.mKeyFlag = -1
+
+		// call watchers
+		if s.watcherFlag.AnyWatcher && oldVal != nil {
+			ReportTableRecordDelete(s.dba.ServiceId(), s.dba.BranchId(), s.mainKey, oldVal)
+		}
 		return nil
 	} else {
 		return fmt.Errorf("database.Delete failed: %s", err.Error())
@@ -864,4 +896,46 @@ func (s *UniExtFollowingFollowingInfoWrap) UniQueryFollowingInfo(start *prototyp
 		}
 	}
 	return nil
+}
+
+////////////// SECTION Watchers ///////////////
+
+type ExtFollowingWatcherFlag struct {
+	HasFollowingCreatedOrderWatcher bool
+
+	WholeWatcher bool
+	AnyWatcher   bool
+}
+
+var (
+	ExtFollowingTable = &TableInfo{
+		Name:    "ExtFollowing",
+		Primary: "FollowingInfo",
+		Record:  reflect.TypeOf((*SoExtFollowing)(nil)).Elem(),
+	}
+	ExtFollowingWatcherFlags     = make(map[uint32]ExtFollowingWatcherFlag)
+	ExtFollowingWatcherFlagsLock sync.RWMutex
+)
+
+func ExtFollowingWatcherFlagOfDb(dbSvcId uint32) ExtFollowingWatcherFlag {
+	ExtFollowingWatcherFlagsLock.RLock()
+	defer ExtFollowingWatcherFlagsLock.RUnlock()
+	return ExtFollowingWatcherFlags[dbSvcId]
+}
+
+func ExtFollowingRecordWatcherChanged(dbSvcId uint32) {
+	var flag ExtFollowingWatcherFlag
+	flag.WholeWatcher = HasTableRecordWatcher(dbSvcId, ExtFollowingTable.Record, "")
+	flag.AnyWatcher = flag.WholeWatcher
+
+	flag.HasFollowingCreatedOrderWatcher = HasTableRecordWatcher(dbSvcId, ExtFollowingTable.Record, "FollowingCreatedOrder")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasFollowingCreatedOrderWatcher
+
+	ExtFollowingWatcherFlagsLock.Lock()
+	ExtFollowingWatcherFlags[dbSvcId] = flag
+	ExtFollowingWatcherFlagsLock.Unlock()
+}
+
+func init() {
+	RegisterTableWatcherChangedCallback(ExtFollowingTable.Record, ExtFollowingRecordWatcherChanged)
 }

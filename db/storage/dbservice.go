@@ -17,12 +17,14 @@ import (
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/node"
 	"github.com/sasha-s/go-deadlock"
+	"hash/crc32"
 	"os"
 )
 
 // the service type
 type DatabaseService struct {
 	path string
+	sid  uint32
 	db   *LevelDatabase
 	rdb  *RevertibleDatabase
 	tdb  *SquashableDatabase
@@ -38,19 +40,27 @@ func NewDatabaseService(ctx *node.ServiceContext, dbPath string) (*DatabaseServi
 	if len(path) == 0 {
 		return nil, errors.New("cannot resolve database path")
 	}
-	return &DatabaseService{path: path}, nil
+	return &DatabaseService{sid: crc32.ChecksumIEEE([]byte(path)), path: path}, nil
 }
 
 func NewDatabase(dbPath string) (*DatabaseService, error) {
 	if len(dbPath) == 0 {
 		return nil, errors.New("invalid parameter")
 	}
-	return &DatabaseService{path: dbPath}, nil
+	return &DatabaseService{sid: crc32.ChecksumIEEE([]byte(dbPath)), path: dbPath}, nil
 }
 
 //
 // implementation of Service interface
 //
+
+func (s *DatabaseService) ServiceId() uint32 {
+	return s.sid
+}
+
+func (s *DatabaseService) BranchId() string {
+	return iservices.DbTrunk
+}
 
 func (s *DatabaseService) Start(node *node.Node) error {
 	db, err := NewLevelDatabase(s.path)
@@ -229,6 +239,9 @@ func (s *DatabaseService) RUnlock() {
 	s.lock.RUnlock()
 }
 
-func (s *DatabaseService) NewPatch() iservices.IDatabasePatch {
-	return NewDatabasePatch(s.tdb)
+func (s *DatabaseService) NewPatch(branchId...string) iservices.IDatabasePatch {
+	if len(branchId) == 0 {
+		return NewDatabasePatch(s.sid, s.BranchId(), s.tdb)
+	}
+	return NewDatabasePatch(s.sid, branchId[0], s.tdb)
 }

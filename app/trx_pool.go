@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/asaskevich/EventBus"
+	"github.com/coschain/contentos-go/app/blocklog"
 	"github.com/coschain/contentos-go/app/table"
 	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/common/constants"
@@ -50,6 +51,7 @@ type TrxPool struct {
 	enableBAH bool
 
 	vmCache *vmcache.VmCache
+	blockLogWatcher *blocklog.Watcher
 }
 
 func (c *TrxPool) getDb() (iservices.IDatabaseService, error) {
@@ -106,6 +108,7 @@ func (c *TrxPool) Open() {
 	latest, _, _ := c.iceberg.LatestBlock()
 	c.tm = NewTrxMgr(c.ctx.ChainId(), c.db, c.log, latest, commit)
 	c.resourceLimiter = utils.NewResourceLimiter()
+	c.blockLogWatcher = blocklog.NewWatcher(c.db.ServiceId(), c.notifyBlockLog)
 }
 
 func (c *TrxPool) Stop() error {
@@ -124,7 +127,7 @@ func (c *TrxPool) EstimateStamina(trx *prototype.SignedTransaction) (invoice *pr
 	if err := entry.InitCheck(); err != nil {
 		return
 	}
-	db := c.db.NewPatch()
+	db := c.db.NewPatch("EstimateStamina")
 
 	defer func() {
 		recover()
@@ -160,6 +163,7 @@ func (c *TrxPool) pushBlockNoLock(blk *prototype.SignedBlock, skip prototype.Ski
 			// undo changes
 			_ = c.iceberg.EndBlock(false)
 			c.stateObserver.EndBlock("")
+			_ = c.blockLogWatcher.EndBlock(false, blk)
 			c.log.Debug("ICEBERG: EndBlock FALSE")
 			c.log.Errorf("push block fail,the error is %v,the block num is %v", r, blk.Id().BlockNum())
 			c.notifyBlockApplyFailed(blk)
@@ -172,11 +176,13 @@ func (c *TrxPool) pushBlockNoLock(blk *prototype.SignedBlock, skip prototype.Ski
 		_ = c.iceberg.BeginBlock(blkNum)
 		c.stateObserver.BeginBlock(blkNum)
 		c.stateObserver.SetBlockTime(blk.Timestamp())
+		_ = c.blockLogWatcher.BeginBlock(blkNum)
 		c.applyBlock(blk, skip)
 		data := blk.Id().Data
 		c.stateObserver.EndBlock(hex.EncodeToString(data[:]))
 		c.log.Debug("ICEBERG: EndBlock TRUE")
 		_ = c.iceberg.EndBlock(true)
+		_ = c.blockLogWatcher.EndBlock(true, blk)
 	} else {
 		// we have do a BeginTransaction at GenerateBlock
 		c.applyBlock(blk, skip)
@@ -184,6 +190,7 @@ func (c *TrxPool) pushBlockNoLock(blk *prototype.SignedBlock, skip prototype.Ski
 		data := blk.Id().Data
 		c.stateObserver.EndBlock(hex.EncodeToString(data[:]))
 		_ = c.iceberg.EndBlock(true)
+		_ = c.blockLogWatcher.EndBlock(true, blk)
 	}
 
 	return err
@@ -244,6 +251,7 @@ func (c *TrxPool) generateBlockNoLock(bpName string, pre *prototype.Sha256, time
 			c.log.Debug("ICEBERG: EndBlock FALSE")
 			_ = c.iceberg.EndBlock(false)
 			c.stateObserver.EndBlock("")
+			_ = c.blockLogWatcher.EndBlock(false, nil)
 
 			b, e = nil, fmt.Errorf("%v", err)
 			c.notifyBlockGenerationFailed(headBlockNum + 1)
@@ -275,6 +283,7 @@ func (c *TrxPool) generateBlockNoLock(bpName string, pre *prototype.Sha256, time
 	_ = c.iceberg.BeginBlock(blkNum)
 	c.stateObserver.BeginBlock(blkNum)
 	c.stateObserver.SetBlockTime(uint64(timestamp))
+	_ = c.blockLogWatcher.BeginBlock(blkNum)
 
 	timeOut := maxTimeout - time.Since(entryTime)
 	if timeOut < minTimeout {
@@ -411,6 +420,10 @@ func (c *TrxPool) notifyTrxApplyResult(trx *prototype.SignedTransaction, res boo
 	}
 }
 
+func (c *TrxPool) notifyBlockLog(blockLog *blocklog.BlockLog) {
+	c.noticer.Publish(constants.NoticeBlockLog, blockLog)
+}
+
 func (c *TrxPool) applyTransactionOnDb(db iservices.IDatabasePatch, entry *TrxEntry, blockNum uint64) {
 	result := entry.GetTrxResult()
 	receipt, sigTrx := result.GetReceipt(), result.GetSigTrx()
@@ -420,7 +433,10 @@ func (c *TrxPool) applyTransactionOnDb(db iservices.IDatabasePatch, entry *TrxEn
 	trxObserver := c.stateObserver.NewTrxObserver()
 	trxHash, _ := sigTrx.GetTrxHash(c.ctx.ChainId())
 	trxObserver.BeginTrx(hex.EncodeToString(trxHash))
-	trxContext := NewTrxContext(result, trxDB, entry.GetTrxSigner(), c, trxObserver)
+	trxId, _ := sigTrx.Id()
+	trxStateChange := c.blockLogWatcher.GetOrCreateStateChangeContext(db.BranchId(), fmt.Sprintf("%x", trxId.Hash), -1, "")
+	restorePoint := trxStateChange.RestorePoint()
+	trxContext := NewTrxContext(result, trxDB, entry.GetTrxSigner(), c, trxObserver, trxStateChange)
 
 	defer func() {
 		useGas := trxContext.HasGasFee()
@@ -429,6 +445,7 @@ func (c *TrxPool) applyTransactionOnDb(db iservices.IDatabasePatch, entry *TrxEn
 			receipt.ErrorInfo = fmt.Sprintf("applyTransaction failed : %v", err)
 			c.log.Warnf("applyTransaction failed : %v", err)
 			trxObserver.EndTrx(false)
+			trxStateChange.Restore(restorePoint)
 			if useGas && constants.EnableResourceControl {
 				receipt.Status = prototype.StatusFailDeductStamina
 				c.notifyTrxApplyResult(sigTrx, true, receipt, blockNum)
@@ -444,13 +461,17 @@ func (c *TrxPool) applyTransactionOnDb(db iservices.IDatabasePatch, entry *TrxEn
 			trxObserver.EndTrx(true)
 			c.notifyTrxApplyResult(sigTrx, true, receipt, blockNum)
 		}
+		trxStateChange.SetOperation(-1)
+		trxStateChange.SetCause("pay_gas")
 		c.PayGas(db,trxContext)
+		trxStateChange.SetTrxAndOperation("", -1)
+		trxStateChange.SetCause("")
 	}()
 
 	trxContext.CheckNet(trxDB, uint64(proto.Size(sigTrx)))
 
-	for _, op := range sigTrx.Trx.Operations {
-		trxContext.StartNextOp()
+	for opIdx, op := range sigTrx.Trx.Operations {
+		trxContext.StartNextOp(opIdx, op)
 		c.applyOperation(trxContext, op)
 	}
 }
@@ -576,6 +597,8 @@ func (c *TrxPool) applyBlock(blk *prototype.SignedBlock, skip prototype.SkipFlag
 
 	afterTiming.Mark()
 
+	c.blockLogWatcher.CurrentBlockContext().SetCause("esys")
+	c.economist.SetStateChangeContext(c.blockLogWatcher.CurrentBlockContext())
 	eTiming.Begin()
 	c.economist.Mint(pseudoTrxObserver)
 	eTiming.Mark()
@@ -585,6 +608,8 @@ func (c *TrxPool) applyBlock(blk *prototype.SignedBlock, skip prototype.SkipFlag
 	eTiming.Mark()
 	c.economist.PowerDown()
 	eTiming.End()
+	c.economist.SetStateChangeContext(nil)
+	c.blockLogWatcher.CurrentBlockContext().SetCause("")
 	c.log.Debugf("Economist: %s", eTiming.String())
 	pseudoTrxObserver.EndTrx(true)
 
@@ -1164,10 +1189,12 @@ func (c *TrxPool) PreShuffle() error {
 }
 
 func (c *TrxPool) ShareTicketBonus() (err error) {
+	c.blockLogWatcher.CurrentBlockContext().SetCause("ticket_bonus")
 	defer func() {
 		if e := recover(); e != nil && err == nil {
 			err = errors.New(fmt.Sprintf("ShareTicketBonus: %v", e))
 		}
+		c.blockLogWatcher.CurrentBlockContext().SetCause("")
 	}()
 
 	bonus := c.GetProps().GetTicketsBpBonus()

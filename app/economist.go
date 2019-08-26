@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/asaskevich/EventBus"
 	"github.com/coschain/contentos-go/app/annual_mint"
+	"github.com/coschain/contentos-go/app/blocklog"
 	"github.com/coschain/contentos-go/app/table"
 	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/common/constants"
@@ -14,6 +15,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"math"
 	"math/big"
+	"strconv"
 )
 
 const CashoutCompleted uint64 = math.MaxUint64
@@ -101,6 +103,7 @@ type Economist struct {
 	log *logrus.Logger
 	dgp *DynamicGlobalPropsRW
 	observer iservices.ITrxObserver
+	stateChange *blocklog.StateChangeContext
 }
 
 func NewEconomist(db iservices.IDatabaseService, noticer EventBus.Bus, log *logrus.Logger) *Economist {
@@ -116,6 +119,8 @@ func (e *Economist) getAccount(account *prototype.AccountName) (*table.SoAccount
 }
 
 func (e *Economist) Mint(trxObserver iservices.ITrxObserver) {
+	e.stateChange.PushCause("mint")
+
 	//t0 := time.Now()
 	globalProps := e.dgp.GetProps()
 	if !globalProps.GetBlockProducerBootCompleted() {
@@ -159,6 +164,9 @@ func (e *Economist) Mint(trxObserver iservices.ITrxObserver) {
 	replyReward := creatorReward * constants.RewardRateReply / constants.PERCENT
 	voteReward := creatorReward - postReward - replyReward
 
+	e.stateChange.PopCause()
+	e.stateChange.PushCause("reward")
+	e.stateChange.PushCause("bp")
 	bpWrap, err := e.getAccount(globalProps.CurrentBlockProducer)
 	if err != nil {
 		panic("Mint failed when get bp wrap")
@@ -174,7 +182,10 @@ func (e *Economist) Mint(trxObserver iservices.ITrxObserver) {
 
 	updateBpVoteValue(e.db, globalProps.CurrentBlockProducer, oldVest, bpRewardVest)
 	trxObserver.AddOpState(iservices.Add, "mint", globalProps.CurrentBlockProducer.Value, bpReward)
+	e.stateChange.PopCause()
+	e.stateChange.PopCause()
 
+	e.stateChange.PushCause("mint")
 	e.dgp.ModifyProps(func(props *prototype.DynamicProperties) {
 		props.PoolPostRewards.Add(&prototype.Vest{Value: postReward})
 		props.PoolReplyRewards.Add(&prototype.Vest{Value: replyReward})
@@ -183,10 +194,14 @@ func (e *Economist) Mint(trxObserver iservices.ITrxObserver) {
 		props.AnnualMinted.Add(&prototype.Vest{Value: blockCurrent})
 		props.TotalVest.Add(&prototype.Vest{Value: blockCurrent})
 	})
+	e.stateChange.PopCause()
 }
 
 // maybe slow
 func (e *Economist) Distribute(trxObserver iservices.ITrxObserver) {
+	e.stateChange.PushCause("free_ticket")
+	defer e.stateChange.PopCause()
+
 	globalProps := e.dgp.GetProps()
 	if globalProps.GetCurrentEpochStartBlock() == uint64(0) {
 		return
@@ -255,6 +270,9 @@ func  (e *Economist) setCurrentBlockObserver(observer iservices.ITrxObserver) {
 }
 
 func (e *Economist) Do(trxObserver iservices.ITrxObserver) {
+	e.stateChange.PushCause("reward")
+	defer e.stateChange.PopCause()
+
 	globalProps := e.dgp.GetProps()
 	if !globalProps.GetBlockProducerBootCompleted() {
 		return
@@ -362,6 +380,9 @@ func (e *Economist) Do(trxObserver iservices.ITrxObserver) {
 }
 
 func (e *Economist) cashoutPosts(postsItems []*PostItem) {
+	e.stateChange.PushCause("post")
+	defer e.stateChange.PopCause()
+
 	if len(postsItems) == 0 {
 		return
 	}
@@ -384,11 +405,13 @@ func (e *Economist) cashoutPosts(postsItems []*PostItem) {
 	for _, postItem := range postsItems {
 		wvp := postItem.wvp
 		postReward := ProportionAlgorithm(wvp, currentGlobalPostsWvps, new(big.Int).SetUint64(globalPostRewards.Value))
+		e.stateChange.PushCause(strconv.FormatUint(postItem.postId, 10))
 		// result false: author banned
 		result := e.processRewardForAccount(postItem.beneficiary, postReward)
 		if !result {
 			postReward = new(big.Int).SetUint64(0)
 		}
+		e.stateChange.PopCause()
 		e.finalizePostCashout(postItem.postId, postReward)
 		claimedPostsReward = claimedPostsReward.Add(claimedPostsReward, postReward)
 		e.notifyPostCashoutResult(postItem.beneficiary, postItem.postId, wvp, postReward, globalProps)
@@ -404,6 +427,9 @@ func (e *Economist) cashoutPosts(postsItems []*PostItem) {
 }
 
 func (e *Economist) cashoutReplies(repliesItems []*PostItem) {
+	e.stateChange.PushCause("reply")
+	defer e.stateChange.PopCause()
+
 	if len(repliesItems) == 0 {
 		return
 	}
@@ -426,10 +452,12 @@ func (e *Economist) cashoutReplies(repliesItems []*PostItem) {
 	for _, replyItem := range repliesItems {
 		wvp := replyItem.wvp
 		replyReward := ProportionAlgorithm(wvp, currentGlobalRepliesWvps, new(big.Int).SetUint64(globalRepliesRewards.Value))
+		e.stateChange.PushCause(strconv.FormatUint(replyItem.postId, 10))
 		result := e.processRewardForAccount(replyItem.beneficiary, replyReward)
 		if !result {
 			replyReward = new(big.Int).SetUint64(0)
 		}
+		e.stateChange.PopCause()
 		e.finalizePostCashout(replyItem.postId, replyReward)
 		claimedRepliesReward.Add(claimedRepliesReward, replyReward)
 		e.notifyReplyCashoutResult(replyItem.beneficiary, replyItem.postId, wvp, replyReward, globalProps)
@@ -443,6 +471,9 @@ func (e *Economist) cashoutReplies(repliesItems []*PostItem) {
 }
 
 func (e *Economist) cashoutDapps(dappsItems []*DappItem) {
+	e.stateChange.PushCause("dapp")
+	defer e.stateChange.PopCause()
+
 	if len(dappsItems) == 0 {
 		return
 	}
@@ -465,10 +496,12 @@ func (e *Economist) cashoutDapps(dappsItems []*DappItem) {
 	for _, dappItem := range dappsItems {
 		wvp := dappItem.wvp
 		dappReward := ProportionAlgorithm(wvp, currentGlobalDappsWvps, new(big.Int).SetUint64(globalDappsRewards.Value))
+		e.stateChange.PushCause(strconv.FormatUint(dappItem.postId, 10))
 		result := e.processRewardForAccount(dappItem.beneficiary, dappReward)
 		if !result {
 			dappReward = new(big.Int).SetUint64(0)
 		}
+		e.stateChange.PopCause()
 		e.finalizePostDappCashout(dappItem.postId, dappReward)
 		claimedDappReward.Add(claimedDappReward, dappReward)
 		e.notifyDappCashoutResult(dappItem.beneficiary, dappItem.postId, wvp, dappReward, globalProps)
@@ -482,6 +515,9 @@ func (e *Economist) cashoutDapps(dappsItems []*DappItem) {
 }
 
 func (e *Economist) cashoutVotes(votesItems []*VoteItem) {
+	e.stateChange.PushCause("vote")
+	defer e.stateChange.PopCause()
+
 	if len(votesItems) == 0 {
 		return
 	}
@@ -504,10 +540,12 @@ func (e *Economist) cashoutVotes(votesItems []*VoteItem) {
 	for _, voteItem := range votesItems {
 		wvp := voteItem.wvp
 		voteReward := ProportionAlgorithm(wvp, currentGlobalVotesWvp, new(big.Int).SetUint64(globalVotesRewards.Value))
+		e.stateChange.PushCause(strconv.FormatUint(voteItem.postId, 10))
 		result := e.processRewardForAccount(voteItem.beneficiary, voteReward)
 		if !result {
 			voteReward = new(big.Int).SetUint64(0)
 		}
+		e.stateChange.PopCause()
 		claimedVoteReward.Add(claimedVoteReward, voteReward)
 		e.notifyVoteCashoutResult(voteItem.beneficiary, voteItem.postId, wvp, voteReward, globalProps)
 	}
@@ -609,6 +647,9 @@ func (e *Economist) notifyDappCashoutResult(beneficiary string, postId uint64, w
 }
 
 func (e *Economist) PowerDown() {
+	e.stateChange.PushCause("power_down")
+	defer e.stateChange.PopCause()
+
 	globalProps := e.dgp.GetProps()
 	if !globalProps.GetBlockProducerBootCompleted() {
 		return
@@ -670,4 +711,8 @@ func (e *Economist) PowerDown() {
 	}
 	timing.End()
 	e.log.Debugf("powerdown: %s", timing.String())
+}
+
+func (e *Economist) SetStateChangeContext(ctx *blocklog.StateChangeContext) {
+	e.stateChange = ctx
 }

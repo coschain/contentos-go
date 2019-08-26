@@ -179,6 +179,18 @@ func (w *CosVM) Validate() error {
 	return err
 }
 
+func wrapperForStateChange(name string, fn reflect.Value) reflect.Value {
+	return reflect.MakeFunc(fn.Type(), func(args []reflect.Value) (results []reflect.Value) {
+		stateChange := args[0].Interface().(*exec.Process).GetTag().(*CosVMNative).cosVM.ctx.Injector.StateChangeContext()
+		stateChange.PushCause("vm_native")
+		stateChange.PushCause(name)
+		results = fn.Call(args)
+		stateChange.PopCause()
+		stateChange.PopCause()
+		return
+	})
+}
+
 func (w *CosVM) register(funcName string, function interface{}, gas uint64) {
 	rfunc := reflect.TypeOf(function)
 	if rfunc.Kind() != reflect.Func {
@@ -195,7 +207,9 @@ func (w *CosVM) register(funcName string, function interface{}, gas uint64) {
 		w.logger.Error("exactFuncSig error:", funcName, err)
 		return
 	}
-	f := wasm.Function{Sig: &funcSig, Host: reflect.ValueOf(function), Body: &wasm.FunctionBody{}, Gas: gas}
+	funcVal := reflect.ValueOf(function)
+	wrapperFunc := wrapperForStateChange(funcName, funcVal)
+	f := wasm.Function{Sig: &funcSig, Host: wrapperFunc, Body: &wasm.FunctionBody{}, Gas: gas}
 	w.nativeFuncName = append(w.nativeFuncName, funcName)
 	w.nativeFuncSigs = append(w.nativeFuncSigs, funcSig)
 	w.nativeFuncs = append(w.nativeFuncs, f)

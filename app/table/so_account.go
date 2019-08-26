@@ -2,8 +2,9 @@ package table
 
 import (
 	"errors"
-	fmt "fmt"
+	"fmt"
 	"reflect"
+	"sync"
 
 	"github.com/coschain/contentos-go/common/encoding/kope"
 	"github.com/coschain/contentos-go/iservices"
@@ -28,19 +29,21 @@ var (
 
 ////////////// SECTION Wrap Define ///////////////
 type SoAccountWrap struct {
-	dba       iservices.IDatabaseRW
-	mainKey   *prototype.AccountName
-	mKeyFlag  int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
-	mKeyBuf   []byte //the buffer after the main key is encoded with prefix
-	mBuf      []byte //the value after the main key is encoded
-	mdFuncMap map[string]interface{}
+	dba         iservices.IDatabaseRW
+	mainKey     *prototype.AccountName
+	watcherFlag *AccountWatcherFlag
+	mKeyFlag    int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
+	mKeyBuf     []byte //the buffer after the main key is encoded with prefix
+	mBuf        []byte //the value after the main key is encoded
+	mdFuncMap   map[string]interface{}
 }
 
 func NewSoAccountWrap(dba iservices.IDatabaseRW, key *prototype.AccountName) *SoAccountWrap {
 	if dba == nil || key == nil {
 		return nil
 	}
-	result := &SoAccountWrap{dba, key, -1, nil, nil, nil}
+	result := &SoAccountWrap{dba, key, nil, -1, nil, nil, nil}
+	result.initWatcherFlag()
 	return result
 }
 
@@ -84,6 +87,13 @@ func (s *SoAccountWrap) MustNotExist(errMsgs ...interface{}) *SoAccountWrap {
 		panic(bindErrorInfo(fmt.Sprintf("SoAccountWrap.MustNotExist: %v already exists", s.mainKey), errMsgs...))
 	}
 	return s
+}
+
+func (s *SoAccountWrap) initWatcherFlag() {
+	if s.watcherFlag == nil {
+		s.watcherFlag = new(AccountWatcherFlag)
+		*(s.watcherFlag) = AccountWatcherFlagOfDb(s.dba.ServiceId())
+	}
 }
 
 func (s *SoAccountWrap) create(f func(tInfo *SoAccount)) error {
@@ -132,6 +142,13 @@ func (s *SoAccountWrap) create(f func(tInfo *SoAccount)) error {
 	}
 
 	s.mKeyFlag = 1
+
+	// call watchers
+	s.initWatcherFlag()
+	if s.watcherFlag.AnyWatcher {
+		ReportTableRecordInsert(s.dba.ServiceId(), s.dba.BranchId(), s.mainKey, val)
+	}
+
 	return nil
 }
 
@@ -177,29 +194,30 @@ func (s *SoAccountWrap) modify(f func(tInfo *SoAccount)) error {
 		return errors.New("primary key does not support modification")
 	}
 
-	fieldSli, err := s.getModifiedFields(oriTable, curTable)
+	s.initWatcherFlag()
+	modifiedFields, hasWatcher, err := s.getModifiedFields(oriTable, curTable)
 	if err != nil {
 		return err
 	}
 
-	if fieldSli == nil || len(fieldSli) < 1 {
+	if modifiedFields == nil || len(modifiedFields) < 1 {
 		return nil
 	}
 
 	//check whether modify sort and unique field to nil
-	err = s.checkSortAndUniFieldValidity(curTable, fieldSli)
+	err = s.checkSortAndUniFieldValidity(curTable, modifiedFields)
 	if err != nil {
 		return err
 	}
 
 	//check unique
-	err = s.handleFieldMd(FieldMdHandleTypeCheck, curTable, fieldSli)
+	err = s.handleFieldMd(FieldMdHandleTypeCheck, curTable, modifiedFields)
 	if err != nil {
 		return err
 	}
 
 	//delete sort and unique key
-	err = s.handleFieldMd(FieldMdHandleTypeDel, oriTable, fieldSli)
+	err = s.handleFieldMd(FieldMdHandleTypeDel, oriTable, modifiedFields)
 	if err != nil {
 		return err
 	}
@@ -211,9 +229,14 @@ func (s *SoAccountWrap) modify(f func(tInfo *SoAccount)) error {
 	}
 
 	//insert sort and unique key
-	err = s.handleFieldMd(FieldMdHandleTypeInsert, curTable, fieldSli)
+	err = s.handleFieldMd(FieldMdHandleTypeInsert, curTable, modifiedFields)
 	if err != nil {
 		return err
+	}
+
+	// call watchers
+	if hasWatcher {
+		ReportTableRecordUpdate(s.dba.ServiceId(), s.dba.BranchId(), s.mainKey, oriTable, curTable, modifiedFields)
 	}
 
 	return nil
@@ -498,623 +521,645 @@ func (s *SoAccountWrap) SetVotePower(p uint32, errArgs ...interface{}) *SoAccoun
 	return s
 }
 
-func (s *SoAccountWrap) checkSortAndUniFieldValidity(curTable *SoAccount, fieldSli []string) error {
-	if curTable != nil && fieldSli != nil && len(fieldSli) > 0 {
-		for _, fName := range fieldSli {
-			if len(fName) > 0 {
+func (s *SoAccountWrap) checkSortAndUniFieldValidity(curTable *SoAccount, fields map[string]bool) error {
+	if curTable != nil && fields != nil && len(fields) > 0 {
 
-				if fName == "CreatedTime" && curTable.CreatedTime == nil {
-					return errors.New("sort field CreatedTime can't be modified to nil")
-				}
-
-				if fName == "Balance" && curTable.Balance == nil {
-					return errors.New("sort field Balance can't be modified to nil")
-				}
-
-				if fName == "Vest" && curTable.Vest == nil {
-					return errors.New("sort field Vest can't be modified to nil")
-				}
-
-				if fName == "PubKey" && curTable.PubKey == nil {
-					return errors.New("unique field PubKey can't be modified to nil")
-				}
-
-			}
+		if fields["CreatedTime"] && curTable.CreatedTime == nil {
+			return errors.New("sort field CreatedTime can't be modified to nil")
 		}
+
+		if fields["Balance"] && curTable.Balance == nil {
+			return errors.New("sort field Balance can't be modified to nil")
+		}
+
+		if fields["Vest"] && curTable.Vest == nil {
+			return errors.New("sort field Vest can't be modified to nil")
+		}
+
+		if fields["PubKey"] && curTable.PubKey == nil {
+			return errors.New("unique field PubKey can't be modified to nil")
+		}
+
 	}
 	return nil
 }
 
 //Get all the modified fields in the table
-func (s *SoAccountWrap) getModifiedFields(oriTable *SoAccount, curTable *SoAccount) ([]string, error) {
+func (s *SoAccountWrap) getModifiedFields(oriTable *SoAccount, curTable *SoAccount) (map[string]bool, bool, error) {
 	if oriTable == nil {
-		return nil, errors.New("table info is nil, can't get modified fields")
+		return nil, false, errors.New("table info is nil, can't get modified fields")
 	}
-	var list []string
+	hasWatcher := false
+	fields := make(map[string]bool)
 
 	if !reflect.DeepEqual(oriTable.Balance, curTable.Balance) {
-		list = append(list, "Balance")
+		fields["Balance"] = true
+		hasWatcher = hasWatcher || s.watcherFlag.HasBalanceWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.BpVoteCount, curTable.BpVoteCount) {
-		list = append(list, "BpVoteCount")
+		fields["BpVoteCount"] = true
+		hasWatcher = hasWatcher || s.watcherFlag.HasBpVoteCountWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.ChargedTicket, curTable.ChargedTicket) {
-		list = append(list, "ChargedTicket")
+		fields["ChargedTicket"] = true
+		hasWatcher = hasWatcher || s.watcherFlag.HasChargedTicketWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.CreatedTime, curTable.CreatedTime) {
-		list = append(list, "CreatedTime")
+		fields["CreatedTime"] = true
+		hasWatcher = hasWatcher || s.watcherFlag.HasCreatedTimeWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.CreatedTrxCount, curTable.CreatedTrxCount) {
-		list = append(list, "CreatedTrxCount")
+		fields["CreatedTrxCount"] = true
+		hasWatcher = hasWatcher || s.watcherFlag.HasCreatedTrxCountWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.Creator, curTable.Creator) {
-		list = append(list, "Creator")
+		fields["Creator"] = true
+		hasWatcher = hasWatcher || s.watcherFlag.HasCreatorWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.EachPowerdownRate, curTable.EachPowerdownRate) {
-		list = append(list, "EachPowerdownRate")
+		fields["EachPowerdownRate"] = true
+		hasWatcher = hasWatcher || s.watcherFlag.HasEachPowerdownRateWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.Freeze, curTable.Freeze) {
-		list = append(list, "Freeze")
+		fields["Freeze"] = true
+		hasWatcher = hasWatcher || s.watcherFlag.HasFreezeWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.FreezeMemo, curTable.FreezeMemo) {
-		list = append(list, "FreezeMemo")
+		fields["FreezeMemo"] = true
+		hasWatcher = hasWatcher || s.watcherFlag.HasFreezeMemoWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.HasPowerdown, curTable.HasPowerdown) {
-		list = append(list, "HasPowerdown")
+		fields["HasPowerdown"] = true
+		hasWatcher = hasWatcher || s.watcherFlag.HasHasPowerdownWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.LastPostTime, curTable.LastPostTime) {
-		list = append(list, "LastPostTime")
+		fields["LastPostTime"] = true
+		hasWatcher = hasWatcher || s.watcherFlag.HasLastPostTimeWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.LastStakeTime, curTable.LastStakeTime) {
-		list = append(list, "LastStakeTime")
+		fields["LastStakeTime"] = true
+		hasWatcher = hasWatcher || s.watcherFlag.HasLastStakeTimeWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.LastVoteTime, curTable.LastVoteTime) {
-		list = append(list, "LastVoteTime")
+		fields["LastVoteTime"] = true
+		hasWatcher = hasWatcher || s.watcherFlag.HasLastVoteTimeWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.NextPowerdownBlockNum, curTable.NextPowerdownBlockNum) {
-		list = append(list, "NextPowerdownBlockNum")
+		fields["NextPowerdownBlockNum"] = true
+		hasWatcher = hasWatcher || s.watcherFlag.HasNextPowerdownBlockNumWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.PostCount, curTable.PostCount) {
-		list = append(list, "PostCount")
+		fields["PostCount"] = true
+		hasWatcher = hasWatcher || s.watcherFlag.HasPostCountWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.PubKey, curTable.PubKey) {
-		list = append(list, "PubKey")
+		fields["PubKey"] = true
+		hasWatcher = hasWatcher || s.watcherFlag.HasPubKeyWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.Reputation, curTable.Reputation) {
-		list = append(list, "Reputation")
+		fields["Reputation"] = true
+		hasWatcher = hasWatcher || s.watcherFlag.HasReputationWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.ReputationMemo, curTable.ReputationMemo) {
-		list = append(list, "ReputationMemo")
+		fields["ReputationMemo"] = true
+		hasWatcher = hasWatcher || s.watcherFlag.HasReputationMemoWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.StakeVestForMe, curTable.StakeVestForMe) {
-		list = append(list, "StakeVestForMe")
+		fields["StakeVestForMe"] = true
+		hasWatcher = hasWatcher || s.watcherFlag.HasStakeVestForMeWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.StakeVestFromMe, curTable.StakeVestFromMe) {
-		list = append(list, "StakeVestFromMe")
+		fields["StakeVestFromMe"] = true
+		hasWatcher = hasWatcher || s.watcherFlag.HasStakeVestFromMeWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.Stamina, curTable.Stamina) {
-		list = append(list, "Stamina")
+		fields["Stamina"] = true
+		hasWatcher = hasWatcher || s.watcherFlag.HasStaminaWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.StaminaFree, curTable.StaminaFree) {
-		list = append(list, "StaminaFree")
+		fields["StaminaFree"] = true
+		hasWatcher = hasWatcher || s.watcherFlag.HasStaminaFreeWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.StaminaFreeUseBlock, curTable.StaminaFreeUseBlock) {
-		list = append(list, "StaminaFreeUseBlock")
+		fields["StaminaFreeUseBlock"] = true
+		hasWatcher = hasWatcher || s.watcherFlag.HasStaminaFreeUseBlockWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.StaminaUseBlock, curTable.StaminaUseBlock) {
-		list = append(list, "StaminaUseBlock")
+		fields["StaminaUseBlock"] = true
+		hasWatcher = hasWatcher || s.watcherFlag.HasStaminaUseBlockWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.ToPowerdown, curTable.ToPowerdown) {
-		list = append(list, "ToPowerdown")
+		fields["ToPowerdown"] = true
+		hasWatcher = hasWatcher || s.watcherFlag.HasToPowerdownWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.Vest, curTable.Vest) {
-		list = append(list, "Vest")
+		fields["Vest"] = true
+		hasWatcher = hasWatcher || s.watcherFlag.HasVestWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.VotePower, curTable.VotePower) {
-		list = append(list, "VotePower")
+		fields["VotePower"] = true
+		hasWatcher = hasWatcher || s.watcherFlag.HasVotePowerWatcher
 	}
 
-	return list, nil
+	hasWatcher = hasWatcher || s.watcherFlag.WholeWatcher
+	return fields, hasWatcher, nil
 }
 
-func (s *SoAccountWrap) handleFieldMd(t FieldMdHandleType, so *SoAccount, fSli []string) error {
+func (s *SoAccountWrap) handleFieldMd(t FieldMdHandleType, so *SoAccount, fields map[string]bool) error {
 	if so == nil {
 		return errors.New("fail to modify empty table")
 	}
 
 	//there is no field need to modify
-	if fSli == nil || len(fSli) < 1 {
+	if fields == nil || len(fields) < 1 {
 		return nil
 	}
 
 	errStr := ""
-	for _, fName := range fSli {
 
-		if fName == "Balance" {
-			res := true
-			if t == FieldMdHandleTypeCheck {
-				res = s.mdFieldBalance(so.Balance, true, false, false, so)
-				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
-			} else if t == FieldMdHandleTypeDel {
-				res = s.mdFieldBalance(so.Balance, false, true, false, so)
-				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
-			} else if t == FieldMdHandleTypeInsert {
-				res = s.mdFieldBalance(so.Balance, false, false, true, so)
-				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
-			}
-			if !res {
-				return errors.New(errStr)
-			}
+	if fields["Balance"] {
+		res := true
+		if t == FieldMdHandleTypeCheck {
+			res = s.mdFieldBalance(so.Balance, true, false, false, so)
+			errStr = fmt.Sprintf("fail to modify exist value of %v", "Balance")
+		} else if t == FieldMdHandleTypeDel {
+			res = s.mdFieldBalance(so.Balance, false, true, false, so)
+			errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", "Balance")
+		} else if t == FieldMdHandleTypeInsert {
+			res = s.mdFieldBalance(so.Balance, false, false, true, so)
+			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "Balance")
 		}
-
-		if fName == "BpVoteCount" {
-			res := true
-			if t == FieldMdHandleTypeCheck {
-				res = s.mdFieldBpVoteCount(so.BpVoteCount, true, false, false, so)
-				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
-			} else if t == FieldMdHandleTypeDel {
-				res = s.mdFieldBpVoteCount(so.BpVoteCount, false, true, false, so)
-				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
-			} else if t == FieldMdHandleTypeInsert {
-				res = s.mdFieldBpVoteCount(so.BpVoteCount, false, false, true, so)
-				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
-			}
-			if !res {
-				return errors.New(errStr)
-			}
+		if !res {
+			return errors.New(errStr)
 		}
+	}
 
-		if fName == "ChargedTicket" {
-			res := true
-			if t == FieldMdHandleTypeCheck {
-				res = s.mdFieldChargedTicket(so.ChargedTicket, true, false, false, so)
-				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
-			} else if t == FieldMdHandleTypeDel {
-				res = s.mdFieldChargedTicket(so.ChargedTicket, false, true, false, so)
-				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
-			} else if t == FieldMdHandleTypeInsert {
-				res = s.mdFieldChargedTicket(so.ChargedTicket, false, false, true, so)
-				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
-			}
-			if !res {
-				return errors.New(errStr)
-			}
+	if fields["BpVoteCount"] {
+		res := true
+		if t == FieldMdHandleTypeCheck {
+			res = s.mdFieldBpVoteCount(so.BpVoteCount, true, false, false, so)
+			errStr = fmt.Sprintf("fail to modify exist value of %v", "BpVoteCount")
+		} else if t == FieldMdHandleTypeDel {
+			res = s.mdFieldBpVoteCount(so.BpVoteCount, false, true, false, so)
+			errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", "BpVoteCount")
+		} else if t == FieldMdHandleTypeInsert {
+			res = s.mdFieldBpVoteCount(so.BpVoteCount, false, false, true, so)
+			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "BpVoteCount")
 		}
-
-		if fName == "CreatedTime" {
-			res := true
-			if t == FieldMdHandleTypeCheck {
-				res = s.mdFieldCreatedTime(so.CreatedTime, true, false, false, so)
-				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
-			} else if t == FieldMdHandleTypeDel {
-				res = s.mdFieldCreatedTime(so.CreatedTime, false, true, false, so)
-				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
-			} else if t == FieldMdHandleTypeInsert {
-				res = s.mdFieldCreatedTime(so.CreatedTime, false, false, true, so)
-				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
-			}
-			if !res {
-				return errors.New(errStr)
-			}
+		if !res {
+			return errors.New(errStr)
 		}
+	}
 
-		if fName == "CreatedTrxCount" {
-			res := true
-			if t == FieldMdHandleTypeCheck {
-				res = s.mdFieldCreatedTrxCount(so.CreatedTrxCount, true, false, false, so)
-				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
-			} else if t == FieldMdHandleTypeDel {
-				res = s.mdFieldCreatedTrxCount(so.CreatedTrxCount, false, true, false, so)
-				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
-			} else if t == FieldMdHandleTypeInsert {
-				res = s.mdFieldCreatedTrxCount(so.CreatedTrxCount, false, false, true, so)
-				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
-			}
-			if !res {
-				return errors.New(errStr)
-			}
+	if fields["ChargedTicket"] {
+		res := true
+		if t == FieldMdHandleTypeCheck {
+			res = s.mdFieldChargedTicket(so.ChargedTicket, true, false, false, so)
+			errStr = fmt.Sprintf("fail to modify exist value of %v", "ChargedTicket")
+		} else if t == FieldMdHandleTypeDel {
+			res = s.mdFieldChargedTicket(so.ChargedTicket, false, true, false, so)
+			errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", "ChargedTicket")
+		} else if t == FieldMdHandleTypeInsert {
+			res = s.mdFieldChargedTicket(so.ChargedTicket, false, false, true, so)
+			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "ChargedTicket")
 		}
-
-		if fName == "Creator" {
-			res := true
-			if t == FieldMdHandleTypeCheck {
-				res = s.mdFieldCreator(so.Creator, true, false, false, so)
-				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
-			} else if t == FieldMdHandleTypeDel {
-				res = s.mdFieldCreator(so.Creator, false, true, false, so)
-				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
-			} else if t == FieldMdHandleTypeInsert {
-				res = s.mdFieldCreator(so.Creator, false, false, true, so)
-				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
-			}
-			if !res {
-				return errors.New(errStr)
-			}
+		if !res {
+			return errors.New(errStr)
 		}
+	}
 
-		if fName == "EachPowerdownRate" {
-			res := true
-			if t == FieldMdHandleTypeCheck {
-				res = s.mdFieldEachPowerdownRate(so.EachPowerdownRate, true, false, false, so)
-				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
-			} else if t == FieldMdHandleTypeDel {
-				res = s.mdFieldEachPowerdownRate(so.EachPowerdownRate, false, true, false, so)
-				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
-			} else if t == FieldMdHandleTypeInsert {
-				res = s.mdFieldEachPowerdownRate(so.EachPowerdownRate, false, false, true, so)
-				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
-			}
-			if !res {
-				return errors.New(errStr)
-			}
+	if fields["CreatedTime"] {
+		res := true
+		if t == FieldMdHandleTypeCheck {
+			res = s.mdFieldCreatedTime(so.CreatedTime, true, false, false, so)
+			errStr = fmt.Sprintf("fail to modify exist value of %v", "CreatedTime")
+		} else if t == FieldMdHandleTypeDel {
+			res = s.mdFieldCreatedTime(so.CreatedTime, false, true, false, so)
+			errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", "CreatedTime")
+		} else if t == FieldMdHandleTypeInsert {
+			res = s.mdFieldCreatedTime(so.CreatedTime, false, false, true, so)
+			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "CreatedTime")
 		}
-
-		if fName == "Freeze" {
-			res := true
-			if t == FieldMdHandleTypeCheck {
-				res = s.mdFieldFreeze(so.Freeze, true, false, false, so)
-				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
-			} else if t == FieldMdHandleTypeDel {
-				res = s.mdFieldFreeze(so.Freeze, false, true, false, so)
-				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
-			} else if t == FieldMdHandleTypeInsert {
-				res = s.mdFieldFreeze(so.Freeze, false, false, true, so)
-				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
-			}
-			if !res {
-				return errors.New(errStr)
-			}
+		if !res {
+			return errors.New(errStr)
 		}
+	}
 
-		if fName == "FreezeMemo" {
-			res := true
-			if t == FieldMdHandleTypeCheck {
-				res = s.mdFieldFreezeMemo(so.FreezeMemo, true, false, false, so)
-				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
-			} else if t == FieldMdHandleTypeDel {
-				res = s.mdFieldFreezeMemo(so.FreezeMemo, false, true, false, so)
-				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
-			} else if t == FieldMdHandleTypeInsert {
-				res = s.mdFieldFreezeMemo(so.FreezeMemo, false, false, true, so)
-				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
-			}
-			if !res {
-				return errors.New(errStr)
-			}
+	if fields["CreatedTrxCount"] {
+		res := true
+		if t == FieldMdHandleTypeCheck {
+			res = s.mdFieldCreatedTrxCount(so.CreatedTrxCount, true, false, false, so)
+			errStr = fmt.Sprintf("fail to modify exist value of %v", "CreatedTrxCount")
+		} else if t == FieldMdHandleTypeDel {
+			res = s.mdFieldCreatedTrxCount(so.CreatedTrxCount, false, true, false, so)
+			errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", "CreatedTrxCount")
+		} else if t == FieldMdHandleTypeInsert {
+			res = s.mdFieldCreatedTrxCount(so.CreatedTrxCount, false, false, true, so)
+			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "CreatedTrxCount")
 		}
-
-		if fName == "HasPowerdown" {
-			res := true
-			if t == FieldMdHandleTypeCheck {
-				res = s.mdFieldHasPowerdown(so.HasPowerdown, true, false, false, so)
-				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
-			} else if t == FieldMdHandleTypeDel {
-				res = s.mdFieldHasPowerdown(so.HasPowerdown, false, true, false, so)
-				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
-			} else if t == FieldMdHandleTypeInsert {
-				res = s.mdFieldHasPowerdown(so.HasPowerdown, false, false, true, so)
-				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
-			}
-			if !res {
-				return errors.New(errStr)
-			}
+		if !res {
+			return errors.New(errStr)
 		}
+	}
 
-		if fName == "LastPostTime" {
-			res := true
-			if t == FieldMdHandleTypeCheck {
-				res = s.mdFieldLastPostTime(so.LastPostTime, true, false, false, so)
-				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
-			} else if t == FieldMdHandleTypeDel {
-				res = s.mdFieldLastPostTime(so.LastPostTime, false, true, false, so)
-				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
-			} else if t == FieldMdHandleTypeInsert {
-				res = s.mdFieldLastPostTime(so.LastPostTime, false, false, true, so)
-				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
-			}
-			if !res {
-				return errors.New(errStr)
-			}
+	if fields["Creator"] {
+		res := true
+		if t == FieldMdHandleTypeCheck {
+			res = s.mdFieldCreator(so.Creator, true, false, false, so)
+			errStr = fmt.Sprintf("fail to modify exist value of %v", "Creator")
+		} else if t == FieldMdHandleTypeDel {
+			res = s.mdFieldCreator(so.Creator, false, true, false, so)
+			errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", "Creator")
+		} else if t == FieldMdHandleTypeInsert {
+			res = s.mdFieldCreator(so.Creator, false, false, true, so)
+			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "Creator")
 		}
-
-		if fName == "LastStakeTime" {
-			res := true
-			if t == FieldMdHandleTypeCheck {
-				res = s.mdFieldLastStakeTime(so.LastStakeTime, true, false, false, so)
-				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
-			} else if t == FieldMdHandleTypeDel {
-				res = s.mdFieldLastStakeTime(so.LastStakeTime, false, true, false, so)
-				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
-			} else if t == FieldMdHandleTypeInsert {
-				res = s.mdFieldLastStakeTime(so.LastStakeTime, false, false, true, so)
-				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
-			}
-			if !res {
-				return errors.New(errStr)
-			}
+		if !res {
+			return errors.New(errStr)
 		}
+	}
 
-		if fName == "LastVoteTime" {
-			res := true
-			if t == FieldMdHandleTypeCheck {
-				res = s.mdFieldLastVoteTime(so.LastVoteTime, true, false, false, so)
-				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
-			} else if t == FieldMdHandleTypeDel {
-				res = s.mdFieldLastVoteTime(so.LastVoteTime, false, true, false, so)
-				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
-			} else if t == FieldMdHandleTypeInsert {
-				res = s.mdFieldLastVoteTime(so.LastVoteTime, false, false, true, so)
-				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
-			}
-			if !res {
-				return errors.New(errStr)
-			}
+	if fields["EachPowerdownRate"] {
+		res := true
+		if t == FieldMdHandleTypeCheck {
+			res = s.mdFieldEachPowerdownRate(so.EachPowerdownRate, true, false, false, so)
+			errStr = fmt.Sprintf("fail to modify exist value of %v", "EachPowerdownRate")
+		} else if t == FieldMdHandleTypeDel {
+			res = s.mdFieldEachPowerdownRate(so.EachPowerdownRate, false, true, false, so)
+			errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", "EachPowerdownRate")
+		} else if t == FieldMdHandleTypeInsert {
+			res = s.mdFieldEachPowerdownRate(so.EachPowerdownRate, false, false, true, so)
+			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "EachPowerdownRate")
 		}
-
-		if fName == "NextPowerdownBlockNum" {
-			res := true
-			if t == FieldMdHandleTypeCheck {
-				res = s.mdFieldNextPowerdownBlockNum(so.NextPowerdownBlockNum, true, false, false, so)
-				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
-			} else if t == FieldMdHandleTypeDel {
-				res = s.mdFieldNextPowerdownBlockNum(so.NextPowerdownBlockNum, false, true, false, so)
-				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
-			} else if t == FieldMdHandleTypeInsert {
-				res = s.mdFieldNextPowerdownBlockNum(so.NextPowerdownBlockNum, false, false, true, so)
-				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
-			}
-			if !res {
-				return errors.New(errStr)
-			}
+		if !res {
+			return errors.New(errStr)
 		}
+	}
 
-		if fName == "PostCount" {
-			res := true
-			if t == FieldMdHandleTypeCheck {
-				res = s.mdFieldPostCount(so.PostCount, true, false, false, so)
-				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
-			} else if t == FieldMdHandleTypeDel {
-				res = s.mdFieldPostCount(so.PostCount, false, true, false, so)
-				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
-			} else if t == FieldMdHandleTypeInsert {
-				res = s.mdFieldPostCount(so.PostCount, false, false, true, so)
-				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
-			}
-			if !res {
-				return errors.New(errStr)
-			}
+	if fields["Freeze"] {
+		res := true
+		if t == FieldMdHandleTypeCheck {
+			res = s.mdFieldFreeze(so.Freeze, true, false, false, so)
+			errStr = fmt.Sprintf("fail to modify exist value of %v", "Freeze")
+		} else if t == FieldMdHandleTypeDel {
+			res = s.mdFieldFreeze(so.Freeze, false, true, false, so)
+			errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", "Freeze")
+		} else if t == FieldMdHandleTypeInsert {
+			res = s.mdFieldFreeze(so.Freeze, false, false, true, so)
+			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "Freeze")
 		}
-
-		if fName == "PubKey" {
-			res := true
-			if t == FieldMdHandleTypeCheck {
-				res = s.mdFieldPubKey(so.PubKey, true, false, false, so)
-				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
-			} else if t == FieldMdHandleTypeDel {
-				res = s.mdFieldPubKey(so.PubKey, false, true, false, so)
-				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
-			} else if t == FieldMdHandleTypeInsert {
-				res = s.mdFieldPubKey(so.PubKey, false, false, true, so)
-				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
-			}
-			if !res {
-				return errors.New(errStr)
-			}
+		if !res {
+			return errors.New(errStr)
 		}
+	}
 
-		if fName == "Reputation" {
-			res := true
-			if t == FieldMdHandleTypeCheck {
-				res = s.mdFieldReputation(so.Reputation, true, false, false, so)
-				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
-			} else if t == FieldMdHandleTypeDel {
-				res = s.mdFieldReputation(so.Reputation, false, true, false, so)
-				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
-			} else if t == FieldMdHandleTypeInsert {
-				res = s.mdFieldReputation(so.Reputation, false, false, true, so)
-				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
-			}
-			if !res {
-				return errors.New(errStr)
-			}
+	if fields["FreezeMemo"] {
+		res := true
+		if t == FieldMdHandleTypeCheck {
+			res = s.mdFieldFreezeMemo(so.FreezeMemo, true, false, false, so)
+			errStr = fmt.Sprintf("fail to modify exist value of %v", "FreezeMemo")
+		} else if t == FieldMdHandleTypeDel {
+			res = s.mdFieldFreezeMemo(so.FreezeMemo, false, true, false, so)
+			errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", "FreezeMemo")
+		} else if t == FieldMdHandleTypeInsert {
+			res = s.mdFieldFreezeMemo(so.FreezeMemo, false, false, true, so)
+			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "FreezeMemo")
 		}
-
-		if fName == "ReputationMemo" {
-			res := true
-			if t == FieldMdHandleTypeCheck {
-				res = s.mdFieldReputationMemo(so.ReputationMemo, true, false, false, so)
-				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
-			} else if t == FieldMdHandleTypeDel {
-				res = s.mdFieldReputationMemo(so.ReputationMemo, false, true, false, so)
-				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
-			} else if t == FieldMdHandleTypeInsert {
-				res = s.mdFieldReputationMemo(so.ReputationMemo, false, false, true, so)
-				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
-			}
-			if !res {
-				return errors.New(errStr)
-			}
+		if !res {
+			return errors.New(errStr)
 		}
+	}
 
-		if fName == "StakeVestForMe" {
-			res := true
-			if t == FieldMdHandleTypeCheck {
-				res = s.mdFieldStakeVestForMe(so.StakeVestForMe, true, false, false, so)
-				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
-			} else if t == FieldMdHandleTypeDel {
-				res = s.mdFieldStakeVestForMe(so.StakeVestForMe, false, true, false, so)
-				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
-			} else if t == FieldMdHandleTypeInsert {
-				res = s.mdFieldStakeVestForMe(so.StakeVestForMe, false, false, true, so)
-				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
-			}
-			if !res {
-				return errors.New(errStr)
-			}
+	if fields["HasPowerdown"] {
+		res := true
+		if t == FieldMdHandleTypeCheck {
+			res = s.mdFieldHasPowerdown(so.HasPowerdown, true, false, false, so)
+			errStr = fmt.Sprintf("fail to modify exist value of %v", "HasPowerdown")
+		} else if t == FieldMdHandleTypeDel {
+			res = s.mdFieldHasPowerdown(so.HasPowerdown, false, true, false, so)
+			errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", "HasPowerdown")
+		} else if t == FieldMdHandleTypeInsert {
+			res = s.mdFieldHasPowerdown(so.HasPowerdown, false, false, true, so)
+			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "HasPowerdown")
 		}
-
-		if fName == "StakeVestFromMe" {
-			res := true
-			if t == FieldMdHandleTypeCheck {
-				res = s.mdFieldStakeVestFromMe(so.StakeVestFromMe, true, false, false, so)
-				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
-			} else if t == FieldMdHandleTypeDel {
-				res = s.mdFieldStakeVestFromMe(so.StakeVestFromMe, false, true, false, so)
-				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
-			} else if t == FieldMdHandleTypeInsert {
-				res = s.mdFieldStakeVestFromMe(so.StakeVestFromMe, false, false, true, so)
-				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
-			}
-			if !res {
-				return errors.New(errStr)
-			}
+		if !res {
+			return errors.New(errStr)
 		}
+	}
 
-		if fName == "Stamina" {
-			res := true
-			if t == FieldMdHandleTypeCheck {
-				res = s.mdFieldStamina(so.Stamina, true, false, false, so)
-				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
-			} else if t == FieldMdHandleTypeDel {
-				res = s.mdFieldStamina(so.Stamina, false, true, false, so)
-				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
-			} else if t == FieldMdHandleTypeInsert {
-				res = s.mdFieldStamina(so.Stamina, false, false, true, so)
-				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
-			}
-			if !res {
-				return errors.New(errStr)
-			}
+	if fields["LastPostTime"] {
+		res := true
+		if t == FieldMdHandleTypeCheck {
+			res = s.mdFieldLastPostTime(so.LastPostTime, true, false, false, so)
+			errStr = fmt.Sprintf("fail to modify exist value of %v", "LastPostTime")
+		} else if t == FieldMdHandleTypeDel {
+			res = s.mdFieldLastPostTime(so.LastPostTime, false, true, false, so)
+			errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", "LastPostTime")
+		} else if t == FieldMdHandleTypeInsert {
+			res = s.mdFieldLastPostTime(so.LastPostTime, false, false, true, so)
+			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "LastPostTime")
 		}
-
-		if fName == "StaminaFree" {
-			res := true
-			if t == FieldMdHandleTypeCheck {
-				res = s.mdFieldStaminaFree(so.StaminaFree, true, false, false, so)
-				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
-			} else if t == FieldMdHandleTypeDel {
-				res = s.mdFieldStaminaFree(so.StaminaFree, false, true, false, so)
-				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
-			} else if t == FieldMdHandleTypeInsert {
-				res = s.mdFieldStaminaFree(so.StaminaFree, false, false, true, so)
-				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
-			}
-			if !res {
-				return errors.New(errStr)
-			}
+		if !res {
+			return errors.New(errStr)
 		}
+	}
 
-		if fName == "StaminaFreeUseBlock" {
-			res := true
-			if t == FieldMdHandleTypeCheck {
-				res = s.mdFieldStaminaFreeUseBlock(so.StaminaFreeUseBlock, true, false, false, so)
-				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
-			} else if t == FieldMdHandleTypeDel {
-				res = s.mdFieldStaminaFreeUseBlock(so.StaminaFreeUseBlock, false, true, false, so)
-				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
-			} else if t == FieldMdHandleTypeInsert {
-				res = s.mdFieldStaminaFreeUseBlock(so.StaminaFreeUseBlock, false, false, true, so)
-				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
-			}
-			if !res {
-				return errors.New(errStr)
-			}
+	if fields["LastStakeTime"] {
+		res := true
+		if t == FieldMdHandleTypeCheck {
+			res = s.mdFieldLastStakeTime(so.LastStakeTime, true, false, false, so)
+			errStr = fmt.Sprintf("fail to modify exist value of %v", "LastStakeTime")
+		} else if t == FieldMdHandleTypeDel {
+			res = s.mdFieldLastStakeTime(so.LastStakeTime, false, true, false, so)
+			errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", "LastStakeTime")
+		} else if t == FieldMdHandleTypeInsert {
+			res = s.mdFieldLastStakeTime(so.LastStakeTime, false, false, true, so)
+			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "LastStakeTime")
 		}
-
-		if fName == "StaminaUseBlock" {
-			res := true
-			if t == FieldMdHandleTypeCheck {
-				res = s.mdFieldStaminaUseBlock(so.StaminaUseBlock, true, false, false, so)
-				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
-			} else if t == FieldMdHandleTypeDel {
-				res = s.mdFieldStaminaUseBlock(so.StaminaUseBlock, false, true, false, so)
-				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
-			} else if t == FieldMdHandleTypeInsert {
-				res = s.mdFieldStaminaUseBlock(so.StaminaUseBlock, false, false, true, so)
-				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
-			}
-			if !res {
-				return errors.New(errStr)
-			}
+		if !res {
+			return errors.New(errStr)
 		}
+	}
 
-		if fName == "ToPowerdown" {
-			res := true
-			if t == FieldMdHandleTypeCheck {
-				res = s.mdFieldToPowerdown(so.ToPowerdown, true, false, false, so)
-				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
-			} else if t == FieldMdHandleTypeDel {
-				res = s.mdFieldToPowerdown(so.ToPowerdown, false, true, false, so)
-				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
-			} else if t == FieldMdHandleTypeInsert {
-				res = s.mdFieldToPowerdown(so.ToPowerdown, false, false, true, so)
-				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
-			}
-			if !res {
-				return errors.New(errStr)
-			}
+	if fields["LastVoteTime"] {
+		res := true
+		if t == FieldMdHandleTypeCheck {
+			res = s.mdFieldLastVoteTime(so.LastVoteTime, true, false, false, so)
+			errStr = fmt.Sprintf("fail to modify exist value of %v", "LastVoteTime")
+		} else if t == FieldMdHandleTypeDel {
+			res = s.mdFieldLastVoteTime(so.LastVoteTime, false, true, false, so)
+			errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", "LastVoteTime")
+		} else if t == FieldMdHandleTypeInsert {
+			res = s.mdFieldLastVoteTime(so.LastVoteTime, false, false, true, so)
+			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "LastVoteTime")
 		}
-
-		if fName == "Vest" {
-			res := true
-			if t == FieldMdHandleTypeCheck {
-				res = s.mdFieldVest(so.Vest, true, false, false, so)
-				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
-			} else if t == FieldMdHandleTypeDel {
-				res = s.mdFieldVest(so.Vest, false, true, false, so)
-				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
-			} else if t == FieldMdHandleTypeInsert {
-				res = s.mdFieldVest(so.Vest, false, false, true, so)
-				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
-			}
-			if !res {
-				return errors.New(errStr)
-			}
+		if !res {
+			return errors.New(errStr)
 		}
+	}
 
-		if fName == "VotePower" {
-			res := true
-			if t == FieldMdHandleTypeCheck {
-				res = s.mdFieldVotePower(so.VotePower, true, false, false, so)
-				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
-			} else if t == FieldMdHandleTypeDel {
-				res = s.mdFieldVotePower(so.VotePower, false, true, false, so)
-				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
-			} else if t == FieldMdHandleTypeInsert {
-				res = s.mdFieldVotePower(so.VotePower, false, false, true, so)
-				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
-			}
-			if !res {
-				return errors.New(errStr)
-			}
+	if fields["NextPowerdownBlockNum"] {
+		res := true
+		if t == FieldMdHandleTypeCheck {
+			res = s.mdFieldNextPowerdownBlockNum(so.NextPowerdownBlockNum, true, false, false, so)
+			errStr = fmt.Sprintf("fail to modify exist value of %v", "NextPowerdownBlockNum")
+		} else if t == FieldMdHandleTypeDel {
+			res = s.mdFieldNextPowerdownBlockNum(so.NextPowerdownBlockNum, false, true, false, so)
+			errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", "NextPowerdownBlockNum")
+		} else if t == FieldMdHandleTypeInsert {
+			res = s.mdFieldNextPowerdownBlockNum(so.NextPowerdownBlockNum, false, false, true, so)
+			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "NextPowerdownBlockNum")
 		}
+		if !res {
+			return errors.New(errStr)
+		}
+	}
 
+	if fields["PostCount"] {
+		res := true
+		if t == FieldMdHandleTypeCheck {
+			res = s.mdFieldPostCount(so.PostCount, true, false, false, so)
+			errStr = fmt.Sprintf("fail to modify exist value of %v", "PostCount")
+		} else if t == FieldMdHandleTypeDel {
+			res = s.mdFieldPostCount(so.PostCount, false, true, false, so)
+			errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", "PostCount")
+		} else if t == FieldMdHandleTypeInsert {
+			res = s.mdFieldPostCount(so.PostCount, false, false, true, so)
+			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "PostCount")
+		}
+		if !res {
+			return errors.New(errStr)
+		}
+	}
+
+	if fields["PubKey"] {
+		res := true
+		if t == FieldMdHandleTypeCheck {
+			res = s.mdFieldPubKey(so.PubKey, true, false, false, so)
+			errStr = fmt.Sprintf("fail to modify exist value of %v", "PubKey")
+		} else if t == FieldMdHandleTypeDel {
+			res = s.mdFieldPubKey(so.PubKey, false, true, false, so)
+			errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", "PubKey")
+		} else if t == FieldMdHandleTypeInsert {
+			res = s.mdFieldPubKey(so.PubKey, false, false, true, so)
+			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "PubKey")
+		}
+		if !res {
+			return errors.New(errStr)
+		}
+	}
+
+	if fields["Reputation"] {
+		res := true
+		if t == FieldMdHandleTypeCheck {
+			res = s.mdFieldReputation(so.Reputation, true, false, false, so)
+			errStr = fmt.Sprintf("fail to modify exist value of %v", "Reputation")
+		} else if t == FieldMdHandleTypeDel {
+			res = s.mdFieldReputation(so.Reputation, false, true, false, so)
+			errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", "Reputation")
+		} else if t == FieldMdHandleTypeInsert {
+			res = s.mdFieldReputation(so.Reputation, false, false, true, so)
+			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "Reputation")
+		}
+		if !res {
+			return errors.New(errStr)
+		}
+	}
+
+	if fields["ReputationMemo"] {
+		res := true
+		if t == FieldMdHandleTypeCheck {
+			res = s.mdFieldReputationMemo(so.ReputationMemo, true, false, false, so)
+			errStr = fmt.Sprintf("fail to modify exist value of %v", "ReputationMemo")
+		} else if t == FieldMdHandleTypeDel {
+			res = s.mdFieldReputationMemo(so.ReputationMemo, false, true, false, so)
+			errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", "ReputationMemo")
+		} else if t == FieldMdHandleTypeInsert {
+			res = s.mdFieldReputationMemo(so.ReputationMemo, false, false, true, so)
+			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "ReputationMemo")
+		}
+		if !res {
+			return errors.New(errStr)
+		}
+	}
+
+	if fields["StakeVestForMe"] {
+		res := true
+		if t == FieldMdHandleTypeCheck {
+			res = s.mdFieldStakeVestForMe(so.StakeVestForMe, true, false, false, so)
+			errStr = fmt.Sprintf("fail to modify exist value of %v", "StakeVestForMe")
+		} else if t == FieldMdHandleTypeDel {
+			res = s.mdFieldStakeVestForMe(so.StakeVestForMe, false, true, false, so)
+			errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", "StakeVestForMe")
+		} else if t == FieldMdHandleTypeInsert {
+			res = s.mdFieldStakeVestForMe(so.StakeVestForMe, false, false, true, so)
+			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "StakeVestForMe")
+		}
+		if !res {
+			return errors.New(errStr)
+		}
+	}
+
+	if fields["StakeVestFromMe"] {
+		res := true
+		if t == FieldMdHandleTypeCheck {
+			res = s.mdFieldStakeVestFromMe(so.StakeVestFromMe, true, false, false, so)
+			errStr = fmt.Sprintf("fail to modify exist value of %v", "StakeVestFromMe")
+		} else if t == FieldMdHandleTypeDel {
+			res = s.mdFieldStakeVestFromMe(so.StakeVestFromMe, false, true, false, so)
+			errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", "StakeVestFromMe")
+		} else if t == FieldMdHandleTypeInsert {
+			res = s.mdFieldStakeVestFromMe(so.StakeVestFromMe, false, false, true, so)
+			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "StakeVestFromMe")
+		}
+		if !res {
+			return errors.New(errStr)
+		}
+	}
+
+	if fields["Stamina"] {
+		res := true
+		if t == FieldMdHandleTypeCheck {
+			res = s.mdFieldStamina(so.Stamina, true, false, false, so)
+			errStr = fmt.Sprintf("fail to modify exist value of %v", "Stamina")
+		} else if t == FieldMdHandleTypeDel {
+			res = s.mdFieldStamina(so.Stamina, false, true, false, so)
+			errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", "Stamina")
+		} else if t == FieldMdHandleTypeInsert {
+			res = s.mdFieldStamina(so.Stamina, false, false, true, so)
+			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "Stamina")
+		}
+		if !res {
+			return errors.New(errStr)
+		}
+	}
+
+	if fields["StaminaFree"] {
+		res := true
+		if t == FieldMdHandleTypeCheck {
+			res = s.mdFieldStaminaFree(so.StaminaFree, true, false, false, so)
+			errStr = fmt.Sprintf("fail to modify exist value of %v", "StaminaFree")
+		} else if t == FieldMdHandleTypeDel {
+			res = s.mdFieldStaminaFree(so.StaminaFree, false, true, false, so)
+			errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", "StaminaFree")
+		} else if t == FieldMdHandleTypeInsert {
+			res = s.mdFieldStaminaFree(so.StaminaFree, false, false, true, so)
+			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "StaminaFree")
+		}
+		if !res {
+			return errors.New(errStr)
+		}
+	}
+
+	if fields["StaminaFreeUseBlock"] {
+		res := true
+		if t == FieldMdHandleTypeCheck {
+			res = s.mdFieldStaminaFreeUseBlock(so.StaminaFreeUseBlock, true, false, false, so)
+			errStr = fmt.Sprintf("fail to modify exist value of %v", "StaminaFreeUseBlock")
+		} else if t == FieldMdHandleTypeDel {
+			res = s.mdFieldStaminaFreeUseBlock(so.StaminaFreeUseBlock, false, true, false, so)
+			errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", "StaminaFreeUseBlock")
+		} else if t == FieldMdHandleTypeInsert {
+			res = s.mdFieldStaminaFreeUseBlock(so.StaminaFreeUseBlock, false, false, true, so)
+			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "StaminaFreeUseBlock")
+		}
+		if !res {
+			return errors.New(errStr)
+		}
+	}
+
+	if fields["StaminaUseBlock"] {
+		res := true
+		if t == FieldMdHandleTypeCheck {
+			res = s.mdFieldStaminaUseBlock(so.StaminaUseBlock, true, false, false, so)
+			errStr = fmt.Sprintf("fail to modify exist value of %v", "StaminaUseBlock")
+		} else if t == FieldMdHandleTypeDel {
+			res = s.mdFieldStaminaUseBlock(so.StaminaUseBlock, false, true, false, so)
+			errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", "StaminaUseBlock")
+		} else if t == FieldMdHandleTypeInsert {
+			res = s.mdFieldStaminaUseBlock(so.StaminaUseBlock, false, false, true, so)
+			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "StaminaUseBlock")
+		}
+		if !res {
+			return errors.New(errStr)
+		}
+	}
+
+	if fields["ToPowerdown"] {
+		res := true
+		if t == FieldMdHandleTypeCheck {
+			res = s.mdFieldToPowerdown(so.ToPowerdown, true, false, false, so)
+			errStr = fmt.Sprintf("fail to modify exist value of %v", "ToPowerdown")
+		} else if t == FieldMdHandleTypeDel {
+			res = s.mdFieldToPowerdown(so.ToPowerdown, false, true, false, so)
+			errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", "ToPowerdown")
+		} else if t == FieldMdHandleTypeInsert {
+			res = s.mdFieldToPowerdown(so.ToPowerdown, false, false, true, so)
+			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "ToPowerdown")
+		}
+		if !res {
+			return errors.New(errStr)
+		}
+	}
+
+	if fields["Vest"] {
+		res := true
+		if t == FieldMdHandleTypeCheck {
+			res = s.mdFieldVest(so.Vest, true, false, false, so)
+			errStr = fmt.Sprintf("fail to modify exist value of %v", "Vest")
+		} else if t == FieldMdHandleTypeDel {
+			res = s.mdFieldVest(so.Vest, false, true, false, so)
+			errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", "Vest")
+		} else if t == FieldMdHandleTypeInsert {
+			res = s.mdFieldVest(so.Vest, false, false, true, so)
+			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "Vest")
+		}
+		if !res {
+			return errors.New(errStr)
+		}
+	}
+
+	if fields["VotePower"] {
+		res := true
+		if t == FieldMdHandleTypeCheck {
+			res = s.mdFieldVotePower(so.VotePower, true, false, false, so)
+			errStr = fmt.Sprintf("fail to modify exist value of %v", "VotePower")
+		} else if t == FieldMdHandleTypeDel {
+			res = s.mdFieldVotePower(so.VotePower, false, true, false, so)
+			errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", "VotePower")
+		} else if t == FieldMdHandleTypeInsert {
+			res = s.mdFieldVotePower(so.VotePower, false, false, true, so)
+			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "VotePower")
+		}
+		if !res {
+			return errors.New(errStr)
+		}
 	}
 
 	return nil
@@ -1498,6 +1543,14 @@ func (s *SoAccountWrap) removeAccount() error {
 	if s.dba == nil {
 		return errors.New("database is nil")
 	}
+
+	s.initWatcherFlag()
+
+	var oldVal *SoAccount
+	if s.watcherFlag.AnyWatcher {
+		oldVal = s.getAccount()
+	}
+
 	//delete sort list key
 	if res := s.delAllSortKeys(true, nil); !res {
 		return errors.New("delAllSortKeys failed")
@@ -1517,6 +1570,11 @@ func (s *SoAccountWrap) removeAccount() error {
 	if err == nil {
 		s.mKeyBuf = nil
 		s.mKeyFlag = -1
+
+		// call watchers
+		if s.watcherFlag.AnyWatcher && oldVal != nil {
+			ReportTableRecordDelete(s.dba.ServiceId(), s.dba.BranchId(), s.mainKey, oldVal)
+		}
 		return nil
 	} else {
 		return fmt.Errorf("database.Delete failed: %s", err.Error())
@@ -5042,4 +5100,176 @@ func (s *UniAccountPubKeyWrap) UniQueryPubKey(start *prototype.PublicKeyType) *S
 		}
 	}
 	return nil
+}
+
+////////////// SECTION Watchers ///////////////
+
+type AccountWatcherFlag struct {
+	HasBalanceWatcher bool
+
+	HasBpVoteCountWatcher bool
+
+	HasChargedTicketWatcher bool
+
+	HasCreatedTimeWatcher bool
+
+	HasCreatedTrxCountWatcher bool
+
+	HasCreatorWatcher bool
+
+	HasEachPowerdownRateWatcher bool
+
+	HasFreezeWatcher bool
+
+	HasFreezeMemoWatcher bool
+
+	HasHasPowerdownWatcher bool
+
+	HasLastPostTimeWatcher bool
+
+	HasLastStakeTimeWatcher bool
+
+	HasLastVoteTimeWatcher bool
+
+	HasNextPowerdownBlockNumWatcher bool
+
+	HasPostCountWatcher bool
+
+	HasPubKeyWatcher bool
+
+	HasReputationWatcher bool
+
+	HasReputationMemoWatcher bool
+
+	HasStakeVestForMeWatcher bool
+
+	HasStakeVestFromMeWatcher bool
+
+	HasStaminaWatcher bool
+
+	HasStaminaFreeWatcher bool
+
+	HasStaminaFreeUseBlockWatcher bool
+
+	HasStaminaUseBlockWatcher bool
+
+	HasToPowerdownWatcher bool
+
+	HasVestWatcher bool
+
+	HasVotePowerWatcher bool
+
+	WholeWatcher bool
+	AnyWatcher   bool
+}
+
+var (
+	AccountTable = &TableInfo{
+		Name:    "Account",
+		Primary: "Name",
+		Record:  reflect.TypeOf((*SoAccount)(nil)).Elem(),
+	}
+	AccountWatcherFlags     = make(map[uint32]AccountWatcherFlag)
+	AccountWatcherFlagsLock sync.RWMutex
+)
+
+func AccountWatcherFlagOfDb(dbSvcId uint32) AccountWatcherFlag {
+	AccountWatcherFlagsLock.RLock()
+	defer AccountWatcherFlagsLock.RUnlock()
+	return AccountWatcherFlags[dbSvcId]
+}
+
+func AccountRecordWatcherChanged(dbSvcId uint32) {
+	var flag AccountWatcherFlag
+	flag.WholeWatcher = HasTableRecordWatcher(dbSvcId, AccountTable.Record, "")
+	flag.AnyWatcher = flag.WholeWatcher
+
+	flag.HasBalanceWatcher = HasTableRecordWatcher(dbSvcId, AccountTable.Record, "Balance")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasBalanceWatcher
+
+	flag.HasBpVoteCountWatcher = HasTableRecordWatcher(dbSvcId, AccountTable.Record, "BpVoteCount")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasBpVoteCountWatcher
+
+	flag.HasChargedTicketWatcher = HasTableRecordWatcher(dbSvcId, AccountTable.Record, "ChargedTicket")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasChargedTicketWatcher
+
+	flag.HasCreatedTimeWatcher = HasTableRecordWatcher(dbSvcId, AccountTable.Record, "CreatedTime")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasCreatedTimeWatcher
+
+	flag.HasCreatedTrxCountWatcher = HasTableRecordWatcher(dbSvcId, AccountTable.Record, "CreatedTrxCount")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasCreatedTrxCountWatcher
+
+	flag.HasCreatorWatcher = HasTableRecordWatcher(dbSvcId, AccountTable.Record, "Creator")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasCreatorWatcher
+
+	flag.HasEachPowerdownRateWatcher = HasTableRecordWatcher(dbSvcId, AccountTable.Record, "EachPowerdownRate")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasEachPowerdownRateWatcher
+
+	flag.HasFreezeWatcher = HasTableRecordWatcher(dbSvcId, AccountTable.Record, "Freeze")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasFreezeWatcher
+
+	flag.HasFreezeMemoWatcher = HasTableRecordWatcher(dbSvcId, AccountTable.Record, "FreezeMemo")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasFreezeMemoWatcher
+
+	flag.HasHasPowerdownWatcher = HasTableRecordWatcher(dbSvcId, AccountTable.Record, "HasPowerdown")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasHasPowerdownWatcher
+
+	flag.HasLastPostTimeWatcher = HasTableRecordWatcher(dbSvcId, AccountTable.Record, "LastPostTime")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasLastPostTimeWatcher
+
+	flag.HasLastStakeTimeWatcher = HasTableRecordWatcher(dbSvcId, AccountTable.Record, "LastStakeTime")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasLastStakeTimeWatcher
+
+	flag.HasLastVoteTimeWatcher = HasTableRecordWatcher(dbSvcId, AccountTable.Record, "LastVoteTime")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasLastVoteTimeWatcher
+
+	flag.HasNextPowerdownBlockNumWatcher = HasTableRecordWatcher(dbSvcId, AccountTable.Record, "NextPowerdownBlockNum")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasNextPowerdownBlockNumWatcher
+
+	flag.HasPostCountWatcher = HasTableRecordWatcher(dbSvcId, AccountTable.Record, "PostCount")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasPostCountWatcher
+
+	flag.HasPubKeyWatcher = HasTableRecordWatcher(dbSvcId, AccountTable.Record, "PubKey")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasPubKeyWatcher
+
+	flag.HasReputationWatcher = HasTableRecordWatcher(dbSvcId, AccountTable.Record, "Reputation")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasReputationWatcher
+
+	flag.HasReputationMemoWatcher = HasTableRecordWatcher(dbSvcId, AccountTable.Record, "ReputationMemo")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasReputationMemoWatcher
+
+	flag.HasStakeVestForMeWatcher = HasTableRecordWatcher(dbSvcId, AccountTable.Record, "StakeVestForMe")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasStakeVestForMeWatcher
+
+	flag.HasStakeVestFromMeWatcher = HasTableRecordWatcher(dbSvcId, AccountTable.Record, "StakeVestFromMe")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasStakeVestFromMeWatcher
+
+	flag.HasStaminaWatcher = HasTableRecordWatcher(dbSvcId, AccountTable.Record, "Stamina")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasStaminaWatcher
+
+	flag.HasStaminaFreeWatcher = HasTableRecordWatcher(dbSvcId, AccountTable.Record, "StaminaFree")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasStaminaFreeWatcher
+
+	flag.HasStaminaFreeUseBlockWatcher = HasTableRecordWatcher(dbSvcId, AccountTable.Record, "StaminaFreeUseBlock")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasStaminaFreeUseBlockWatcher
+
+	flag.HasStaminaUseBlockWatcher = HasTableRecordWatcher(dbSvcId, AccountTable.Record, "StaminaUseBlock")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasStaminaUseBlockWatcher
+
+	flag.HasToPowerdownWatcher = HasTableRecordWatcher(dbSvcId, AccountTable.Record, "ToPowerdown")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasToPowerdownWatcher
+
+	flag.HasVestWatcher = HasTableRecordWatcher(dbSvcId, AccountTable.Record, "Vest")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasVestWatcher
+
+	flag.HasVotePowerWatcher = HasTableRecordWatcher(dbSvcId, AccountTable.Record, "VotePower")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasVotePowerWatcher
+
+	AccountWatcherFlagsLock.Lock()
+	AccountWatcherFlags[dbSvcId] = flag
+	AccountWatcherFlagsLock.Unlock()
+}
+
+func init() {
+	RegisterTableWatcherChangedCallback(AccountTable.Record, AccountRecordWatcherChanged)
 }

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"sync"
 
 	"github.com/coschain/contentos-go/common/encoding/kope"
 	"github.com/coschain/contentos-go/iservices"
@@ -22,19 +23,21 @@ var (
 
 ////////////// SECTION Wrap Define ///////////////
 type SoGiftTicketWrap struct {
-	dba       iservices.IDatabaseRW
-	mainKey   *prototype.GiftTicketKeyType
-	mKeyFlag  int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
-	mKeyBuf   []byte //the buffer after the main key is encoded with prefix
-	mBuf      []byte //the value after the main key is encoded
-	mdFuncMap map[string]interface{}
+	dba         iservices.IDatabaseRW
+	mainKey     *prototype.GiftTicketKeyType
+	watcherFlag *GiftTicketWatcherFlag
+	mKeyFlag    int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
+	mKeyBuf     []byte //the buffer after the main key is encoded with prefix
+	mBuf        []byte //the value after the main key is encoded
+	mdFuncMap   map[string]interface{}
 }
 
 func NewSoGiftTicketWrap(dba iservices.IDatabaseRW, key *prototype.GiftTicketKeyType) *SoGiftTicketWrap {
 	if dba == nil || key == nil {
 		return nil
 	}
-	result := &SoGiftTicketWrap{dba, key, -1, nil, nil, nil}
+	result := &SoGiftTicketWrap{dba, key, nil, -1, nil, nil, nil}
+	result.initWatcherFlag()
 	return result
 }
 
@@ -78,6 +81,13 @@ func (s *SoGiftTicketWrap) MustNotExist(errMsgs ...interface{}) *SoGiftTicketWra
 		panic(bindErrorInfo(fmt.Sprintf("SoGiftTicketWrap.MustNotExist: %v already exists", s.mainKey), errMsgs...))
 	}
 	return s
+}
+
+func (s *SoGiftTicketWrap) initWatcherFlag() {
+	if s.watcherFlag == nil {
+		s.watcherFlag = new(GiftTicketWatcherFlag)
+		*(s.watcherFlag) = GiftTicketWatcherFlagOfDb(s.dba.ServiceId())
+	}
 }
 
 func (s *SoGiftTicketWrap) create(f func(tInfo *SoGiftTicket)) error {
@@ -126,6 +136,13 @@ func (s *SoGiftTicketWrap) create(f func(tInfo *SoGiftTicket)) error {
 	}
 
 	s.mKeyFlag = 1
+
+	// call watchers
+	s.initWatcherFlag()
+	if s.watcherFlag.AnyWatcher {
+		ReportTableRecordInsert(s.dba.ServiceId(), s.dba.BranchId(), s.mainKey, val)
+	}
+
 	return nil
 }
 
@@ -171,29 +188,30 @@ func (s *SoGiftTicketWrap) modify(f func(tInfo *SoGiftTicket)) error {
 		return errors.New("primary key does not support modification")
 	}
 
-	fieldSli, err := s.getModifiedFields(oriTable, curTable)
+	s.initWatcherFlag()
+	modifiedFields, hasWatcher, err := s.getModifiedFields(oriTable, curTable)
 	if err != nil {
 		return err
 	}
 
-	if fieldSli == nil || len(fieldSli) < 1 {
+	if modifiedFields == nil || len(modifiedFields) < 1 {
 		return nil
 	}
 
 	//check whether modify sort and unique field to nil
-	err = s.checkSortAndUniFieldValidity(curTable, fieldSli)
+	err = s.checkSortAndUniFieldValidity(curTable, modifiedFields)
 	if err != nil {
 		return err
 	}
 
 	//check unique
-	err = s.handleFieldMd(FieldMdHandleTypeCheck, curTable, fieldSli)
+	err = s.handleFieldMd(FieldMdHandleTypeCheck, curTable, modifiedFields)
 	if err != nil {
 		return err
 	}
 
 	//delete sort and unique key
-	err = s.handleFieldMd(FieldMdHandleTypeDel, oriTable, fieldSli)
+	err = s.handleFieldMd(FieldMdHandleTypeDel, oriTable, modifiedFields)
 	if err != nil {
 		return err
 	}
@@ -205,9 +223,14 @@ func (s *SoGiftTicketWrap) modify(f func(tInfo *SoGiftTicket)) error {
 	}
 
 	//insert sort and unique key
-	err = s.handleFieldMd(FieldMdHandleTypeInsert, curTable, fieldSli)
+	err = s.handleFieldMd(FieldMdHandleTypeInsert, curTable, modifiedFields)
 	if err != nil {
 		return err
+	}
+
+	// call watchers
+	if hasWatcher {
+		ReportTableRecordUpdate(s.dba.ServiceId(), s.dba.BranchId(), s.mainKey, oriTable, curTable, modifiedFields)
 	}
 
 	return nil
@@ -252,103 +275,101 @@ func (s *SoGiftTicketWrap) SetExpireBlock(p uint64, errArgs ...interface{}) *SoG
 	return s
 }
 
-func (s *SoGiftTicketWrap) checkSortAndUniFieldValidity(curTable *SoGiftTicket, fieldSli []string) error {
-	if curTable != nil && fieldSli != nil && len(fieldSli) > 0 {
-		for _, fName := range fieldSli {
-			if len(fName) > 0 {
+func (s *SoGiftTicketWrap) checkSortAndUniFieldValidity(curTable *SoGiftTicket, fields map[string]bool) error {
+	if curTable != nil && fields != nil && len(fields) > 0 {
 
-			}
-		}
 	}
 	return nil
 }
 
 //Get all the modified fields in the table
-func (s *SoGiftTicketWrap) getModifiedFields(oriTable *SoGiftTicket, curTable *SoGiftTicket) ([]string, error) {
+func (s *SoGiftTicketWrap) getModifiedFields(oriTable *SoGiftTicket, curTable *SoGiftTicket) (map[string]bool, bool, error) {
 	if oriTable == nil {
-		return nil, errors.New("table info is nil, can't get modified fields")
+		return nil, false, errors.New("table info is nil, can't get modified fields")
 	}
-	var list []string
+	hasWatcher := false
+	fields := make(map[string]bool)
 
 	if !reflect.DeepEqual(oriTable.Count, curTable.Count) {
-		list = append(list, "Count")
+		fields["Count"] = true
+		hasWatcher = hasWatcher || s.watcherFlag.HasCountWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.Denom, curTable.Denom) {
-		list = append(list, "Denom")
+		fields["Denom"] = true
+		hasWatcher = hasWatcher || s.watcherFlag.HasDenomWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.ExpireBlock, curTable.ExpireBlock) {
-		list = append(list, "ExpireBlock")
+		fields["ExpireBlock"] = true
+		hasWatcher = hasWatcher || s.watcherFlag.HasExpireBlockWatcher
 	}
 
-	return list, nil
+	hasWatcher = hasWatcher || s.watcherFlag.WholeWatcher
+	return fields, hasWatcher, nil
 }
 
-func (s *SoGiftTicketWrap) handleFieldMd(t FieldMdHandleType, so *SoGiftTicket, fSli []string) error {
+func (s *SoGiftTicketWrap) handleFieldMd(t FieldMdHandleType, so *SoGiftTicket, fields map[string]bool) error {
 	if so == nil {
 		return errors.New("fail to modify empty table")
 	}
 
 	//there is no field need to modify
-	if fSli == nil || len(fSli) < 1 {
+	if fields == nil || len(fields) < 1 {
 		return nil
 	}
 
 	errStr := ""
-	for _, fName := range fSli {
 
-		if fName == "Count" {
-			res := true
-			if t == FieldMdHandleTypeCheck {
-				res = s.mdFieldCount(so.Count, true, false, false, so)
-				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
-			} else if t == FieldMdHandleTypeDel {
-				res = s.mdFieldCount(so.Count, false, true, false, so)
-				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
-			} else if t == FieldMdHandleTypeInsert {
-				res = s.mdFieldCount(so.Count, false, false, true, so)
-				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
-			}
-			if !res {
-				return errors.New(errStr)
-			}
+	if fields["Count"] {
+		res := true
+		if t == FieldMdHandleTypeCheck {
+			res = s.mdFieldCount(so.Count, true, false, false, so)
+			errStr = fmt.Sprintf("fail to modify exist value of %v", "Count")
+		} else if t == FieldMdHandleTypeDel {
+			res = s.mdFieldCount(so.Count, false, true, false, so)
+			errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", "Count")
+		} else if t == FieldMdHandleTypeInsert {
+			res = s.mdFieldCount(so.Count, false, false, true, so)
+			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "Count")
 		}
-
-		if fName == "Denom" {
-			res := true
-			if t == FieldMdHandleTypeCheck {
-				res = s.mdFieldDenom(so.Denom, true, false, false, so)
-				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
-			} else if t == FieldMdHandleTypeDel {
-				res = s.mdFieldDenom(so.Denom, false, true, false, so)
-				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
-			} else if t == FieldMdHandleTypeInsert {
-				res = s.mdFieldDenom(so.Denom, false, false, true, so)
-				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
-			}
-			if !res {
-				return errors.New(errStr)
-			}
+		if !res {
+			return errors.New(errStr)
 		}
+	}
 
-		if fName == "ExpireBlock" {
-			res := true
-			if t == FieldMdHandleTypeCheck {
-				res = s.mdFieldExpireBlock(so.ExpireBlock, true, false, false, so)
-				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
-			} else if t == FieldMdHandleTypeDel {
-				res = s.mdFieldExpireBlock(so.ExpireBlock, false, true, false, so)
-				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
-			} else if t == FieldMdHandleTypeInsert {
-				res = s.mdFieldExpireBlock(so.ExpireBlock, false, false, true, so)
-				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
-			}
-			if !res {
-				return errors.New(errStr)
-			}
+	if fields["Denom"] {
+		res := true
+		if t == FieldMdHandleTypeCheck {
+			res = s.mdFieldDenom(so.Denom, true, false, false, so)
+			errStr = fmt.Sprintf("fail to modify exist value of %v", "Denom")
+		} else if t == FieldMdHandleTypeDel {
+			res = s.mdFieldDenom(so.Denom, false, true, false, so)
+			errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", "Denom")
+		} else if t == FieldMdHandleTypeInsert {
+			res = s.mdFieldDenom(so.Denom, false, false, true, so)
+			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "Denom")
 		}
+		if !res {
+			return errors.New(errStr)
+		}
+	}
 
+	if fields["ExpireBlock"] {
+		res := true
+		if t == FieldMdHandleTypeCheck {
+			res = s.mdFieldExpireBlock(so.ExpireBlock, true, false, false, so)
+			errStr = fmt.Sprintf("fail to modify exist value of %v", "ExpireBlock")
+		} else if t == FieldMdHandleTypeDel {
+			res = s.mdFieldExpireBlock(so.ExpireBlock, false, true, false, so)
+			errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", "ExpireBlock")
+		} else if t == FieldMdHandleTypeInsert {
+			res = s.mdFieldExpireBlock(so.ExpireBlock, false, false, true, so)
+			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "ExpireBlock")
+		}
+		if !res {
+			return errors.New(errStr)
+		}
 	}
 
 	return nil
@@ -478,6 +499,14 @@ func (s *SoGiftTicketWrap) removeGiftTicket() error {
 	if s.dba == nil {
 		return errors.New("database is nil")
 	}
+
+	s.initWatcherFlag()
+
+	var oldVal *SoGiftTicket
+	if s.watcherFlag.AnyWatcher {
+		oldVal = s.getGiftTicket()
+	}
+
 	//delete sort list key
 	if res := s.delAllSortKeys(true, nil); !res {
 		return errors.New("delAllSortKeys failed")
@@ -497,6 +526,11 @@ func (s *SoGiftTicketWrap) removeGiftTicket() error {
 	if err == nil {
 		s.mKeyBuf = nil
 		s.mKeyFlag = -1
+
+		// call watchers
+		if s.watcherFlag.AnyWatcher && oldVal != nil {
+			ReportTableRecordDelete(s.dba.ServiceId(), s.dba.BranchId(), s.mainKey, oldVal)
+		}
 		return nil
 	} else {
 		return fmt.Errorf("database.Delete failed: %s", err.Error())
@@ -1288,4 +1322,56 @@ func (s *UniGiftTicketTicketWrap) UniQueryTicket(start *prototype.GiftTicketKeyT
 		}
 	}
 	return nil
+}
+
+////////////// SECTION Watchers ///////////////
+
+type GiftTicketWatcherFlag struct {
+	HasCountWatcher bool
+
+	HasDenomWatcher bool
+
+	HasExpireBlockWatcher bool
+
+	WholeWatcher bool
+	AnyWatcher   bool
+}
+
+var (
+	GiftTicketTable = &TableInfo{
+		Name:    "GiftTicket",
+		Primary: "Ticket",
+		Record:  reflect.TypeOf((*SoGiftTicket)(nil)).Elem(),
+	}
+	GiftTicketWatcherFlags     = make(map[uint32]GiftTicketWatcherFlag)
+	GiftTicketWatcherFlagsLock sync.RWMutex
+)
+
+func GiftTicketWatcherFlagOfDb(dbSvcId uint32) GiftTicketWatcherFlag {
+	GiftTicketWatcherFlagsLock.RLock()
+	defer GiftTicketWatcherFlagsLock.RUnlock()
+	return GiftTicketWatcherFlags[dbSvcId]
+}
+
+func GiftTicketRecordWatcherChanged(dbSvcId uint32) {
+	var flag GiftTicketWatcherFlag
+	flag.WholeWatcher = HasTableRecordWatcher(dbSvcId, GiftTicketTable.Record, "")
+	flag.AnyWatcher = flag.WholeWatcher
+
+	flag.HasCountWatcher = HasTableRecordWatcher(dbSvcId, GiftTicketTable.Record, "Count")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasCountWatcher
+
+	flag.HasDenomWatcher = HasTableRecordWatcher(dbSvcId, GiftTicketTable.Record, "Denom")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasDenomWatcher
+
+	flag.HasExpireBlockWatcher = HasTableRecordWatcher(dbSvcId, GiftTicketTable.Record, "ExpireBlock")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasExpireBlockWatcher
+
+	GiftTicketWatcherFlagsLock.Lock()
+	GiftTicketWatcherFlags[dbSvcId] = flag
+	GiftTicketWatcherFlagsLock.Unlock()
+}
+
+func init() {
+	RegisterTableWatcherChangedCallback(GiftTicketTable.Record, GiftTicketRecordWatcherChanged)
 }

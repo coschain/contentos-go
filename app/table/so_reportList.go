@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"sync"
 
 	"github.com/coschain/contentos-go/common/encoding/kope"
 	"github.com/coschain/contentos-go/iservices"
@@ -20,19 +21,21 @@ var (
 
 ////////////// SECTION Wrap Define ///////////////
 type SoReportListWrap struct {
-	dba       iservices.IDatabaseRW
-	mainKey   *uint64
-	mKeyFlag  int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
-	mKeyBuf   []byte //the buffer after the main key is encoded with prefix
-	mBuf      []byte //the value after the main key is encoded
-	mdFuncMap map[string]interface{}
+	dba         iservices.IDatabaseRW
+	mainKey     *uint64
+	watcherFlag *ReportListWatcherFlag
+	mKeyFlag    int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
+	mKeyBuf     []byte //the buffer after the main key is encoded with prefix
+	mBuf        []byte //the value after the main key is encoded
+	mdFuncMap   map[string]interface{}
 }
 
 func NewSoReportListWrap(dba iservices.IDatabaseRW, key *uint64) *SoReportListWrap {
 	if dba == nil || key == nil {
 		return nil
 	}
-	result := &SoReportListWrap{dba, key, -1, nil, nil, nil}
+	result := &SoReportListWrap{dba, key, nil, -1, nil, nil, nil}
+	result.initWatcherFlag()
 	return result
 }
 
@@ -78,6 +81,13 @@ func (s *SoReportListWrap) MustNotExist(errMsgs ...interface{}) *SoReportListWra
 	return s
 }
 
+func (s *SoReportListWrap) initWatcherFlag() {
+	if s.watcherFlag == nil {
+		s.watcherFlag = new(ReportListWatcherFlag)
+		*(s.watcherFlag) = ReportListWatcherFlagOfDb(s.dba.ServiceId())
+	}
+}
+
 func (s *SoReportListWrap) create(f func(tInfo *SoReportList)) error {
 	if s.dba == nil {
 		return errors.New("the db is nil")
@@ -121,6 +131,13 @@ func (s *SoReportListWrap) create(f func(tInfo *SoReportList)) error {
 	}
 
 	s.mKeyFlag = 1
+
+	// call watchers
+	s.initWatcherFlag()
+	if s.watcherFlag.AnyWatcher {
+		ReportTableRecordInsert(s.dba.ServiceId(), s.dba.BranchId(), s.mainKey, val)
+	}
+
 	return nil
 }
 
@@ -166,29 +183,30 @@ func (s *SoReportListWrap) modify(f func(tInfo *SoReportList)) error {
 		return errors.New("primary key does not support modification")
 	}
 
-	fieldSli, err := s.getModifiedFields(oriTable, curTable)
+	s.initWatcherFlag()
+	modifiedFields, hasWatcher, err := s.getModifiedFields(oriTable, curTable)
 	if err != nil {
 		return err
 	}
 
-	if fieldSli == nil || len(fieldSli) < 1 {
+	if modifiedFields == nil || len(modifiedFields) < 1 {
 		return nil
 	}
 
 	//check whether modify sort and unique field to nil
-	err = s.checkSortAndUniFieldValidity(curTable, fieldSli)
+	err = s.checkSortAndUniFieldValidity(curTable, modifiedFields)
 	if err != nil {
 		return err
 	}
 
 	//check unique
-	err = s.handleFieldMd(FieldMdHandleTypeCheck, curTable, fieldSli)
+	err = s.handleFieldMd(FieldMdHandleTypeCheck, curTable, modifiedFields)
 	if err != nil {
 		return err
 	}
 
 	//delete sort and unique key
-	err = s.handleFieldMd(FieldMdHandleTypeDel, oriTable, fieldSli)
+	err = s.handleFieldMd(FieldMdHandleTypeDel, oriTable, modifiedFields)
 	if err != nil {
 		return err
 	}
@@ -200,9 +218,14 @@ func (s *SoReportListWrap) modify(f func(tInfo *SoReportList)) error {
 	}
 
 	//insert sort and unique key
-	err = s.handleFieldMd(FieldMdHandleTypeInsert, curTable, fieldSli)
+	err = s.handleFieldMd(FieldMdHandleTypeInsert, curTable, modifiedFields)
 	if err != nil {
 		return err
+	}
+
+	// call watchers
+	if hasWatcher {
+		ReportTableRecordUpdate(s.dba.ServiceId(), s.dba.BranchId(), s.mainKey, oriTable, curTable, modifiedFields)
 	}
 
 	return nil
@@ -247,103 +270,101 @@ func (s *SoReportListWrap) SetTags(p []int32, errArgs ...interface{}) *SoReportL
 	return s
 }
 
-func (s *SoReportListWrap) checkSortAndUniFieldValidity(curTable *SoReportList, fieldSli []string) error {
-	if curTable != nil && fieldSli != nil && len(fieldSli) > 0 {
-		for _, fName := range fieldSli {
-			if len(fName) > 0 {
+func (s *SoReportListWrap) checkSortAndUniFieldValidity(curTable *SoReportList, fields map[string]bool) error {
+	if curTable != nil && fields != nil && len(fields) > 0 {
 
-			}
-		}
 	}
 	return nil
 }
 
 //Get all the modified fields in the table
-func (s *SoReportListWrap) getModifiedFields(oriTable *SoReportList, curTable *SoReportList) ([]string, error) {
+func (s *SoReportListWrap) getModifiedFields(oriTable *SoReportList, curTable *SoReportList) (map[string]bool, bool, error) {
 	if oriTable == nil {
-		return nil, errors.New("table info is nil, can't get modified fields")
+		return nil, false, errors.New("table info is nil, can't get modified fields")
 	}
-	var list []string
+	hasWatcher := false
+	fields := make(map[string]bool)
 
 	if !reflect.DeepEqual(oriTable.IsArbitrated, curTable.IsArbitrated) {
-		list = append(list, "IsArbitrated")
+		fields["IsArbitrated"] = true
+		hasWatcher = hasWatcher || s.watcherFlag.HasIsArbitratedWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.ReportedTimes, curTable.ReportedTimes) {
-		list = append(list, "ReportedTimes")
+		fields["ReportedTimes"] = true
+		hasWatcher = hasWatcher || s.watcherFlag.HasReportedTimesWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.Tags, curTable.Tags) {
-		list = append(list, "Tags")
+		fields["Tags"] = true
+		hasWatcher = hasWatcher || s.watcherFlag.HasTagsWatcher
 	}
 
-	return list, nil
+	hasWatcher = hasWatcher || s.watcherFlag.WholeWatcher
+	return fields, hasWatcher, nil
 }
 
-func (s *SoReportListWrap) handleFieldMd(t FieldMdHandleType, so *SoReportList, fSli []string) error {
+func (s *SoReportListWrap) handleFieldMd(t FieldMdHandleType, so *SoReportList, fields map[string]bool) error {
 	if so == nil {
 		return errors.New("fail to modify empty table")
 	}
 
 	//there is no field need to modify
-	if fSli == nil || len(fSli) < 1 {
+	if fields == nil || len(fields) < 1 {
 		return nil
 	}
 
 	errStr := ""
-	for _, fName := range fSli {
 
-		if fName == "IsArbitrated" {
-			res := true
-			if t == FieldMdHandleTypeCheck {
-				res = s.mdFieldIsArbitrated(so.IsArbitrated, true, false, false, so)
-				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
-			} else if t == FieldMdHandleTypeDel {
-				res = s.mdFieldIsArbitrated(so.IsArbitrated, false, true, false, so)
-				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
-			} else if t == FieldMdHandleTypeInsert {
-				res = s.mdFieldIsArbitrated(so.IsArbitrated, false, false, true, so)
-				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
-			}
-			if !res {
-				return errors.New(errStr)
-			}
+	if fields["IsArbitrated"] {
+		res := true
+		if t == FieldMdHandleTypeCheck {
+			res = s.mdFieldIsArbitrated(so.IsArbitrated, true, false, false, so)
+			errStr = fmt.Sprintf("fail to modify exist value of %v", "IsArbitrated")
+		} else if t == FieldMdHandleTypeDel {
+			res = s.mdFieldIsArbitrated(so.IsArbitrated, false, true, false, so)
+			errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", "IsArbitrated")
+		} else if t == FieldMdHandleTypeInsert {
+			res = s.mdFieldIsArbitrated(so.IsArbitrated, false, false, true, so)
+			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "IsArbitrated")
 		}
-
-		if fName == "ReportedTimes" {
-			res := true
-			if t == FieldMdHandleTypeCheck {
-				res = s.mdFieldReportedTimes(so.ReportedTimes, true, false, false, so)
-				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
-			} else if t == FieldMdHandleTypeDel {
-				res = s.mdFieldReportedTimes(so.ReportedTimes, false, true, false, so)
-				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
-			} else if t == FieldMdHandleTypeInsert {
-				res = s.mdFieldReportedTimes(so.ReportedTimes, false, false, true, so)
-				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
-			}
-			if !res {
-				return errors.New(errStr)
-			}
+		if !res {
+			return errors.New(errStr)
 		}
+	}
 
-		if fName == "Tags" {
-			res := true
-			if t == FieldMdHandleTypeCheck {
-				res = s.mdFieldTags(so.Tags, true, false, false, so)
-				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
-			} else if t == FieldMdHandleTypeDel {
-				res = s.mdFieldTags(so.Tags, false, true, false, so)
-				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
-			} else if t == FieldMdHandleTypeInsert {
-				res = s.mdFieldTags(so.Tags, false, false, true, so)
-				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
-			}
-			if !res {
-				return errors.New(errStr)
-			}
+	if fields["ReportedTimes"] {
+		res := true
+		if t == FieldMdHandleTypeCheck {
+			res = s.mdFieldReportedTimes(so.ReportedTimes, true, false, false, so)
+			errStr = fmt.Sprintf("fail to modify exist value of %v", "ReportedTimes")
+		} else if t == FieldMdHandleTypeDel {
+			res = s.mdFieldReportedTimes(so.ReportedTimes, false, true, false, so)
+			errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", "ReportedTimes")
+		} else if t == FieldMdHandleTypeInsert {
+			res = s.mdFieldReportedTimes(so.ReportedTimes, false, false, true, so)
+			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "ReportedTimes")
 		}
+		if !res {
+			return errors.New(errStr)
+		}
+	}
 
+	if fields["Tags"] {
+		res := true
+		if t == FieldMdHandleTypeCheck {
+			res = s.mdFieldTags(so.Tags, true, false, false, so)
+			errStr = fmt.Sprintf("fail to modify exist value of %v", "Tags")
+		} else if t == FieldMdHandleTypeDel {
+			res = s.mdFieldTags(so.Tags, false, true, false, so)
+			errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", "Tags")
+		} else if t == FieldMdHandleTypeInsert {
+			res = s.mdFieldTags(so.Tags, false, false, true, so)
+			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "Tags")
+		}
+		if !res {
+			return errors.New(errStr)
+		}
 	}
 
 	return nil
@@ -426,6 +447,14 @@ func (s *SoReportListWrap) removeReportList() error {
 	if s.dba == nil {
 		return errors.New("database is nil")
 	}
+
+	s.initWatcherFlag()
+
+	var oldVal *SoReportList
+	if s.watcherFlag.AnyWatcher {
+		oldVal = s.getReportList()
+	}
+
 	//delete sort list key
 	if res := s.delAllSortKeys(true, nil); !res {
 		return errors.New("delAllSortKeys failed")
@@ -445,6 +474,11 @@ func (s *SoReportListWrap) removeReportList() error {
 	if err == nil {
 		s.mKeyBuf = nil
 		s.mKeyFlag = -1
+
+		// call watchers
+		if s.watcherFlag.AnyWatcher && oldVal != nil {
+			ReportTableRecordDelete(s.dba.ServiceId(), s.dba.BranchId(), s.mainKey, oldVal)
+		}
 		return nil
 	} else {
 		return fmt.Errorf("database.Delete failed: %s", err.Error())
@@ -1071,4 +1105,56 @@ func (s *UniReportListUuidWrap) UniQueryUuid(start *uint64) *SoReportListWrap {
 		}
 	}
 	return nil
+}
+
+////////////// SECTION Watchers ///////////////
+
+type ReportListWatcherFlag struct {
+	HasIsArbitratedWatcher bool
+
+	HasReportedTimesWatcher bool
+
+	HasTagsWatcher bool
+
+	WholeWatcher bool
+	AnyWatcher   bool
+}
+
+var (
+	ReportListTable = &TableInfo{
+		Name:    "ReportList",
+		Primary: "Uuid",
+		Record:  reflect.TypeOf((*SoReportList)(nil)).Elem(),
+	}
+	ReportListWatcherFlags     = make(map[uint32]ReportListWatcherFlag)
+	ReportListWatcherFlagsLock sync.RWMutex
+)
+
+func ReportListWatcherFlagOfDb(dbSvcId uint32) ReportListWatcherFlag {
+	ReportListWatcherFlagsLock.RLock()
+	defer ReportListWatcherFlagsLock.RUnlock()
+	return ReportListWatcherFlags[dbSvcId]
+}
+
+func ReportListRecordWatcherChanged(dbSvcId uint32) {
+	var flag ReportListWatcherFlag
+	flag.WholeWatcher = HasTableRecordWatcher(dbSvcId, ReportListTable.Record, "")
+	flag.AnyWatcher = flag.WholeWatcher
+
+	flag.HasIsArbitratedWatcher = HasTableRecordWatcher(dbSvcId, ReportListTable.Record, "IsArbitrated")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasIsArbitratedWatcher
+
+	flag.HasReportedTimesWatcher = HasTableRecordWatcher(dbSvcId, ReportListTable.Record, "ReportedTimes")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasReportedTimesWatcher
+
+	flag.HasTagsWatcher = HasTableRecordWatcher(dbSvcId, ReportListTable.Record, "Tags")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasTagsWatcher
+
+	ReportListWatcherFlagsLock.Lock()
+	ReportListWatcherFlags[dbSvcId] = flag
+	ReportListWatcherFlagsLock.Unlock()
+}
+
+func init() {
+	RegisterTableWatcherChangedCallback(ReportListTable.Record, ReportListRecordWatcherChanged)
 }

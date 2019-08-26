@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"sync"
 
 	"github.com/coschain/contentos-go/common/encoding/kope"
 	"github.com/coschain/contentos-go/iservices"
@@ -20,19 +21,21 @@ var (
 
 ////////////// SECTION Wrap Define ///////////////
 type SoGlobalWrap struct {
-	dba       iservices.IDatabaseRW
-	mainKey   *int32
-	mKeyFlag  int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
-	mKeyBuf   []byte //the buffer after the main key is encoded with prefix
-	mBuf      []byte //the value after the main key is encoded
-	mdFuncMap map[string]interface{}
+	dba         iservices.IDatabaseRW
+	mainKey     *int32
+	watcherFlag *GlobalWatcherFlag
+	mKeyFlag    int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
+	mKeyBuf     []byte //the buffer after the main key is encoded with prefix
+	mBuf        []byte //the value after the main key is encoded
+	mdFuncMap   map[string]interface{}
 }
 
 func NewSoGlobalWrap(dba iservices.IDatabaseRW, key *int32) *SoGlobalWrap {
 	if dba == nil || key == nil {
 		return nil
 	}
-	result := &SoGlobalWrap{dba, key, -1, nil, nil, nil}
+	result := &SoGlobalWrap{dba, key, nil, -1, nil, nil, nil}
+	result.initWatcherFlag()
 	return result
 }
 
@@ -78,6 +81,13 @@ func (s *SoGlobalWrap) MustNotExist(errMsgs ...interface{}) *SoGlobalWrap {
 	return s
 }
 
+func (s *SoGlobalWrap) initWatcherFlag() {
+	if s.watcherFlag == nil {
+		s.watcherFlag = new(GlobalWatcherFlag)
+		*(s.watcherFlag) = GlobalWatcherFlagOfDb(s.dba.ServiceId())
+	}
+}
+
 func (s *SoGlobalWrap) create(f func(tInfo *SoGlobal)) error {
 	if s.dba == nil {
 		return errors.New("the db is nil")
@@ -121,6 +131,13 @@ func (s *SoGlobalWrap) create(f func(tInfo *SoGlobal)) error {
 	}
 
 	s.mKeyFlag = 1
+
+	// call watchers
+	s.initWatcherFlag()
+	if s.watcherFlag.AnyWatcher {
+		ReportTableRecordInsert(s.dba.ServiceId(), s.dba.BranchId(), s.mainKey, val)
+	}
+
 	return nil
 }
 
@@ -166,29 +183,30 @@ func (s *SoGlobalWrap) modify(f func(tInfo *SoGlobal)) error {
 		return errors.New("primary key does not support modification")
 	}
 
-	fieldSli, err := s.getModifiedFields(oriTable, curTable)
+	s.initWatcherFlag()
+	modifiedFields, hasWatcher, err := s.getModifiedFields(oriTable, curTable)
 	if err != nil {
 		return err
 	}
 
-	if fieldSli == nil || len(fieldSli) < 1 {
+	if modifiedFields == nil || len(modifiedFields) < 1 {
 		return nil
 	}
 
 	//check whether modify sort and unique field to nil
-	err = s.checkSortAndUniFieldValidity(curTable, fieldSli)
+	err = s.checkSortAndUniFieldValidity(curTable, modifiedFields)
 	if err != nil {
 		return err
 	}
 
 	//check unique
-	err = s.handleFieldMd(FieldMdHandleTypeCheck, curTable, fieldSli)
+	err = s.handleFieldMd(FieldMdHandleTypeCheck, curTable, modifiedFields)
 	if err != nil {
 		return err
 	}
 
 	//delete sort and unique key
-	err = s.handleFieldMd(FieldMdHandleTypeDel, oriTable, fieldSli)
+	err = s.handleFieldMd(FieldMdHandleTypeDel, oriTable, modifiedFields)
 	if err != nil {
 		return err
 	}
@@ -200,9 +218,14 @@ func (s *SoGlobalWrap) modify(f func(tInfo *SoGlobal)) error {
 	}
 
 	//insert sort and unique key
-	err = s.handleFieldMd(FieldMdHandleTypeInsert, curTable, fieldSli)
+	err = s.handleFieldMd(FieldMdHandleTypeInsert, curTable, modifiedFields)
 	if err != nil {
 		return err
+	}
+
+	// call watchers
+	if hasWatcher {
+		ReportTableRecordUpdate(s.dba.ServiceId(), s.dba.BranchId(), s.mainKey, oriTable, curTable, modifiedFields)
 	}
 
 	return nil
@@ -227,61 +250,57 @@ func (s *SoGlobalWrap) SetProps(p *prototype.DynamicProperties, errArgs ...inter
 	return s
 }
 
-func (s *SoGlobalWrap) checkSortAndUniFieldValidity(curTable *SoGlobal, fieldSli []string) error {
-	if curTable != nil && fieldSli != nil && len(fieldSli) > 0 {
-		for _, fName := range fieldSli {
-			if len(fName) > 0 {
+func (s *SoGlobalWrap) checkSortAndUniFieldValidity(curTable *SoGlobal, fields map[string]bool) error {
+	if curTable != nil && fields != nil && len(fields) > 0 {
 
-			}
-		}
 	}
 	return nil
 }
 
 //Get all the modified fields in the table
-func (s *SoGlobalWrap) getModifiedFields(oriTable *SoGlobal, curTable *SoGlobal) ([]string, error) {
+func (s *SoGlobalWrap) getModifiedFields(oriTable *SoGlobal, curTable *SoGlobal) (map[string]bool, bool, error) {
 	if oriTable == nil {
-		return nil, errors.New("table info is nil, can't get modified fields")
+		return nil, false, errors.New("table info is nil, can't get modified fields")
 	}
-	var list []string
+	hasWatcher := false
+	fields := make(map[string]bool)
 
 	if !reflect.DeepEqual(oriTable.Props, curTable.Props) {
-		list = append(list, "Props")
+		fields["Props"] = true
+		hasWatcher = hasWatcher || s.watcherFlag.HasPropsWatcher
 	}
 
-	return list, nil
+	hasWatcher = hasWatcher || s.watcherFlag.WholeWatcher
+	return fields, hasWatcher, nil
 }
 
-func (s *SoGlobalWrap) handleFieldMd(t FieldMdHandleType, so *SoGlobal, fSli []string) error {
+func (s *SoGlobalWrap) handleFieldMd(t FieldMdHandleType, so *SoGlobal, fields map[string]bool) error {
 	if so == nil {
 		return errors.New("fail to modify empty table")
 	}
 
 	//there is no field need to modify
-	if fSli == nil || len(fSli) < 1 {
+	if fields == nil || len(fields) < 1 {
 		return nil
 	}
 
 	errStr := ""
-	for _, fName := range fSli {
 
-		if fName == "Props" {
-			res := true
-			if t == FieldMdHandleTypeCheck {
-				res = s.mdFieldProps(so.Props, true, false, false, so)
-				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
-			} else if t == FieldMdHandleTypeDel {
-				res = s.mdFieldProps(so.Props, false, true, false, so)
-				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
-			} else if t == FieldMdHandleTypeInsert {
-				res = s.mdFieldProps(so.Props, false, false, true, so)
-				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
-			}
-			if !res {
-				return errors.New(errStr)
-			}
+	if fields["Props"] {
+		res := true
+		if t == FieldMdHandleTypeCheck {
+			res = s.mdFieldProps(so.Props, true, false, false, so)
+			errStr = fmt.Sprintf("fail to modify exist value of %v", "Props")
+		} else if t == FieldMdHandleTypeDel {
+			res = s.mdFieldProps(so.Props, false, true, false, so)
+			errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", "Props")
+		} else if t == FieldMdHandleTypeInsert {
+			res = s.mdFieldProps(so.Props, false, false, true, so)
+			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "Props")
 		}
-
+		if !res {
+			return errors.New(errStr)
+		}
 	}
 
 	return nil
@@ -315,6 +334,14 @@ func (s *SoGlobalWrap) removeGlobal() error {
 	if s.dba == nil {
 		return errors.New("database is nil")
 	}
+
+	s.initWatcherFlag()
+
+	var oldVal *SoGlobal
+	if s.watcherFlag.AnyWatcher {
+		oldVal = s.getGlobal()
+	}
+
 	//delete sort list key
 	if res := s.delAllSortKeys(true, nil); !res {
 		return errors.New("delAllSortKeys failed")
@@ -334,6 +361,11 @@ func (s *SoGlobalWrap) removeGlobal() error {
 	if err == nil {
 		s.mKeyBuf = nil
 		s.mKeyFlag = -1
+
+		// call watchers
+		if s.watcherFlag.AnyWatcher && oldVal != nil {
+			ReportTableRecordDelete(s.dba.ServiceId(), s.dba.BranchId(), s.mainKey, oldVal)
+		}
 		return nil
 	} else {
 		return fmt.Errorf("database.Delete failed: %s", err.Error())
@@ -682,4 +714,46 @@ func (s *UniGlobalIdWrap) UniQueryId(start *int32) *SoGlobalWrap {
 		}
 	}
 	return nil
+}
+
+////////////// SECTION Watchers ///////////////
+
+type GlobalWatcherFlag struct {
+	HasPropsWatcher bool
+
+	WholeWatcher bool
+	AnyWatcher   bool
+}
+
+var (
+	GlobalTable = &TableInfo{
+		Name:    "Global",
+		Primary: "Id",
+		Record:  reflect.TypeOf((*SoGlobal)(nil)).Elem(),
+	}
+	GlobalWatcherFlags     = make(map[uint32]GlobalWatcherFlag)
+	GlobalWatcherFlagsLock sync.RWMutex
+)
+
+func GlobalWatcherFlagOfDb(dbSvcId uint32) GlobalWatcherFlag {
+	GlobalWatcherFlagsLock.RLock()
+	defer GlobalWatcherFlagsLock.RUnlock()
+	return GlobalWatcherFlags[dbSvcId]
+}
+
+func GlobalRecordWatcherChanged(dbSvcId uint32) {
+	var flag GlobalWatcherFlag
+	flag.WholeWatcher = HasTableRecordWatcher(dbSvcId, GlobalTable.Record, "")
+	flag.AnyWatcher = flag.WholeWatcher
+
+	flag.HasPropsWatcher = HasTableRecordWatcher(dbSvcId, GlobalTable.Record, "Props")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasPropsWatcher
+
+	GlobalWatcherFlagsLock.Lock()
+	GlobalWatcherFlags[dbSvcId] = flag
+	GlobalWatcherFlagsLock.Unlock()
+}
+
+func init() {
+	RegisterTableWatcherChangedCallback(GlobalTable.Record, GlobalRecordWatcherChanged)
 }

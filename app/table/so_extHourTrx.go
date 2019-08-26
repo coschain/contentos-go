@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"sync"
 
 	"github.com/coschain/contentos-go/common/encoding/kope"
 	"github.com/coschain/contentos-go/iservices"
@@ -22,19 +23,21 @@ var (
 
 ////////////// SECTION Wrap Define ///////////////
 type SoExtHourTrxWrap struct {
-	dba       iservices.IDatabaseRW
-	mainKey   *prototype.TimePointSec
-	mKeyFlag  int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
-	mKeyBuf   []byte //the buffer after the main key is encoded with prefix
-	mBuf      []byte //the value after the main key is encoded
-	mdFuncMap map[string]interface{}
+	dba         iservices.IDatabaseRW
+	mainKey     *prototype.TimePointSec
+	watcherFlag *ExtHourTrxWatcherFlag
+	mKeyFlag    int    //the flag of the main key exist state in db, -1:has not judged; 0:not exist; 1:already exist
+	mKeyBuf     []byte //the buffer after the main key is encoded with prefix
+	mBuf        []byte //the value after the main key is encoded
+	mdFuncMap   map[string]interface{}
 }
 
 func NewSoExtHourTrxWrap(dba iservices.IDatabaseRW, key *prototype.TimePointSec) *SoExtHourTrxWrap {
 	if dba == nil || key == nil {
 		return nil
 	}
-	result := &SoExtHourTrxWrap{dba, key, -1, nil, nil, nil}
+	result := &SoExtHourTrxWrap{dba, key, nil, -1, nil, nil, nil}
+	result.initWatcherFlag()
 	return result
 }
 
@@ -78,6 +81,13 @@ func (s *SoExtHourTrxWrap) MustNotExist(errMsgs ...interface{}) *SoExtHourTrxWra
 		panic(bindErrorInfo(fmt.Sprintf("SoExtHourTrxWrap.MustNotExist: %v already exists", s.mainKey), errMsgs...))
 	}
 	return s
+}
+
+func (s *SoExtHourTrxWrap) initWatcherFlag() {
+	if s.watcherFlag == nil {
+		s.watcherFlag = new(ExtHourTrxWatcherFlag)
+		*(s.watcherFlag) = ExtHourTrxWatcherFlagOfDb(s.dba.ServiceId())
+	}
 }
 
 func (s *SoExtHourTrxWrap) create(f func(tInfo *SoExtHourTrx)) error {
@@ -126,6 +136,13 @@ func (s *SoExtHourTrxWrap) create(f func(tInfo *SoExtHourTrx)) error {
 	}
 
 	s.mKeyFlag = 1
+
+	// call watchers
+	s.initWatcherFlag()
+	if s.watcherFlag.AnyWatcher {
+		ReportTableRecordInsert(s.dba.ServiceId(), s.dba.BranchId(), s.mainKey, val)
+	}
+
 	return nil
 }
 
@@ -171,29 +188,30 @@ func (s *SoExtHourTrxWrap) modify(f func(tInfo *SoExtHourTrx)) error {
 		return errors.New("primary key does not support modification")
 	}
 
-	fieldSli, err := s.getModifiedFields(oriTable, curTable)
+	s.initWatcherFlag()
+	modifiedFields, hasWatcher, err := s.getModifiedFields(oriTable, curTable)
 	if err != nil {
 		return err
 	}
 
-	if fieldSli == nil || len(fieldSli) < 1 {
+	if modifiedFields == nil || len(modifiedFields) < 1 {
 		return nil
 	}
 
 	//check whether modify sort and unique field to nil
-	err = s.checkSortAndUniFieldValidity(curTable, fieldSli)
+	err = s.checkSortAndUniFieldValidity(curTable, modifiedFields)
 	if err != nil {
 		return err
 	}
 
 	//check unique
-	err = s.handleFieldMd(FieldMdHandleTypeCheck, curTable, fieldSli)
+	err = s.handleFieldMd(FieldMdHandleTypeCheck, curTable, modifiedFields)
 	if err != nil {
 		return err
 	}
 
 	//delete sort and unique key
-	err = s.handleFieldMd(FieldMdHandleTypeDel, oriTable, fieldSli)
+	err = s.handleFieldMd(FieldMdHandleTypeDel, oriTable, modifiedFields)
 	if err != nil {
 		return err
 	}
@@ -205,9 +223,14 @@ func (s *SoExtHourTrxWrap) modify(f func(tInfo *SoExtHourTrx)) error {
 	}
 
 	//insert sort and unique key
-	err = s.handleFieldMd(FieldMdHandleTypeInsert, curTable, fieldSli)
+	err = s.handleFieldMd(FieldMdHandleTypeInsert, curTable, modifiedFields)
 	if err != nil {
 		return err
+	}
+
+	// call watchers
+	if hasWatcher {
+		ReportTableRecordUpdate(s.dba.ServiceId(), s.dba.BranchId(), s.mainKey, oriTable, curTable, modifiedFields)
 	}
 
 	return nil
@@ -232,61 +255,57 @@ func (s *SoExtHourTrxWrap) SetCount(p uint64, errArgs ...interface{}) *SoExtHour
 	return s
 }
 
-func (s *SoExtHourTrxWrap) checkSortAndUniFieldValidity(curTable *SoExtHourTrx, fieldSli []string) error {
-	if curTable != nil && fieldSli != nil && len(fieldSli) > 0 {
-		for _, fName := range fieldSli {
-			if len(fName) > 0 {
+func (s *SoExtHourTrxWrap) checkSortAndUniFieldValidity(curTable *SoExtHourTrx, fields map[string]bool) error {
+	if curTable != nil && fields != nil && len(fields) > 0 {
 
-			}
-		}
 	}
 	return nil
 }
 
 //Get all the modified fields in the table
-func (s *SoExtHourTrxWrap) getModifiedFields(oriTable *SoExtHourTrx, curTable *SoExtHourTrx) ([]string, error) {
+func (s *SoExtHourTrxWrap) getModifiedFields(oriTable *SoExtHourTrx, curTable *SoExtHourTrx) (map[string]bool, bool, error) {
 	if oriTable == nil {
-		return nil, errors.New("table info is nil, can't get modified fields")
+		return nil, false, errors.New("table info is nil, can't get modified fields")
 	}
-	var list []string
+	hasWatcher := false
+	fields := make(map[string]bool)
 
 	if !reflect.DeepEqual(oriTable.Count, curTable.Count) {
-		list = append(list, "Count")
+		fields["Count"] = true
+		hasWatcher = hasWatcher || s.watcherFlag.HasCountWatcher
 	}
 
-	return list, nil
+	hasWatcher = hasWatcher || s.watcherFlag.WholeWatcher
+	return fields, hasWatcher, nil
 }
 
-func (s *SoExtHourTrxWrap) handleFieldMd(t FieldMdHandleType, so *SoExtHourTrx, fSli []string) error {
+func (s *SoExtHourTrxWrap) handleFieldMd(t FieldMdHandleType, so *SoExtHourTrx, fields map[string]bool) error {
 	if so == nil {
 		return errors.New("fail to modify empty table")
 	}
 
 	//there is no field need to modify
-	if fSli == nil || len(fSli) < 1 {
+	if fields == nil || len(fields) < 1 {
 		return nil
 	}
 
 	errStr := ""
-	for _, fName := range fSli {
 
-		if fName == "Count" {
-			res := true
-			if t == FieldMdHandleTypeCheck {
-				res = s.mdFieldCount(so.Count, true, false, false, so)
-				errStr = fmt.Sprintf("fail to modify exist value of %v", fName)
-			} else if t == FieldMdHandleTypeDel {
-				res = s.mdFieldCount(so.Count, false, true, false, so)
-				errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", fName)
-			} else if t == FieldMdHandleTypeInsert {
-				res = s.mdFieldCount(so.Count, false, false, true, so)
-				errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", fName)
-			}
-			if !res {
-				return errors.New(errStr)
-			}
+	if fields["Count"] {
+		res := true
+		if t == FieldMdHandleTypeCheck {
+			res = s.mdFieldCount(so.Count, true, false, false, so)
+			errStr = fmt.Sprintf("fail to modify exist value of %v", "Count")
+		} else if t == FieldMdHandleTypeDel {
+			res = s.mdFieldCount(so.Count, false, true, false, so)
+			errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", "Count")
+		} else if t == FieldMdHandleTypeInsert {
+			res = s.mdFieldCount(so.Count, false, false, true, so)
+			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "Count")
 		}
-
+		if !res {
+			return errors.New(errStr)
+		}
 	}
 
 	return nil
@@ -416,6 +435,14 @@ func (s *SoExtHourTrxWrap) removeExtHourTrx() error {
 	if s.dba == nil {
 		return errors.New("database is nil")
 	}
+
+	s.initWatcherFlag()
+
+	var oldVal *SoExtHourTrx
+	if s.watcherFlag.AnyWatcher {
+		oldVal = s.getExtHourTrx()
+	}
+
 	//delete sort list key
 	if res := s.delAllSortKeys(true, nil); !res {
 		return errors.New("delAllSortKeys failed")
@@ -435,6 +462,11 @@ func (s *SoExtHourTrxWrap) removeExtHourTrx() error {
 	if err == nil {
 		s.mKeyBuf = nil
 		s.mKeyFlag = -1
+
+		// call watchers
+		if s.watcherFlag.AnyWatcher && oldVal != nil {
+			ReportTableRecordDelete(s.dba.ServiceId(), s.dba.BranchId(), s.mainKey, oldVal)
+		}
 		return nil
 	} else {
 		return fmt.Errorf("database.Delete failed: %s", err.Error())
@@ -1014,4 +1046,46 @@ func (s *UniExtHourTrxHourWrap) UniQueryHour(start *prototype.TimePointSec) *SoE
 		}
 	}
 	return nil
+}
+
+////////////// SECTION Watchers ///////////////
+
+type ExtHourTrxWatcherFlag struct {
+	HasCountWatcher bool
+
+	WholeWatcher bool
+	AnyWatcher   bool
+}
+
+var (
+	ExtHourTrxTable = &TableInfo{
+		Name:    "ExtHourTrx",
+		Primary: "Hour",
+		Record:  reflect.TypeOf((*SoExtHourTrx)(nil)).Elem(),
+	}
+	ExtHourTrxWatcherFlags     = make(map[uint32]ExtHourTrxWatcherFlag)
+	ExtHourTrxWatcherFlagsLock sync.RWMutex
+)
+
+func ExtHourTrxWatcherFlagOfDb(dbSvcId uint32) ExtHourTrxWatcherFlag {
+	ExtHourTrxWatcherFlagsLock.RLock()
+	defer ExtHourTrxWatcherFlagsLock.RUnlock()
+	return ExtHourTrxWatcherFlags[dbSvcId]
+}
+
+func ExtHourTrxRecordWatcherChanged(dbSvcId uint32) {
+	var flag ExtHourTrxWatcherFlag
+	flag.WholeWatcher = HasTableRecordWatcher(dbSvcId, ExtHourTrxTable.Record, "")
+	flag.AnyWatcher = flag.WholeWatcher
+
+	flag.HasCountWatcher = HasTableRecordWatcher(dbSvcId, ExtHourTrxTable.Record, "Count")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasCountWatcher
+
+	ExtHourTrxWatcherFlagsLock.Lock()
+	ExtHourTrxWatcherFlags[dbSvcId] = flag
+	ExtHourTrxWatcherFlagsLock.Unlock()
+}
+
+func init() {
+	RegisterTableWatcherChangedCallback(ExtHourTrxTable.Record, ExtHourTrxRecordWatcherChanged)
 }
