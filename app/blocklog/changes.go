@@ -36,4 +36,61 @@ var sInterestedChanges = []InterestedChange{
 			}
 		},
 	},
+	{
+		Table: table.VoteTable,
+		Field: "WeightedVp",
+		Maker: func(id, before, after interface{}) *GenericChange {
+			cid := id.(*prototype.VoterId)
+			return &GenericChange{
+				Id: 	cid.PostId,
+				Before: before,
+				After: 	after,
+			}
+		},
+	},
+	{
+		Table: table.AccountTable,
+		Field: "StakeVestFromMe",
+		Maker: func(id, before, after interface{}) *GenericChange {
+			return &GenericChange{
+				Id: 	id.(*prototype.AccountName).GetValue(),
+				Before: before.(*prototype.Vest).GetValue(),
+				After: 	after.(*prototype.Vest).GetValue(),
+			}
+		},
+	},
+	{
+		Table: table.PostTable,
+		Field: "WeightedVp",
+		Maker: func(id, before, after interface{}) *GenericChange {
+			return &GenericChange{
+				Id: 	id.(*uint64),
+				Before: before.(string),
+				After: 	after.(string),
+			}
+		},
+	},
+	{
+		Table: table.ContractTable,
+		Field: "Balance",
+		Maker: func(id, before, after interface{}) *GenericChange {
+			cid := id.(*prototype.ContractId)
+			return &GenericChange{
+				Id: 	cid.Owner.Value + "@" + cid.Cname,
+				Before: before.(*prototype.Coin).GetValue(),
+				After: 	after.(*prototype.Coin).GetValue(),
+			}
+		},
+	},
+	//{
+	//	Table: table.BlockProducerTable,
+	//	Field: "BpVest",
+	//	Maker: func(id, before, after interface{}) *GenericChange {
+	//		return &GenericChange{
+	//			Id: 	id.(*prototype.AccountName).Value,
+	//			Before: before,
+	//			After: 	after,
+	//		}
+	//	},
+	//},
 }
