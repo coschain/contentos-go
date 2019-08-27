@@ -487,10 +487,10 @@ func (ev *VoteEvaluator) Apply() {
 	voteWrap := table.NewSoVoteWrap(ev.Database(), &voterId)
 	postWrap := table.NewSoPostWrap(ev.Database(), &op.Idx)
 
-	opAssert( postWrap.GetAuthor().Value != op.Voter.Value, "cant vote self")
-
 	postWrap.MustExist("post invalid")
 	voteWrap.MustNotExist("vote info exist")
+
+	opAssert( postWrap.GetAuthor().Value != op.Voter.Value, "cant vote self")
 
 	regeneratedPower := constants.FullVP * elapsedSeconds / constants.VoteRegenerateTime
 	var currentVp uint32

@@ -50,6 +50,13 @@ func (tester *BlockLogTester) doSomething() {
 	tester.a.NoError(tester.d.Account("actor0").SendTrx(ContractApply("actor0", "actor0", "token", "create", `["USDollar", "USD", 10000000000, 6]`, 123)))
 	tester.a.NoError(tester.d.ProduceBlocks(1))
 
+	tester.a.NoError(tester.d.Account("actor4").SendTrxAndProduceBlock(Reply(2, 1, "actor4",  "content:reply", []map[string]int{
+		{"actor7": 5000},
+		{"actor8": 5000},
+	})))
+	tester.a.NoError(tester.d.ProduceBlocks(1))
+	tester.a.NoError(tester.d.Account("actor6").SendTrxAndProduceBlock(Vote("actor6", 2)))
+
 	tester.a.NoError(tester.d.Account("actor0").SendTrx(ContractApply("actor0", "actor0", "token", "transfer", `["actor0", "actor1", 8888]`, 0)))
 	tester.a.NoError(tester.d.ProduceBlocks(1))
 

@@ -405,6 +405,9 @@ func (e *Economist) cashoutPosts(postsItems []*PostItem) {
 		wvp := postItem.wvp
 		postReward := ProportionAlgorithm(wvp, currentGlobalPostsWvps, new(big.Int).SetUint64(globalPostRewards.Value))
 		e.stateChange.PutCauseExtra("post", postItem.postId)
+		e.stateChange.PutCauseExtra("wvps", wvp.String())
+		e.stateChange.PutCauseExtra("pool", globalPostRewards.Value)
+		e.stateChange.PutCauseExtra("total_wvps", currentGlobalPostsWvps.String())
 		// result false: author banned
 		result := e.processRewardForAccount(postItem.beneficiary, postReward)
 		if !result {
@@ -451,6 +454,10 @@ func (e *Economist) cashoutReplies(repliesItems []*PostItem) {
 		wvp := replyItem.wvp
 		replyReward := ProportionAlgorithm(wvp, currentGlobalRepliesWvps, new(big.Int).SetUint64(globalRepliesRewards.Value))
 		e.stateChange.PutCauseExtra("post", replyItem.postId)
+		e.stateChange.PutCauseExtra("wvps", wvp.String())
+		e.stateChange.PutCauseExtra("pool", globalRepliesRewards.Value)
+		e.stateChange.PutCauseExtra("total_wvps", currentGlobalRepliesWvps.String())
+
 		result := e.processRewardForAccount(replyItem.beneficiary, replyReward)
 		if !result {
 			replyReward = new(big.Int).SetUint64(0)
@@ -494,6 +501,10 @@ func (e *Economist) cashoutDapps(dappsItems []*DappItem) {
 		wvp := dappItem.wvp
 		dappReward := ProportionAlgorithm(wvp, currentGlobalDappsWvps, new(big.Int).SetUint64(globalDappsRewards.Value))
 		e.stateChange.PutCauseExtra("post", dappItem.postId)
+		e.stateChange.PutCauseExtra("wvps", wvp.String())
+		e.stateChange.PutCauseExtra("pool", globalDappsRewards.Value)
+		e.stateChange.PutCauseExtra("total_wvps", currentGlobalDappsWvps.String())
+
 		result := e.processRewardForAccount(dappItem.beneficiary, dappReward)
 		if !result {
 			dappReward = new(big.Int).SetUint64(0)
@@ -537,6 +548,10 @@ func (e *Economist) cashoutVotes(votesItems []*VoteItem) {
 		wvp := voteItem.wvp
 		voteReward := ProportionAlgorithm(wvp, currentGlobalVotesWvp, new(big.Int).SetUint64(globalVotesRewards.Value))
 		e.stateChange.PutCauseExtra("post", voteItem.postId)
+		e.stateChange.PutCauseExtra("wvps", wvp.String())
+		e.stateChange.PutCauseExtra("pool", globalVotesRewards.Value)
+		e.stateChange.PutCauseExtra("total_wvps", currentGlobalVotesWvp.String())
+
 		result := e.processRewardForAccount(voteItem.beneficiary, voteReward)
 		if !result {
 			voteReward = new(big.Int).SetUint64(0)

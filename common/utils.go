@@ -8,6 +8,7 @@ import (
 	"io"
 	"os"
 	"runtime"
+	"strconv"
 	"unsafe"
 )
 
@@ -72,4 +73,9 @@ func HostByteOrder() binary.ByteOrder {
 func JsonNumber(jn json.Number) (r int64) {
 	r, _ = jn.Int64()
 	return
+}
+
+func JsonNumberUint64(jn json.Number) (r uint64) {
+	r, _ = strconv.ParseUint( jn.String(), 10, 64)
+	return r
 }
