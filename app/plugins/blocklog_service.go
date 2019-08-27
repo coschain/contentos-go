@@ -15,8 +15,6 @@ import (
 	"time"
 )
 
-var BlockLogTable = &iservices.BlockLogRecord{}
-
 type BlockLogService struct {
 	ctx *node.ServiceContext
 	config *service_configs.DatabaseConfig
@@ -53,28 +51,35 @@ func (s *BlockLogService) initDatabase() error {
 	} else {
 		s.db = db
 	}
-	if !s.db.HasTable(BlockLogTable) {
-		s.db.CreateTable(BlockLogTable)
-	}
 	return nil
 }
 
 func (s *BlockLogService) onBlockLog(blockLog *blocklog.BlockLog) {
-	s.db.Create(&iservices.BlockLogRecord{
+	rec := &iservices.BlockLogRecord{
 		BlockId:     blockLog.BlockId,
 		BlockHeight: blockLog.BlockNum,
 		BlockTime:   time.Unix(int64(blockLog.BlockTime), 0),
 		Final:       false,
 		JsonLog:     blockLog.ToJsonString(),
-	})
+	}
+	if !s.db.HasTable(rec) {
+		s.db.CreateTable(rec)
+	}
+	s.db.Create(rec)
 }
 
 func (s *BlockLogService) onLibChange(blocks []common.ISignedBlock) {
 	if count := len(blocks); count > 0 {
-		blockIds := make([]string, count)
-		for i , block := range blocks {
-			blockIds[i] = fmt.Sprintf("%x", block.Id().Data)
+		updates := make(map[string][]string)
+		for _ , block := range blocks {
+			blockId := block.Id()
+			tableName := iservices.BlockLogTableNameForBlockHeight(blockId.BlockNum())
+			updates[tableName] = append(updates[tableName], fmt.Sprintf("%x", block.Id().Data))
 		}
-		s.db.Table(iservices.BlockLogDBTableName).Where("block_id IN (?)", blockIds).Update("final", true)
+		tx := s.db.Begin()
+		for tableName, blockIds := range updates {
+			tx.Table(tableName).Where("block_id IN (?)", blockIds).Update("final", true)
+		}
+		tx.Commit()
 	}
 }
