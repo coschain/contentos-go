@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"errors"
 	"fmt"
-	"math/rand"
 	"net"
 	"time"
 
@@ -190,23 +189,23 @@ func (this *Link) Tx(msg types.Message, magic uint32) error {
 	return nil
 }
 
-func sleepRandomTime() {
-	r := rand.New(rand.NewSource(time.Now().UnixNano()))
-	delay := 500 + r.Intn(501)
-	time.Sleep( time.Duration(delay) * time.Millisecond )
-}
+//func sleepRandomTime() {
+//	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+//	delay := 500 + r.Intn(501)
+//	time.Sleep( time.Duration(delay) * time.Millisecond )
+//}
 
 //needSendMsg check whether the msg is needed to push to channel
-func (this *Link) needSendMsg(msg types.Message) bool {
-	if msg.CmdType() != common.REQ_ID_TYPE {
-		return true
-	}
-	now := time.Now().Unix()
-
-	if now - this.reqIdRecord < common.REQ_INTERVAL {
-		return false
-	}
-
-	this.reqIdRecord = now
-	return true
-}
+//func (this *Link) needSendMsg(msg types.Message) bool {
+//	if msg.CmdType() != common.REQ_ID_TYPE {
+//		return true
+//	}
+//	now := time.Now().Unix()
+//
+//	if now - this.reqIdRecord < common.REQ_INTERVAL {
+//		return false
+//	}
+//
+//	this.reqIdRecord = now
+//	return true
+//}
