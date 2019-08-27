@@ -28,30 +28,30 @@ func makeFixKeyMap() map[string]string {
 	return fixKeys
 }
 
-func TestFixGenKey(t *testing.T) {
-	fixKeys := makeFixKeyMap()
-	for k, v := range fixKeys {
-		res1, err := FixBytesToPrivateKey([]byte(k))
-
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		if res1.ToWIF() != v {
-			t.Fatal("key Error")
-		}
-
-		res2, err := FixBytesToPrivateKey([]byte(k))
-
-		if err != nil {
-			t.Fatal(err)
-		}
-
-		if !res1.Equal(res2) {
-			t.Fatal("key Error")
-		}
-	}
-}
+//func TestFixGenKey(t *testing.T) {
+//	fixKeys := makeFixKeyMap()
+//	for k, v := range fixKeys {
+//		res1, err := FixBytesToPrivateKey([]byte(k))
+//
+//		if err != nil {
+//			t.Fatal(err)
+//		}
+//
+//		if res1.ToWIF() != v {
+//			t.Fatal("key Error")
+//		}
+//
+//		res2, err := FixBytesToPrivateKey([]byte(k))
+//
+//		if err != nil {
+//			t.Fatal(err)
+//		}
+//
+//		if !res1.Equal(res2) {
+//			t.Fatal("key Error")
+//		}
+//	}
+//}
 
 // test for private keys that start with 0x00's
 func TestVerifySig_00(t *testing.T) {

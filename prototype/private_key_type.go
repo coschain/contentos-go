@@ -6,8 +6,8 @@ import (
 	"crypto/sha256"
 	"errors"
 	"fmt"
-	"github.com/coschain/contentos-go/common/crypto"
-	"github.com/coschain/contentos-go/common/crypto/secp256k1"
+	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/crypto/secp256k1"
 	"github.com/itchyny/base58-go"
 	"math/big"
 )
@@ -54,13 +54,10 @@ func PrivateKeyFromWIF(encoded string) (*PrivateKeyType, error) {
 // If used improperly, the private key will be exhausted
 func FixBytesToPrivateKey(buff []byte) (*PrivateKeyType, error) {
 
-	cBuff1 := sha256.Sum256(buff)
+	cBuff := sha256.Sum256(buff)
 
-	cBuff := make([]byte, 0)
-	cBuff = append(cBuff, cBuff1[:]...)
-	cBuff = append(cBuff, cBuff1[:]...)
 
-	sigRawKey, err := crypto.GenerateKeyFromBytes(cBuff)
+	sigRawKey, err := crypto.ToECDSA(cBuff[:])
 
 	if err != nil {
 		return nil, err

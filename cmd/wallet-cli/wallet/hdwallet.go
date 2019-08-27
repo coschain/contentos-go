@@ -3,7 +3,7 @@ package wallet
 import (
 	"errors"
 	"fmt"
-	"github.com/coschain/contentos-go/common/crypto"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/tyler-smith/go-bip32"
 	"github.com/tyler-smith/go-bip39"

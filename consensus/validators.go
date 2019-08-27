@@ -3,8 +3,8 @@ package consensus
 import (
 	"bytes"
 
-	"github.com/coschain/contentos-go/common/crypto"
-	"github.com/coschain/contentos-go/common/crypto/secp256k1"
+	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ethereum/go-ethereum/crypto/secp256k1"
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/coschain/gobft/message"
 )

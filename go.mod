@@ -14,6 +14,7 @@ require (
 	github.com/coschain/cobra v0.0.0-20181106130408-77bf516f51a1
 	github.com/coschain/gobft v0.0.0-20190729103505-6b686050ca4d
 	github.com/deckarep/golang-set v1.7.1
+	github.com/ethereum/go-ethereum v1.9.2
 	github.com/fastly/go-utils v0.0.0-20180712184237-d95a45783239 // indirect
 	github.com/gin-gonic/gin v1.4.0
 	github.com/gizak/termui/v3 v3.1.0

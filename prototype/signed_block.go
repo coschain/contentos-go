@@ -5,10 +5,10 @@ import (
 	"crypto/sha256"
 	"encoding/binary"
 	"errors"
-	"github.com/coschain/contentos-go/common/crypto/secp256k1"
+	"github.com/ethereum/go-ethereum/crypto/secp256k1"
 
 	"github.com/coschain/contentos-go/common"
-	"github.com/coschain/contentos-go/common/crypto"
+	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/gogo/protobuf/proto"
 )
 
