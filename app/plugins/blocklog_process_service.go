@@ -16,13 +16,18 @@ import (
 type IBlockLogProcessor interface {
 	Prepare(db *gorm.DB, blockLog *blocklog.BlockLog) error
 	ProcessChange(db *gorm.DB, change *blocklog.StateChange, blockLog *blocklog.BlockLog, changeIdx, opIdx, trxIdx int) error
+	ProcessOperation(db *gorm.DB, blockLog *blocklog.BlockLog, opIdx, trxIdx int) error
 	Finalize(db *gorm.DB, blockLog *blocklog.BlockLog) error
 }
 
-type BlockLogProcessProgress struct {
+type BlockLogProcess struct {
 	ID 				uint64			`gorm:"primary_key;auto_increment"`
 	BlockHeight 	uint64
 	FinishAt 		time.Time
+}
+
+func (BlockLogProcess) TableName() string {
+	return "blocklog_process"
 }
 
 type BlockLogProcessService struct {
@@ -47,6 +52,7 @@ func (s *BlockLogProcessService) Start(node *node.Node) error  {
 	if err := s.initDatabase(); err != nil {
 		return fmt.Errorf("invalid database: %s", err.Error())
 	}
+	s.addProcessors()
 	s.scheduleNextJob()
 	return nil
 }
@@ -60,6 +66,14 @@ func (s *BlockLogProcessService) Stop() error  {
 	return nil
 }
 
+func (s *BlockLogProcessService) addProcessors() {
+	s.processors = append(s.processors,
+		NewAccountProcessor(),
+		NewStakeProcessor(),
+		NewContractProcessor(),
+	)
+}
+
 func (s *BlockLogProcessService) initDatabase() error {
 	connStr := fmt.Sprintf("%s:%s@/%s?charset=utf8&parseTime=True&loc=Local", s.config.User, s.config.Password, s.config.Db)
 	if db, err := gorm.Open("mysql", connStr); err != nil {
@@ -67,7 +81,7 @@ func (s *BlockLogProcessService) initDatabase() error {
 	} else {
 		s.db = db
 	}
-	progress := &BlockLogProcessProgress{
+	progress := &BlockLogProcess{
 		BlockHeight: 0,
 		FinishAt: time.Unix(1, 0),
 	}
@@ -105,7 +119,7 @@ func (s *BlockLogProcessService) work() {
 	)
 	atomic.StoreInt32(&s.working, 1)
 
-	progress := &BlockLogProcessProgress{}
+	progress := &BlockLogProcess{}
 	s.db.First(progress)
 
 	minBlockNum, maxBlockNum := progress.BlockHeight + 1, progress.BlockHeight + maxJobSize
@@ -163,6 +177,12 @@ func (s *BlockLogProcessService) processLog(db *gorm.DB, blockLog *blocklog.Bloc
 			if !ok {
 				break
 			}
+			userBreak, err = s.callProcessors(func(processor IBlockLogProcessor) error {
+				return processor.ProcessOperation(db, blockLog, opIdx, trxIdx)
+			})
+			if ok = !userBreak && err == nil; !ok {
+				break
+			}
 			for changeIdx, change := range opLog.Changes {
 				userBreak, err = s.callProcessors(func(processor IBlockLogProcessor) error {
 					return processor.ProcessChange(db, change, blockLog, changeIdx, opIdx, trxIdx)
@@ -170,6 +190,16 @@ func (s *BlockLogProcessService) processLog(db *gorm.DB, blockLog *blocklog.Bloc
 				if ok = !userBreak && err == nil; !ok {
 					break
 				}
+			}
+		}
+	}
+	if ok {
+		for changeIdx, change := range blockLog.Changes {
+			userBreak, err = s.callProcessors(func(processor IBlockLogProcessor) error {
+				return processor.ProcessChange(db, change, blockLog, changeIdx, -1, -1)
+			})
+			if ok = !userBreak && err == nil; !ok {
+				break
 			}
 		}
 	}

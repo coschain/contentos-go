@@ -2,6 +2,7 @@ package common
 
 import (
 	"encoding/binary"
+	"encoding/json"
 	"fmt"
 	"github.com/coschain/contentos-go/common/constants"
 	"io"
@@ -66,4 +67,9 @@ func HostByteOrder() binary.ByteOrder {
 	} else {
 		return binary.BigEndian
 	}
+}
+
+func JsonNumber(jn json.Number) (r int64) {
+	r, _ = jn.Int64()
+	return
 }
