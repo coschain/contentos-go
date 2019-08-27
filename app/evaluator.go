@@ -1209,7 +1209,7 @@ func (ev *AcquireTicketEvaluator) Apply() {
 	// record
 	ticketKey := &prototype.GiftTicketKeyType{
 		Type: 1,
-		From: "contentos",
+		From: constants.COSSysAccount,
 		To: op.Account.Value,
 		CreateBlock: ev.GlobalProp().GetProps().HeadBlockNumber+1,
 	}
@@ -1254,7 +1254,7 @@ func (ev *VoteByTicketEvaluator) Apply() {
 	// free ticket ?
 	freeTicketWrap := table.NewSoGiftTicketWrap(ev.Database(), &prototype.GiftTicketKeyType{
 		Type: 0,
-		From: "contentos",
+		From: constants.COSSysAccount,
 		To: op.Account.Value,
 		CreateBlock: ev.GlobalProp().GetProps().GetCurrentEpochStartBlock(),
 	})

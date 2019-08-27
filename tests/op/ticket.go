@@ -48,7 +48,7 @@ func (tester *TicketTester) normal(t *testing.T, d *Dandelion) {
 	a.Equal(props.ChargedTicketsNum, uint64(1))
 	ticketKey := &prototype.GiftTicketKeyType{
 		Type: 1,
-		From: "contentos",
+		From: constants.COSSysAccount,
 		To: tester.acc0.Name,
 		CreateBlock: props.HeadBlockNumber,
 	}
@@ -133,7 +133,7 @@ func (tester *TicketTester) freeTicket(t *testing.T, d *Dandelion) {
 	props := d.GlobalProps()
 	freeTicketWrap := table.NewSoGiftTicketWrap(tester.acc1.D.Database(), &prototype.GiftTicketKeyType{
 		Type: 0,
-		From: "contentos",
+		From: constants.COSSysAccount,
 		To: tester.acc1.Name,
 		CreateBlock: props.GetCurrentEpochStartBlock(),
 	})

@@ -128,7 +128,7 @@ func (tester *TicketBpBonusTester) newBlockProducers() {
 func (tester *TicketBpBonusTester) hasFreeTicket(name string) bool {
 	return tester.d.GiftTicket(&prototype.GiftTicketKeyType{
 		Type: 0,
-		From: "contentos",
+		From: constants.COSSysAccount,
 		To: name,
 		CreateBlock: tester.d.GlobalProps().GetCurrentEpochStartBlock(),
 	}).CheckExist()

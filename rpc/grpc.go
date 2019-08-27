@@ -895,7 +895,7 @@ func (as *APIService) getFreeTicketCount(name *prototype.AccountName) uint32 {
 	props := wrapper.GetProps()
 	freeTicketWrap := table.NewSoGiftTicketWrap(as.db, &prototype.GiftTicketKeyType{
 		Type: 0,
-		From: "contentos",
+		From: constants.COSSysAccount,
 		To: name.Value,
 		CreateBlock: props.GetCurrentEpochStartBlock(),
 	})
