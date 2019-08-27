@@ -133,8 +133,6 @@ func RegisterService(app *node.Node, cfg node.Config) {
 	_ = app.Register(iservices.ConsensusServerName, func(ctx *node.ServiceContext) (node.Service, error) {
 		var s node.Service
 		switch ctx.Config().Consensus.Type {
-		case "DPoS":
-			s = consensus.NewSABFT(ctx, nil)
 		case "SABFT":
 			s = consensus.NewSABFT(ctx, nil)
 		default:
