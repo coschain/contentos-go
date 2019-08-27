@@ -68,9 +68,9 @@ func NewServer(ctx *node.ServiceContext, lg *logrus.Logger) (*P2PServer, error) 
 }
 
 //GetConnectionCnt return the established connect count
-func (this *P2PServer) GetConnectionCnt() uint32 {
-	return this.Network.GetConnectionCnt()
-}
+//func (this *P2PServer) GetConnectionCnt() uint32 {
+//	return this.Network.GetConnectionCnt()
+//}
 
 //Start create all services
 func (this *P2PServer) Start(node *node.Node) error {
@@ -99,25 +99,21 @@ func (this *P2PServer) Stop() error {
 	return nil
 }
 
-// GetNetWork returns the low level netserver
-func (this *P2PServer) GetNetWork() p2p.P2P {
-	return this.Network
-}
 
 //GetPort return two network port
-func (this *P2PServer) GetPort() (uint32, uint32) {
-	return this.Network.GetSyncPort(), this.Network.GetConsPort()
-}
+//func (this *P2PServer) GetPort() (uint32, uint32) {
+//	return this.Network.GetSyncPort(), this.Network.GetConsPort()
+//}
 
 //GetVersion return self version
-func (this *P2PServer) GetVersion() uint32 {
-	return this.Network.GetVersion()
-}
+//func (this *P2PServer) GetVersion() uint32 {
+//	return this.Network.GetVersion()
+//}
 
 //GetNeighborAddrs return all nbr`s address
-func (this *P2PServer) GetNeighborAddrs() []*msgtypes.PeerAddr {
-	return this.Network.GetNeighborAddrs()
-}
+//func (this *P2PServer) GetNeighborAddrs() []*msgtypes.PeerAddr {
+//	return this.Network.GetNeighborAddrs()
+//}
 
 //Send tranfer buffer to peer
 func (this *P2PServer) Send(p *peer.Peer, msg msgtypes.Message,
@@ -131,19 +127,14 @@ func (this *P2PServer) Send(p *peer.Peer, msg msgtypes.Message,
 }
 
 // GetID returns local node id
-func (this *P2PServer) GetID() uint64 {
-	return this.Network.GetID()
-}
-
-// Todo: remove it if no use
-func (this *P2PServer) GetConnectionState() uint32 {
-	return common.INIT
-}
+//func (this *P2PServer) GetID() uint64 {
+//	return this.Network.GetID()
+//}
 
 //GetTime return lastet contact time
-func (this *P2PServer) GetTime() int64 {
-	return this.Network.GetTime()
-}
+//func (this *P2PServer) GetTime() int64 {
+//	return this.Network.GetTime()
+//}
 
 //connectSeeds connect the seeds in seedlist and call for nbr list
 func (this *P2PServer) connectSeeds() {
@@ -199,9 +190,9 @@ func (this *P2PServer) connectSeeds() {
 }
 
 //getNode returns the peer with the id
-func (this *P2PServer) getNode(id uint64) *peer.Peer {
-	return this.Network.GetPeer(id)
-}
+//func (this *P2PServer) getNode(id uint64) *peer.Peer {
+//	return this.Network.GetPeer(id)
+//}
 
 //retryInactivePeer try to connect peer in INACTIVITY state
 func (this *P2PServer) retryInactivePeer() {
