@@ -37,9 +37,11 @@ func (tester *BlockLogTester) Test(t *testing.T, d *Dandelion) {
 func (tester *BlockLogTester) doSomething() {
 	tester.a.NoError(tester.d.Account("actor0").SendTrx(Transfer("actor0", "actor1", math.MaxUint64, "")))
 
-	tester.a.NoError(tester.d.Account("actor0").SendTrx(Transfer("actor0", "actor1", 1, "")))
-	tester.a.NoError(tester.d.Account("actor2").SendTrx(Transfer("actor2", "actor3", 2, "")))
-	tester.a.NoError(tester.d.Account("actor4").SendTrx(Transfer("actor4", "actor5", 3, "")))
+	tester.a.NoError(tester.d.Account("actor0").SendTrx(BpVote("actor0", "actor0", true)))
+
+	tester.a.NoError(tester.d.Account("actor0").SendTrx(Transfer("actor0", "actor1", 1, "xxx")))
+	tester.a.NoError(tester.d.Account("actor2").SendTrx(Transfer("actor2", "actor3", 2, "hehe**")))
+	tester.a.NoError(tester.d.Account("actor4").SendTrx(Transfer("actor4", "actor5", 3, "abc")))
 	tester.a.NoError(tester.d.Account("actor3").SendTrx(Post(1, "actor3", "title", "content", []string{"test"}, []map[string]int{
 		{"actor7": 5000},
 		{"actor8": 5000},
@@ -55,6 +57,8 @@ func (tester *BlockLogTester) doSomething() {
 		{"actor8": 5000},
 	})))
 	tester.a.NoError(tester.d.ProduceBlocks(1))
+	tester.a.NoError(tester.d.Account("actor0").SendTrx(BpVote("actor0", "actor0", false)))
+
 	tester.a.NoError(tester.d.Account("actor6").SendTrxAndProduceBlock(Vote("actor6", 2)))
 
 	tester.a.NoError(tester.d.Account("actor0").SendTrx(ContractApply("actor0", "actor0", "token", "transfer", `["actor0", "actor1", 8888]`, 0)))
