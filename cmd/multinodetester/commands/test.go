@@ -194,6 +194,7 @@ func resetSvc(node *node.Node, comp *test.Components) {
 	}
 	p2p := p.(iservices.IP2P)
 	p2p.SetMockLatency(latency)
+	css.EnableMockSignal()
 	comp.ConsensusSvc = css
 	comp.P2pSvc = p2p
 	comp.IsRunning = true

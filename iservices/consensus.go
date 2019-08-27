@@ -81,4 +81,7 @@ type IConsensus interface {
 	IsOnMainBranch(id common.BlockID) (bool, error)
 
 	SetHook(key string, f func(args ...interface{}))
+
+	// for test only
+	EnableMockSignal()
 }

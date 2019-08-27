@@ -3,6 +3,7 @@ package consensus
 import (
 	"github.com/asaskevich/EventBus"
 	"io/ioutil"
+	"math/rand"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -68,6 +69,8 @@ type SABFT struct {
 	deadlock.RWMutex
 
 	hook map[string]func(args ...interface{})
+
+	mockSignal bool
 }
 
 func NewSABFT(ctx *node.ServiceContext, lg *logrus.Logger) *SABFT {
@@ -1565,6 +1568,14 @@ func (sabft *SABFT) CheckSyncFinished() bool {
 }
 
 func (sabft *SABFT) IsOnMainBranch(id common.BlockID) (bool, error) {
+	if sabft.mockSignal {
+		r := rand.New(rand.NewSource(time.Now().UnixNano()))
+		idx := r.Intn(6)
+		if idx & 1 == 1 {
+			return false, nil
+		}
+	}
+
 	blockNum := id.BlockNum()
 
 	lastCommittedNum := sabft.ForkDB.LastCommitted().BlockNum()
@@ -1594,4 +1605,8 @@ func (sabft *SABFT) IsOnMainBranch(id common.BlockID) (bool, error) {
 
 func (sabft *SABFT) SetHook(key string, f func(args ...interface{})) {
 	sabft.hook[key] = f
+}
+
+func (sabft *SABFT) EnableMockSignal() {
+	sabft.mockSignal = true
 }
