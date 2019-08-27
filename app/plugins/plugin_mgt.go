@@ -52,6 +52,10 @@ func (p *PluginMgt) Register(app *node.Node, cfg *node.Config) {
 			_ = app.Register(iservices.BlockLogServiceName, func(ctx *node.ServiceContext) (service node.Service, e error) {
 				return NewBlockLogService(ctx, cfg.Database, app.Log)
 			})
+		case iservices.BlockLogProcessServiceName:
+			_ = app.Register(iservices.BlockLogProcessServiceName, func(ctx *node.ServiceContext) (service node.Service, e error) {
+				return NewBlockLogProcessService(ctx, cfg.Database, app.Log)
+			})
 		}
 	}
 }
