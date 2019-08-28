@@ -85,18 +85,19 @@ func startNode(cmd *cobra.Command, args []string) {
 	// _ is cfg as below process has't used
 
 	_, _ = cmd, args
+	app, cfg := makeNode()
+
 	replaying := len(args) > 0 && args[0] == "replay"
 	if replaying {
 		//If replay, remove level db first then  sync blocks from block log and snapshot to db
-		err := os.RemoveAll(filepath.Join(config.DefaultDataDir(), ClientIdentifier, "db"))
+		err := os.RemoveAll(cfg.ResolvePath("db"))
 		if err != nil {
 			panic("remove db fail when node replay")
 		}
-	}
-	app, cfg := makeNode()
-	if replaying && len(pluginList) > 0 {
-		if err := plugins.RemoveSQLTables(cfg.Database); err != nil {
-			panic(fmt.Sprintf("remove sql tables fail when node replay: %s", err.Error()))
+		if len(pluginList) > 0 {
+			if err := plugins.RemoveSQLTables(cfg.Database); err != nil {
+				panic(fmt.Sprintf("remove sql tables fail when node replay: %s", err.Error()))
+			}
 		}
 	}
 
@@ -171,7 +172,4 @@ func RegisterService(app *node.Node, cfg node.Config) {
 	_ = app.Register(AWSHealthCheck.HealthCheckName, func(ctx *node.ServiceContext) (node.Service, error) {
 		return AWSHealthCheck.NewAWSHealthCheck(ctx, app.Log)
 	})
-
-	//plugins.NewPluginMgt(pluginList).Register(app, &cfg)
-
 }
