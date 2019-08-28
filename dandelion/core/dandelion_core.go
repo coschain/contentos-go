@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"github.com/asaskevich/EventBus"
 	"github.com/coschain/contentos-go/app"
+	"github.com/coschain/contentos-go/app/plugins"
 	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/common/eventloop"
@@ -38,7 +39,7 @@ type DandelionCore struct {
 	beforePreshuffle, afterPreshuffle map[string]func()
 }
 
-func NewDandelionCore(logger *logrus.Logger) *DandelionCore {
+func NewDandelionCore(logger *logrus.Logger, enablePlugins bool, sqlPlugins []string) *DandelionCore {
 	if logger == nil {
 		logger = logrus.New()
 		logger.SetOutput(ioutil.Discard)
@@ -56,12 +57,24 @@ func NewDandelionCore(logger *logrus.Logger) *DandelionCore {
 	n.MainLoop = eventloop.NewEventLoop()
 	n.EvBus = EventBus.New()
 
+	pluginMgr := plugins.NewPluginMgt(sqlPlugins)
+
 	_ = n.Register(iservices.DbServerName, func(ctx *node.ServiceContext) (node.Service, error) {
 		return storage.NewGuardedDatabaseService(ctx, "./db/")
 	})
+
+	if enablePlugins {
+		pluginMgr.RegisterSQLServices(n, &cfg)
+	}
+
 	_ = n.Register(iservices.TxPoolServerName, func(ctx *node.ServiceContext) (node.Service, error) {
 		return app.NewController(ctx, n.Log)
 	})
+
+	if enablePlugins {
+		pluginMgr.RegisterTrxPoolDependents(n, &cfg)
+	}
+
 	_ = n.Register(DummyConsensusName, func(ctx *node.ServiceContext) (node.Service, error) {
 		return NewDummyConsensus(ctx)
 	})

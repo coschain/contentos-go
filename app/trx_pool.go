@@ -650,7 +650,7 @@ func (c *TrxPool) initGenesis() {
 				SignedHeader: &prototype.SignedBlockHeader{
 					Header: &prototype.BlockHeader{
 						Previous: &prototype.Sha256{ Hash: bytes.Repeat([]byte{0}, 32)},
-						Timestamp: prototype.NewTimePointSec(1),
+						Timestamp: prototype.NewTimePointSec(constants.GenesisTime),
 					},
 				},
 			}

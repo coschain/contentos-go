@@ -13,7 +13,7 @@ func NewPluginMgt(list []string) *PluginMgt {
 	return &PluginMgt{list: list}
 }
 
-func (p *PluginMgt) Register(app *node.Node, cfg *node.Config) {
+func (p *PluginMgt) RegisterTrxPoolDependents(app *node.Node, cfg *node.Config) {
 	_ = app.Register(FollowServiceName, func(ctx *node.ServiceContext) (node.Service, error) {
 		return NewFollowService(ctx, app.Log)
 	})
@@ -29,7 +29,9 @@ func (p *PluginMgt) Register(app *node.Node, cfg *node.Config) {
 	_ = app.Register(RewardServiceName, func(ctx *node.ServiceContext) (service node.Service, e error) {
 		return NewRewardService(ctx)
 	})
+}
 
+func (p *PluginMgt) RegisterSQLServices(app *node.Node, cfg *node.Config) {
 	for _, l := range p.list  {
 		switch l {
 		case TrxMysqlServiceName:

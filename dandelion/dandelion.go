@@ -3,7 +3,6 @@ package dandelion
 import (
 	"errors"
 	"fmt"
-	"github.com/coschain/contentos-go/app/plugins"
 	"github.com/coschain/contentos-go/app/table"
 	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/dandelion/core"
@@ -16,8 +15,6 @@ import (
 
 type Dandelion struct {
 	*core.DandelionCore
-	enablePlugins bool
-	sqlPlugins []string
 }
 
 func NewDandelion(logger *logrus.Logger) *Dandelion {
@@ -26,12 +23,7 @@ func NewDandelion(logger *logrus.Logger) *Dandelion {
 
 func NewDandelionWithPlugins(logger *logrus.Logger, enablePlugins bool, sqlPlugins []string) *Dandelion {
 	d := &Dandelion{
-		DandelionCore: core.NewDandelionCore(logger),
-		enablePlugins: enablePlugins,
-		sqlPlugins: sqlPlugins,
-	}
-	if d.enablePlugins {
-		plugins.NewPluginMgt(d.sqlPlugins).Register(d.Node(), d.NodeConfig())
+		DandelionCore: core.NewDandelionCore(logger, enablePlugins, sqlPlugins),
 	}
 	return d
 }

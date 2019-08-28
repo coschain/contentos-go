@@ -55,11 +55,12 @@ func (s *BlockLogService) initDatabase() error {
 }
 
 func (s *BlockLogService) onBlockLog(blockLog *blocklog.BlockLog) {
+	isGenesis := blockLog.BlockNum == 0
 	rec := &iservices.BlockLogRecord{
 		BlockId:     blockLog.BlockId,
 		BlockHeight: blockLog.BlockNum,
 		BlockTime:   time.Unix(int64(blockLog.BlockTime), 0),
-		Final:       false,
+		Final:       isGenesis,
 		JsonLog:     blockLog.ToJsonString(),
 	}
 	if !s.db.HasTable(rec) {

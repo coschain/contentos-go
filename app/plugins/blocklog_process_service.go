@@ -3,6 +3,7 @@ package plugins
 import (
 	"fmt"
 	"github.com/coschain/contentos-go/app/blocklog"
+	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/iservices/service-configs"
 	"github.com/coschain/contentos-go/node"
@@ -86,7 +87,7 @@ func (s *BlockLogProcessService) initDatabase() error {
 	}
 	progress := &BlockLogProcess{
 		BlockHeight: 0,
-		FinishAt: time.Unix(1, 0),
+		FinishAt: time.Unix(constants.GenesisTime, 0),
 	}
 	if !s.db.HasTable(progress) {
 		if err := s.db.CreateTable(progress).Error; err != nil {

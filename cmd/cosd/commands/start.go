@@ -135,15 +135,19 @@ func startNode(cmd *cobra.Command, args []string) {
 
 
 func RegisterService(app *node.Node, cfg node.Config) {
+	pluginMgr := plugins.NewPluginMgt(pluginList)
+
 	_ = app.Register(iservices.DbServerName, func(ctx *node.ServiceContext) (node.Service, error) {
 		return storage.NewGuardedDatabaseService(ctx, "./db/")
 	})
+
+	pluginMgr.RegisterSQLServices(app, &cfg)
 
 	_ = app.Register(iservices.TxPoolServerName, func(ctx *node.ServiceContext) (node.Service, error) {
 		return ctrl.NewController(ctx, app.Log)
 	})
 
-	plugins.NewPluginMgt(pluginList).Register(app, &cfg)
+	pluginMgr.RegisterTrxPoolDependents(app, &cfg)
 
 	_ = app.Register(iservices.ConsensusServerName, func(ctx *node.ServiceContext) (node.Service, error) {
 		return consensus.NewSABFT(ctx, app.Log), nil

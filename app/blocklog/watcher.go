@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/coschain/contentos-go/app/table"
+	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/prototype"
 	"strings"
@@ -104,6 +105,13 @@ func (w *Watcher) makeLog(block *prototype.SignedBlock) {
 	w.currBlock.BlockId = fmt.Sprintf("%x", blockId.Data)
 	w.currBlock.BlockNum = blockId.BlockNum()
 	w.currBlock.BlockTime = block.GetSignedHeader().GetHeader().GetTimestamp().GetUtcSeconds()
+
+	// special process for genesis pseudo-block
+	if w.currBlock.BlockTime == constants.GenesisTime && w.currBlock.BlockNum == 1 {
+		w.currBlock.BlockId = strings.Repeat("0", len(w.currBlock.BlockId))
+		w.currBlock.BlockNum = 0
+	}
+
 	trxId2idx := make(map[string]int)
 
 	trxs := block.GetTransactions()

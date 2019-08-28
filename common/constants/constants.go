@@ -27,7 +27,7 @@ const (
 	NoticeLibChange    = "LibChange"
 	NoticeBlockLog     = "blockLog"
 
-	GenesisTime = 0
+	GenesisTime = 1
 
 	MaxTransactionSize = 1024 * 256
 
