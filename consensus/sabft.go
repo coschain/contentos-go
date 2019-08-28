@@ -204,8 +204,10 @@ func (sabft *SABFT) makeDynasty(seq uint64, prods []string,
 }
 
 func (sabft *SABFT) checkBFTRoutine() {
+	sabft.log.Debug("current dyn ", sabft.dynasties.Front().String())
 	if sabft.readyToProduce  && sabft.isValidatorName(sabft.Name) {
 		if atomic.LoadUint32(&sabft.bftStarted) == 0 {
+			sabft.log.Infof("[SABFT] gobft try to start.....")
 			sabft.bft.Start()
 			sabft.log.Infof("[SABFT] gobft started at height %d", sabft.appState.LastHeight)
 			atomic.StoreUint32(&sabft.bftStarted, 1)
@@ -310,14 +312,14 @@ func (sabft *SABFT) Start(node *node.Node) error {
 	}
 
 	sabft.restoreProducers()
+	// dynasties have to be restored before block sync
+	if sabft.dynasties.Empty() {
+		sabft.restoreDynasty()
+	}
 
 	err = sabft.handleBlockSync()
 	if err != nil {
 		return err
-	}
-
-	if sabft.dynasties.Empty() {
-		sabft.restoreDynasty()
 	}
 
 	k := sabft.ForkDB.LastCommitted().BlockNum()
@@ -992,6 +994,7 @@ func (sabft *SABFT) updateAppState(commit *message.Commit) {
 	if sabft.appState.LastHeight+1 == commit.FirstPrecommit().Height {
 		sabft.appState.LastHeight++
 		sabft.appState.LastProposedData = commit.ProposedData
+		sabft.log.Debugf("[SABFT] gobft LastHeight %d", sabft.appState.LastHeight)
 	}
 }
 
@@ -1083,6 +1086,7 @@ func (sabft *SABFT) getValidator(key message.PubKey) custom.IPubValidator {
 			return valset[i]
 		}
 	}
+	sabft.log.Errorf("cannot get validator for %v, current dyn %s", key, sabft.dynasties.Front().String())
 	return nil
 }
 

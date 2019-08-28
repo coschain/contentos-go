@@ -34,7 +34,14 @@ func (d *Dynasty) GetValidatorByPubKey(k message.PubKey) *publicValidator {
 }
 
 func (d *Dynasty) String() string {
-	return fmt.Sprintf("\nSEQ: %d\n, Validators: %v\n", d.Seq, d.validators)
+	str := fmt.Sprintf("\nSEQ: %d\n, Validators:\n", d.Seq)
+	for i := range d.validators {
+		str += d.validators[i].accountName
+		str += ": "
+		str += string(d.validators[i].bftPubKey)
+		str += "\n"
+	}
+	return str
 }
 
 type Dynasties struct {
