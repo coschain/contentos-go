@@ -176,9 +176,20 @@ func (tester *BpTest) regist(t *testing.T, d *Dandelion) {
 	newBpName := "registbp"
 	makeBp(newBpName,t,d)
 
+
 	// should appear in bp
 	witWrap := d.BlockProducer(newBpName)
 	a.True(witWrap.CheckExist())
+
+	// ensure shuffle
+	d.ProduceBlocks(constants.BlockProdRepetition)
+
+	a.Equal( d.GlobalProps().CurrentBlockProducer.Value, newBpName )
+	genBlockCount := witWrap.GetGenBlockCount()
+	d.ProduceBlocks(1)
+	a.Equal( genBlockCount + 1, witWrap.GetGenBlockCount() )
+	d.ProduceBlocks(9)
+	a.Equal( genBlockCount + 10, witWrap.GetGenBlockCount() )
 }
 
 func (tester *BpTest) registInvalidParam(t *testing.T, d *Dandelion) {
