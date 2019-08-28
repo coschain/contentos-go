@@ -12,3 +12,4 @@ uint64                         ,epoch_duration          ,0   ,0     ,0   ,0     
 prototype.coin                 ,per_ticket_price        ,0   ,0     ,0   ,0          ,
 uint64                         ,per_ticket_weight       ,0   ,0     ,0   ,0          ,
 uint64                         ,voter_count             ,0   ,0     ,0   ,0          ,
+uint64                         ,gen_block_count         ,0   ,0     ,0   ,0          ,

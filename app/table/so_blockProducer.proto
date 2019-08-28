@@ -22,6 +22,7 @@ message so_blockProducer {
     prototype.coin                    per_ticket_price             =      11;
     uint64                            per_ticket_weight            =      12;
     uint64                            voter_count                  =      13;
+    uint64                            gen_block_count              =      14;
       
 }
 

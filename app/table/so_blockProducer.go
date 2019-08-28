@@ -285,6 +285,16 @@ func (s *SoBlockProducerWrap) SetEpochDuration(p uint64, errArgs ...interface{})
 	return s
 }
 
+func (s *SoBlockProducerWrap) SetGenBlockCount(p uint64, errArgs ...interface{}) *SoBlockProducerWrap {
+	err := s.modify(func(r *SoBlockProducer) {
+		r.GenBlockCount = p
+	})
+	if err != nil {
+		panic(bindErrorInfo(fmt.Sprintf("SoBlockProducerWrap.SetGenBlockCount( %v ) failed: %s", p, err.Error()), errArgs...))
+	}
+	return s
+}
+
 func (s *SoBlockProducerWrap) SetPerTicketPrice(p *prototype.Coin, errArgs ...interface{}) *SoBlockProducerWrap {
 	err := s.modify(func(r *SoBlockProducer) {
 		r.PerTicketPrice = p
@@ -402,6 +412,11 @@ func (s *SoBlockProducerWrap) getModifiedFields(oriTable *SoBlockProducer, curTa
 	if !reflect.DeepEqual(oriTable.EpochDuration, curTable.EpochDuration) {
 		fields["EpochDuration"] = true
 		hasWatcher = hasWatcher || s.watcherFlag.HasEpochDurationWatcher
+	}
+
+	if !reflect.DeepEqual(oriTable.GenBlockCount, curTable.GenBlockCount) {
+		fields["GenBlockCount"] = true
+		hasWatcher = hasWatcher || s.watcherFlag.HasGenBlockCountWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.PerTicketPrice, curTable.PerTicketPrice) {
@@ -522,6 +537,23 @@ func (s *SoBlockProducerWrap) handleFieldMd(t FieldMdHandleType, so *SoBlockProd
 		} else if t == FieldMdHandleTypeInsert {
 			res = s.mdFieldEpochDuration(so.EpochDuration, false, false, true, so)
 			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "EpochDuration")
+		}
+		if !res {
+			return errors.New(errStr)
+		}
+	}
+
+	if fields["GenBlockCount"] {
+		res := true
+		if t == FieldMdHandleTypeCheck {
+			res = s.mdFieldGenBlockCount(so.GenBlockCount, true, false, false, so)
+			errStr = fmt.Sprintf("fail to modify exist value of %v", "GenBlockCount")
+		} else if t == FieldMdHandleTypeDel {
+			res = s.mdFieldGenBlockCount(so.GenBlockCount, false, true, false, so)
+			errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", "GenBlockCount")
+		} else if t == FieldMdHandleTypeInsert {
+			res = s.mdFieldGenBlockCount(so.GenBlockCount, false, false, true, so)
+			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "GenBlockCount")
 		}
 		if !res {
 			return errors.New(errStr)
@@ -1168,6 +1200,88 @@ func (s *SoBlockProducerWrap) insertFieldEpochDuration(so *SoBlockProducer) bool
 }
 
 func (s *SoBlockProducerWrap) checkEpochDurationIsMetMdCondition(p uint64) bool {
+	if s.dba == nil {
+		return false
+	}
+
+	return true
+}
+
+func (s *SoBlockProducerWrap) GetGenBlockCount() uint64 {
+	res := true
+	msg := &SoBlockProducer{}
+	if s.dba == nil {
+		res = false
+	} else {
+		key, err := s.encodeMainKey()
+		if err != nil {
+			res = false
+		} else {
+			buf, err := s.dba.Get(key)
+			if err != nil {
+				res = false
+			}
+			err = proto.Unmarshal(buf, msg)
+			if err != nil {
+				res = false
+			} else {
+				return msg.GenBlockCount
+			}
+		}
+	}
+	if !res {
+		var tmpValue uint64
+		return tmpValue
+	}
+	return msg.GenBlockCount
+}
+
+func (s *SoBlockProducerWrap) mdFieldGenBlockCount(p uint64, isCheck bool, isDel bool, isInsert bool,
+	so *SoBlockProducer) bool {
+	if s.dba == nil {
+		return false
+	}
+
+	if isCheck {
+		res := s.checkGenBlockCountIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
+
+	if isDel {
+		res := s.delFieldGenBlockCount(so)
+		if !res {
+			return false
+		}
+	}
+
+	if isInsert {
+		res := s.insertFieldGenBlockCount(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoBlockProducerWrap) delFieldGenBlockCount(so *SoBlockProducer) bool {
+	if s.dba == nil {
+		return false
+	}
+
+	return true
+}
+
+func (s *SoBlockProducerWrap) insertFieldGenBlockCount(so *SoBlockProducer) bool {
+	if s.dba == nil {
+		return false
+	}
+
+	return true
+}
+
+func (s *SoBlockProducerWrap) checkGenBlockCountIsMetMdCondition(p uint64) bool {
 	if s.dba == nil {
 		return false
 	}
@@ -2313,6 +2427,8 @@ type BlockProducerWatcherFlag struct {
 
 	HasEpochDurationWatcher bool
 
+	HasGenBlockCountWatcher bool
+
 	HasPerTicketPriceWatcher bool
 
 	HasPerTicketWeightWatcher bool
@@ -2365,6 +2481,9 @@ func BlockProducerRecordWatcherChanged(dbSvcId uint32) {
 
 	flag.HasEpochDurationWatcher = HasTableRecordWatcher(dbSvcId, BlockProducerTable.Record, "EpochDuration")
 	flag.AnyWatcher = flag.AnyWatcher || flag.HasEpochDurationWatcher
+
+	flag.HasGenBlockCountWatcher = HasTableRecordWatcher(dbSvcId, BlockProducerTable.Record, "GenBlockCount")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasGenBlockCountWatcher
 
 	flag.HasPerTicketPriceWatcher = HasTableRecordWatcher(dbSvcId, BlockProducerTable.Record, "PerTicketPrice")
 	flag.AnyWatcher = flag.AnyWatcher || flag.HasPerTicketPriceWatcher

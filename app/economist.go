@@ -179,6 +179,11 @@ func (e *Economist) Mint(trxObserver iservices.ITrxObserver) {
 	bpRewardVest.Add(bpWrap.GetVest())
 	bpWrap.SetVest(bpRewardVest)
 
+	bpProducerWrap := table.NewSoBlockProducerWrap(e.db, globalProps.CurrentBlockProducer)
+	bpProducerWrap.Modify(func(tInfo *table.SoBlockProducer) {
+		tInfo.GenBlockCount ++
+	})
+
 	updateBpVoteValue(e.db, globalProps.CurrentBlockProducer, oldVest, bpRewardVest)
 	trxObserver.AddOpState(iservices.Add, "mint", globalProps.CurrentBlockProducer.Value, bpReward)
 	e.stateChange.PopCause()
