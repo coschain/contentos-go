@@ -80,17 +80,18 @@ func (p *EcosysProcessor) ProcessChange(db *gorm.DB, change *blocklog.StateChang
 			TotalWvps: change.CauseExtra["total_wvps"].(string),
 			Pool: pool,
 		}).Error
-	} else if change.Cause == "esys.reward.bp" {
-		after := common.JsonNumberUint64(change.Change.After.(json.Number))
-		before := common.JsonNumberUint64(change.Change.Before.(json.Number))
-		return db.Create(&EcosysReward{
-			BlockHeight: blockLog.BlockNum,
-			BlockTime: time.Unix(int64(blockLog.BlockTime), 0),
-			Name: change.Change.Id.(string),
-			Type: change.Cause,
-			Reward: after - before,
-		}).Error
 	}
+	//else if change.Cause == "esys.reward.bp" {
+	//	after := common.JsonNumberUint64(change.Change.After.(json.Number))
+	//	before := common.JsonNumberUint64(change.Change.Before.(json.Number))
+	//	return db.Create(&EcosysReward{
+	//		BlockHeight: blockLog.BlockNum,
+	//		BlockTime: time.Unix(int64(blockLog.BlockTime), 0),
+	//		Name: change.Change.Id.(string),
+	//		Type: change.Cause,
+	//		Reward: after - before,
+	//	}).Error
+	//}
 	return nil
 }
 
