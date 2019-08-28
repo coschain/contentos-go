@@ -68,9 +68,8 @@ func (s *BlockLogProcessService) Stop() error  {
 
 func (s *BlockLogProcessService) addProcessors() {
 	s.processors = append(s.processors,
-		NewAccountProcessor(),
+		NewHolderProcessor(),
 		NewStakeProcessor(),
-		NewContractProcessor(),
 		NewTransferProcessor(),
 		NewCreateUserProcessor(),
 		NewEcosysProcessor(),
