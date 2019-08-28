@@ -718,6 +718,7 @@ func (e *Economist) PowerDown() {
 		if accountWrap.GetHasPowerdown().Value >= accountWrap.GetToPowerdown().Value || accountWrap.GetVest().Value == 0 {
 			accountWrap.Modify(func(acc *table.SoAccount) {
 				acc.EachPowerdownRate = &prototype.Vest{Value: 0}
+				acc.StartPowerdownBlockNum = 0
 				acc.NextPowerdownBlockNum = math.MaxUint64
 			})
 		} else {

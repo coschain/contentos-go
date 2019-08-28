@@ -258,6 +258,7 @@ func (ev *AccountCreateEvaluator) Apply() {
 		tInfo.Vest = accountCreateFee.ToVest()
 		tInfo.LastPostTime = ev.GlobalProp().HeadBlockTime()
 		tInfo.LastVoteTime = ev.GlobalProp().HeadBlockTime()
+		tInfo.StartPowerdownBlockNum = 0
 		tInfo.NextPowerdownBlockNum = math.MaxUint64
 		tInfo.EachPowerdownRate = &prototype.Vest{Value: 0}
 		tInfo.ToPowerdown = &prototype.Vest{Value: 0}
@@ -859,6 +860,7 @@ func (ev *ConvertVestEvaluator) Apply() {
 	eachRate := op.Amount.Value / (constants.ConvertWeeks - 1)
 
 	accWrap.Modify(func(t *table.SoAccount) {
+		t.StartPowerdownBlockNum = currentBlock
 		t.NextPowerdownBlockNum = currentBlock + constants.PowerDownBlockInterval
 		t.EachPowerdownRate = &prototype.Vest{Value: eachRate}
 		t.HasPowerdown = &prototype.Vest{Value: 0}

@@ -491,6 +491,16 @@ func (s *SoAccountWrap) SetStaminaUseBlock(p uint64, errArgs ...interface{}) *So
 	return s
 }
 
+func (s *SoAccountWrap) SetStartPowerdownBlockNum(p uint64, errArgs ...interface{}) *SoAccountWrap {
+	err := s.modify(func(r *SoAccount) {
+		r.StartPowerdownBlockNum = p
+	})
+	if err != nil {
+		panic(bindErrorInfo(fmt.Sprintf("SoAccountWrap.SetStartPowerdownBlockNum( %v ) failed: %s", p, err.Error()), errArgs...))
+	}
+	return s
+}
+
 func (s *SoAccountWrap) SetToPowerdown(p *prototype.Vest, errArgs ...interface{}) *SoAccountWrap {
 	err := s.modify(func(r *SoAccount) {
 		r.ToPowerdown = p
@@ -670,6 +680,11 @@ func (s *SoAccountWrap) getModifiedFields(oriTable *SoAccount, curTable *SoAccou
 	if !reflect.DeepEqual(oriTable.StaminaUseBlock, curTable.StaminaUseBlock) {
 		fields["StaminaUseBlock"] = true
 		hasWatcher = hasWatcher || s.watcherFlag.HasStaminaUseBlockWatcher
+	}
+
+	if !reflect.DeepEqual(oriTable.StartPowerdownBlockNum, curTable.StartPowerdownBlockNum) {
+		fields["StartPowerdownBlockNum"] = true
+		hasWatcher = hasWatcher || s.watcherFlag.HasStartPowerdownBlockNumWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.ToPowerdown, curTable.ToPowerdown) {
@@ -1105,6 +1120,23 @@ func (s *SoAccountWrap) handleFieldMd(t FieldMdHandleType, so *SoAccount, fields
 		} else if t == FieldMdHandleTypeInsert {
 			res = s.mdFieldStaminaUseBlock(so.StaminaUseBlock, false, false, true, so)
 			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "StaminaUseBlock")
+		}
+		if !res {
+			return errors.New(errStr)
+		}
+	}
+
+	if fields["StartPowerdownBlockNum"] {
+		res := true
+		if t == FieldMdHandleTypeCheck {
+			res = s.mdFieldStartPowerdownBlockNum(so.StartPowerdownBlockNum, true, false, false, so)
+			errStr = fmt.Sprintf("fail to modify exist value of %v", "StartPowerdownBlockNum")
+		} else if t == FieldMdHandleTypeDel {
+			res = s.mdFieldStartPowerdownBlockNum(so.StartPowerdownBlockNum, false, true, false, so)
+			errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", "StartPowerdownBlockNum")
+		} else if t == FieldMdHandleTypeInsert {
+			res = s.mdFieldStartPowerdownBlockNum(so.StartPowerdownBlockNum, false, false, true, so)
+			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "StartPowerdownBlockNum")
 		}
 		if !res {
 			return errors.New(errStr)
@@ -3653,6 +3685,88 @@ func (s *SoAccountWrap) checkStaminaUseBlockIsMetMdCondition(p uint64) bool {
 	return true
 }
 
+func (s *SoAccountWrap) GetStartPowerdownBlockNum() uint64 {
+	res := true
+	msg := &SoAccount{}
+	if s.dba == nil {
+		res = false
+	} else {
+		key, err := s.encodeMainKey()
+		if err != nil {
+			res = false
+		} else {
+			buf, err := s.dba.Get(key)
+			if err != nil {
+				res = false
+			}
+			err = proto.Unmarshal(buf, msg)
+			if err != nil {
+				res = false
+			} else {
+				return msg.StartPowerdownBlockNum
+			}
+		}
+	}
+	if !res {
+		var tmpValue uint64
+		return tmpValue
+	}
+	return msg.StartPowerdownBlockNum
+}
+
+func (s *SoAccountWrap) mdFieldStartPowerdownBlockNum(p uint64, isCheck bool, isDel bool, isInsert bool,
+	so *SoAccount) bool {
+	if s.dba == nil {
+		return false
+	}
+
+	if isCheck {
+		res := s.checkStartPowerdownBlockNumIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
+
+	if isDel {
+		res := s.delFieldStartPowerdownBlockNum(so)
+		if !res {
+			return false
+		}
+	}
+
+	if isInsert {
+		res := s.insertFieldStartPowerdownBlockNum(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoAccountWrap) delFieldStartPowerdownBlockNum(so *SoAccount) bool {
+	if s.dba == nil {
+		return false
+	}
+
+	return true
+}
+
+func (s *SoAccountWrap) insertFieldStartPowerdownBlockNum(so *SoAccount) bool {
+	if s.dba == nil {
+		return false
+	}
+
+	return true
+}
+
+func (s *SoAccountWrap) checkStartPowerdownBlockNumIsMetMdCondition(p uint64) bool {
+	if s.dba == nil {
+		return false
+	}
+
+	return true
+}
+
 func (s *SoAccountWrap) GetToPowerdown() *prototype.Vest {
 	res := true
 	msg := &SoAccount{}
@@ -5153,6 +5267,8 @@ type AccountWatcherFlag struct {
 
 	HasStaminaUseBlockWatcher bool
 
+	HasStartPowerdownBlockNumWatcher bool
+
 	HasToPowerdownWatcher bool
 
 	HasVestWatcher bool
@@ -5255,6 +5371,9 @@ func AccountRecordWatcherChanged(dbSvcId uint32) {
 
 	flag.HasStaminaUseBlockWatcher = HasTableRecordWatcher(dbSvcId, AccountTable.Record, "StaminaUseBlock")
 	flag.AnyWatcher = flag.AnyWatcher || flag.HasStaminaUseBlockWatcher
+
+	flag.HasStartPowerdownBlockNumWatcher = HasTableRecordWatcher(dbSvcId, AccountTable.Record, "StartPowerdownBlockNum")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasStartPowerdownBlockNumWatcher
 
 	flag.HasToPowerdownWatcher = HasTableRecordWatcher(dbSvcId, AccountTable.Record, "ToPowerdown")
 	flag.AnyWatcher = flag.AnyWatcher || flag.HasToPowerdownWatcher

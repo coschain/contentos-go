@@ -80,7 +80,9 @@ func GenerateSignedTxAndValidate4(dgp *prototype.DynamicProperties, expiration u
 
 func GenerateUUID(content string) uint64 {
 	crc32q := crc32.MakeTable(0xD5828281)
-	randContent := content + string(rand.Intn(1e5))
+	source := rand.NewSource(time.Now().UnixNano())
+	r := rand.New(source)
+	randContent := content + string(r.Intn(100000))
 	return uint64(time.Now().Unix())*uint64(1e9) + uint64(crc32.Checksum([]byte(randContent), crc32q))
 }
 

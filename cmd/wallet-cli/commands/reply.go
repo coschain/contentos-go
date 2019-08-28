@@ -102,6 +102,7 @@ func reply(cmd *cobra.Command, args []string) {
 		if err != nil {
 			fmt.Println(err)
 		} else {
+			fmt.Println(fmt.Sprintf("ReplyId: %d", uuid))
 			fmt.Println(fmt.Sprintf("Result: %v", resp))
 		}
 	}

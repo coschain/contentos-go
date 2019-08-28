@@ -51,19 +51,24 @@ func (tester *ConvertVestTester) normal(t *testing.T, d *Dandelion) {
 	balance0 := d.Account(tester.acc0.Name).GetBalance().Value
 
 	headBlock0 := d.GlobalProps().GetHeadBlockNumber()
+	a.Equal(uint64(0), d.Account(tester.acc0.Name).GetStartPowerdownBlockNum())
 	a.NoError(tester.acc0.SendTrxAndProduceBlock(ConvertVest(tester.acc0.Name, TRANSFER)))
 	a.Equal(headBlock0 + uint64(constants.PowerDownBlockInterval), d.Account(tester.acc0.Name).GetNextPowerdownBlockNum())
+	a.Equal(headBlock0, d.Account(tester.acc0.Name).GetStartPowerdownBlockNum())
 	eachRate := TRANSFER / (constants.ConvertWeeks - 1)
 	a.Equal(uint64(eachRate), d.Account(tester.acc0.Name).GetEachPowerdownRate().Value)
 	a.NoError(d.ProduceBlocks(constants.PowerDownBlockInterval + 1))
 	a.Equal(balance0 + uint64(eachRate), d.Account(tester.acc0.Name).GetBalance().Value)
+	a.Equal(headBlock0, d.Account(tester.acc0.Name).GetStartPowerdownBlockNum())
 	a.NoError(d.ProduceBlocks(constants.PowerDownBlockInterval + 1))
 	a.Equal(balance0 + uint64(eachRate) * 2, d.Account(tester.acc0.Name).GetBalance().Value)
+	a.Equal(headBlock0, d.Account(tester.acc0.Name).GetStartPowerdownBlockNum())
 	a.NoError(d.ProduceBlocks(constants.PowerDownBlockInterval * 20))
 	a.Equal(balance0 + TRANSFER, d.Account(tester.acc0.Name).GetBalance().Value)
 	a.Equal(vest0 - TRANSFER, d.Account(tester.acc0.Name).GetVest().Value)
 	a.Equal(uint64(0), d.Account(tester.acc0.Name).GetEachPowerdownRate().Value)
 	a.Equal(uint64(math.MaxUint64), d.Account(tester.acc0.Name).GetNextPowerdownBlockNum())
+	a.Equal(uint64(0), d.Account(tester.acc0.Name).GetStartPowerdownBlockNum())
 }
 
 func (tester *ConvertVestTester) Reset(t *testing.T, d *Dandelion) {
@@ -79,12 +84,15 @@ func (tester *ConvertVestTester) Reset(t *testing.T, d *Dandelion) {
 	vest1 := d.Account(tester.acc1.Name).GetVest().Value
 	balance1 := d.Account(tester.acc1.Name).GetBalance().Value
 	headBlock1 := d.GlobalProps().GetHeadBlockNumber()
+	a.Equal(uint64(0), d.Account(tester.acc1.Name).GetStartPowerdownBlockNum())
 
 	a.NoError(tester.acc1.SendTrxAndProduceBlock(ConvertVest(tester.acc1.Name, TRANSFER)))
 	a.Equal(headBlock1 + uint64(constants.PowerDownBlockInterval), d.Account(tester.acc1.Name).GetNextPowerdownBlockNum())
+	a.Equal(headBlock1, d.Account(tester.acc1.Name).GetStartPowerdownBlockNum())
 	eachRate1 := TRANSFER / (constants.ConvertWeeks - 1)
 	a.Equal(uint64(eachRate1), d.Account(tester.acc1.Name).GetEachPowerdownRate().Value)
 	a.NoError(d.ProduceBlocks(constants.PowerDownBlockInterval + 1))
+	a.Equal(headBlock1, d.Account(tester.acc1.Name).GetStartPowerdownBlockNum())
 	a.Equal(balance1 + uint64(eachRate1), d.Account(tester.acc1.Name).GetBalance().Value)
 	a.Equal(vest1- uint64(eachRate1), d.Account(tester.acc1.Name).GetVest().Value)
 
@@ -96,9 +104,11 @@ func (tester *ConvertVestTester) Reset(t *testing.T, d *Dandelion) {
 	a.Equal(headBlock2 + uint64(constants.PowerDownBlockInterval), d.Account(tester.acc1.Name).GetNextPowerdownBlockNum())
 	eachRate2 := TRANSFER2 / (constants.ConvertWeeks - 1)
 	a.Equal(uint64(eachRate2), d.Account(tester.acc1.Name).GetEachPowerdownRate().Value)
+	a.Equal(headBlock2, d.Account(tester.acc1.Name).GetStartPowerdownBlockNum())
 	a.NoError(d.ProduceBlocks(constants.PowerDownBlockInterval + 1))
 	a.Equal(balance2 + uint64(eachRate2), d.Account(tester.acc1.Name).GetBalance().Value)
 	a.Equal(vest2 - uint64(eachRate2), d.Account(tester.acc1.Name).GetVest().Value)
+	a.Equal(headBlock2, d.Account(tester.acc1.Name).GetStartPowerdownBlockNum())
 }
 
 func (tester *ConvertVestTester) tooMuch(t *testing.T, d *Dandelion) {
