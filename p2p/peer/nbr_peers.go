@@ -74,8 +74,8 @@ func (this *NbrPeers) NodeExisted(uid uint64) bool {
 
 //GetPeer return peer according to id
 func (this *NbrPeers) GetPeer(id uint64) *Peer {
-	this.Lock()
-	defer this.Unlock()
+	this.RLock()
+	defer this.RUnlock()
 	n, ok := this.List[id]
 	if ok == false {
 		return nil
