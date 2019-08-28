@@ -2,6 +2,7 @@ package consensus
 
 import (
 	"container/list"
+	"fmt"
 	"github.com/coschain/gobft/message"
 )
 
@@ -30,6 +31,10 @@ func (d *Dynasty) GetValidatorByPubKey(k message.PubKey) *publicValidator {
 		}
 	}
 	return nil
+}
+
+func (d *Dynasty) String() string {
+	return fmt.Sprintf("\nSEQ: %d\n, Validators: %v\n", d.Seq, d.validators)
 }
 
 type Dynasties struct {

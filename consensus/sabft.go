@@ -178,9 +178,9 @@ func (sabft *SABFT) shuffle(head common.ISignedBlock) (bool, []string) {
 
 	newDyn := sabft.makeDynasty(blockNum, prods, pubKeys, sabft.localPrivKey)
 	sabft.addDynasty(newDyn)
-	if atomic.LoadUint32(&sabft.bftStarted) == 0 && sabft.bft != nil {
-		sabft.checkBFTRoutine()
-	}
+	//if atomic.LoadUint32(&sabft.bftStarted) == 0 && sabft.bft != nil {
+	//	//	sabft.checkBFTRoutine()
+	//	//}
 	return true, prods
 }
 
@@ -204,8 +204,7 @@ func (sabft *SABFT) makeDynasty(seq uint64, prods []string,
 }
 
 func (sabft *SABFT) checkBFTRoutine() {
-	if sabft.readyToProduce && sabft.dynasties.Front().GetValidatorNum() >= 3 &&
-		sabft.isValidatorName(sabft.Name) {
+	if sabft.readyToProduce  && sabft.isValidatorName(sabft.Name) {
 		if atomic.LoadUint32(&sabft.bftStarted) == 0 {
 			sabft.bft.Start()
 			sabft.log.Infof("[SABFT] gobft started at height %d", sabft.appState.LastHeight)
@@ -469,6 +468,7 @@ func (sabft *SABFT) start() {
 				sabft.log.Error("[SABFT] pushBlock failed: ", err)
 				continue
 			}
+			sabft.checkBFTRoutine()
 
 			sabft.Lock()
 			sabft.tryCommit(b)
@@ -525,6 +525,7 @@ func (sabft *SABFT) Stop() error {
 	// stop bft process
 	if atomic.LoadUint32(&sabft.bftStarted) == 1 {
 		sabft.bft.Stop()
+		atomic.StoreUint32(&sabft.bftStarted, 0)
 		sabft.log.Info("[SABFT] gobft stopped...")
 	}
 
@@ -670,7 +671,8 @@ func (sabft *SABFT) verifyCommitSig(records *message.Commit) bool {
 		//val := sabft.getValidator(records.Precommits[i].Address)
 		val := sabft.dynasties.Front().GetValidatorByPubKey(records.Precommits[i].Address)
 		if val == nil {
-			sabft.log.Errorf("[SABFT] error while checking precommits: %s is not a validator", records.Precommits[i].Address)
+			sabft.log.Errorf("[SABFT] error while checking precommits: %s is not a validator, current Dynasty: %s",
+				records.Precommits[i].Address, sabft.dynasties.Front().String())
 			return false
 		}
 		v := val.VerifySig(records.Precommits[i].Digest(), records.Precommits[i].Signature)
