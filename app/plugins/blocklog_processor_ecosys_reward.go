@@ -64,10 +64,10 @@ func (p *EcosysProcessor) ProcessChange(db *gorm.DB, change *blocklog.StateChang
 		change.Cause == "esys.reward.post_author" ||
 		change.Cause == "esys.reward.reply_author" ||
 		change.Cause == "esys.reward.dapp" {
-		after := uint64(common.JsonNumber(change.Change.After.(json.Number)))
-		before := uint64(common.JsonNumber(change.Change.Before.(json.Number)))
-		postId := uint64(common.JsonNumberUint64(change.CauseExtra["post"].(json.Number)))
-		pool := uint64(common.JsonNumberUint64(change.CauseExtra["pool"].(json.Number)))
+		after := common.JsonNumberUint64(change.Change.After.(json.Number))
+		before := common.JsonNumberUint64(change.Change.Before.(json.Number))
+		postId := common.JsonNumberUint64(change.CauseExtra["post"].(json.Number))
+		pool := common.JsonNumberUint64(change.CauseExtra["pool"].(json.Number))
 
 		return db.Create(&EcosysReward{
 			BlockHeight: blockLog.BlockNum,
@@ -81,8 +81,8 @@ func (p *EcosysProcessor) ProcessChange(db *gorm.DB, change *blocklog.StateChang
 			Pool: pool,
 		}).Error
 	} else if change.Cause == "esys.reward.bp" {
-		after := uint64(common.JsonNumber(change.Change.After.(json.Number)))
-		before := uint64(common.JsonNumber(change.Change.Before.(json.Number)))
+		after := common.JsonNumberUint64(change.Change.After.(json.Number))
+		before := common.JsonNumberUint64(change.Change.Before.(json.Number))
 		return db.Create(&EcosysReward{
 			BlockHeight: blockLog.BlockNum,
 			BlockTime: time.Unix(int64(blockLog.BlockTime), 0),

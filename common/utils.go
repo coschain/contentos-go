@@ -70,7 +70,7 @@ func HostByteOrder() binary.ByteOrder {
 	}
 }
 
-func JsonNumber(jn json.Number) (r int64) {
+func JsonNumberInt64(jn json.Number) (r int64) {
 	r, _ = jn.Int64()
 	return
 }

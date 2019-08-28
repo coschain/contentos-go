@@ -39,19 +39,19 @@ func (p *HolderProcessor) ProcessChange(db *gorm.DB, change *blocklog.StateChang
 	switch change.What {
 	case "Account.Balance":
 		return db.Where(Holder{Name: change.Change.Id.(string)}).
-			Assign(Holder{Balance: uint64(common.JsonNumber(change.Change.After.(json.Number))), IsContract:false}).
+			Assign(Holder{Balance: common.JsonNumberUint64(change.Change.After.(json.Number)), IsContract:false}).
 			FirstOrCreate(rec).Error
 	case "Account.Vest":
 		return db.Where(Holder{Name: change.Change.Id.(string)}).
-			Assign(Holder{Vest: uint64(common.JsonNumber(change.Change.After.(json.Number))), IsContract:false}).
+			Assign(Holder{Vest: common.JsonNumberUint64(change.Change.After.(json.Number)), IsContract:false}).
 			FirstOrCreate(rec).Error
 	case "Account.StakeVestFromMe":
 		return db.Where(Holder{Name: change.Change.Id.(string)}).
-			Assign(Holder{StakeVestFromMe: uint64(common.JsonNumber(change.Change.After.(json.Number))), IsContract:false}).
+			Assign(Holder{StakeVestFromMe: common.JsonNumberUint64(change.Change.After.(json.Number)), IsContract:false}).
 			FirstOrCreate(rec).Error
 	case "Contract.Balance":
 		return db.Where(Holder{Name: change.Change.Id.(string)}).
-			Assign(Holder{Balance: uint64(common.JsonNumber(change.Change.After.(json.Number))), IsContract:true}).
+			Assign(Holder{Balance: common.JsonNumberUint64(change.Change.After.(json.Number)), IsContract:true}).
 			FirstOrCreate(rec).Error
 	}
 	return nil
