@@ -29,6 +29,8 @@ func (p *HolderProcessor) Prepare(db *gorm.DB, blockLog *blocklog.BlockLog) (err
 			if err = db.CreateTable(&Holder{}).Error; err == nil {
 				p.tableReady = true
 			}
+		} else {
+			p.tableReady = true
 		}
 	}
 	return

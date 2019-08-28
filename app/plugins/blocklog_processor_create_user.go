@@ -31,6 +31,8 @@ func (p *CreateUserProcessor) Prepare(db *gorm.DB, blockLog *blocklog.BlockLog) 
 			if err = db.CreateTable(&CreateUserRecord{}).Error; err == nil {
 				p.tableReady = true
 			}
+		} else {
+			p.tableReady = true
 		}
 	}
 	return

@@ -35,6 +35,8 @@ func (p *TransferProcessor) Prepare(db *gorm.DB, blockLog *blocklog.BlockLog) (e
 			if err = db.CreateTable(&TransferRecord{}).Error; err == nil {
 				p.tableReady = true
 			}
+		} else {
+			p.tableReady = true
 		}
 	}
 	return

@@ -38,6 +38,8 @@ func (p *ProducerVoteProcessor) Prepare(db *gorm.DB, blockLog *blocklog.BlockLog
 			if err = db.CreateTable(&ProducerVoteRecord{}).Error; err == nil {
 				p.tableRecordReady = true
 			}
+		} else {
+			p.tableRecordReady = true
 		}
 	}
 
@@ -46,6 +48,8 @@ func (p *ProducerVoteProcessor) Prepare(db *gorm.DB, blockLog *blocklog.BlockLog
 			if err = db.CreateTable(&ProducerVoteState{}).Error; err == nil {
 				p.tableStateReady = true
 			}
+		} else {
+			p.tableStateReady = true
 		}
 	}
 

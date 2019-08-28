@@ -54,6 +54,8 @@ func (p *EcosysProcessor) Prepare(db *gorm.DB, blockLog *blocklog.BlockLog) (err
 			if err = db.CreateTable(rec).Error; err == nil {
 				p.tableReady[tableName] = true
 			}
+		} else {
+			p.tableReady[tableName] = true
 		}
 	}
 	return

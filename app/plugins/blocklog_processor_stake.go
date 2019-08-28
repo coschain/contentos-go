@@ -30,6 +30,8 @@ func (p *StakeProcessor) Prepare(db *gorm.DB, blockLog *blocklog.BlockLog) (err 
 			if err = db.CreateTable(&Stake{}).Error; err == nil {
 				p.tableReady = true
 			}
+		} else {
+			p.tableReady = true
 		}
 	}
 	return
