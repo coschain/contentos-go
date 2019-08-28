@@ -9,11 +9,10 @@ import (
 )
 
 type Stake struct {
-	ID uint64					`gorm:"primary_key;auto_increment"`
-	BlockHeight uint64			`gorm:"index"`
+	StakeFrom string			`gorm:"primary_key"`
+	StakeTo string				`gorm:"primary_key"`
+	BlockHeight uint64
 	BlockTime time.Time
-	StakeFrom string			`gorm:"index"`
-	StakeTo string				`gorm:"index"`
 	Amount uint64				`gorm:"index"`
 }
 
@@ -46,22 +45,45 @@ func (p *StakeProcessor) ProcessOperation(db *gorm.DB, blockLog *blocklog.BlockL
 		return nil
 	}
 	opLog := trxLog.Operations[opIdx]
-	if opLog.Type != "stake" {
+	if opLog.Type == "stake" {
+		op, ok := prototype.GetBaseOperation(opLog.Data).(*prototype.StakeOperation)
+		if !ok {
+			return errors.New("failed conversion to StakeOperation")
+		}
+		return p.processStake(db, op.From.GetValue(), op.To.GetValue(), op.Amount.GetValue(), true, blockLog)
+	} else if opLog.Type == "un_stake" {
+		op, ok := prototype.GetBaseOperation(opLog.Data).(*prototype.UnStakeOperation)
+		if !ok {
+			return errors.New("failed conversion to UnStakeOperation")
+		}
+		return p.processStake(db, op.Creditor.GetValue(), op.Debtor.GetValue(), op.Amount.GetValue(), false, blockLog)
+	} else {
 		return nil
 	}
-	op, ok := prototype.GetBaseOperation(opLog.Data).(*prototype.StakeOperation)
-	if !ok {
-		return errors.New("failed conversion to StakeOperation")
-	}
-	return db.Create(&Stake{
-		BlockHeight: blockLog.BlockNum,
-		BlockTime: time.Unix(int64(blockLog.BlockTime), 0),
-		StakeFrom: op.GetFrom().GetValue(),
-		StakeTo: op.GetTo().GetValue(),
-		Amount: op.GetAmount().GetValue(),
-	}).Error
 }
 
 func (p *StakeProcessor) Finalize(db *gorm.DB, blockLog *blocklog.BlockLog) error {
 	return nil
+}
+
+func (p *StakeProcessor) processStake(db *gorm.DB, from, to string, amount uint64, stakeOrUnstake bool, blockLog *blocklog.BlockLog) (err error) {
+	stakeRec := new(Stake)
+	update := true
+	if db.Where(Stake{ StakeFrom:from, StakeTo:to }).First(stakeRec).RecordNotFound() {
+		stakeRec.StakeFrom, stakeRec.StakeTo, stakeRec.Amount = from, to, 0
+		update = false
+	}
+	if stakeOrUnstake {
+		stakeRec.Amount += amount
+	} else {
+		stakeRec.Amount -= amount
+	}
+	stakeRec.BlockHeight = blockLog.BlockNum
+	stakeRec.BlockTime = time.Unix(int64(blockLog.BlockTime), 0)
+	if update {
+		err = db.Save(stakeRec).Error
+	} else {
+		err = db.Create(stakeRec).Error
+	}
+	return
 }
