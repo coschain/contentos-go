@@ -89,6 +89,7 @@ func (c *TrxPool) Start(node *node.Node) error {
 }
 
 func (c *TrxPool) Open() {
+	c.blockLogWatcher = blocklog.NewWatcher(c.db.ServiceId(), c.notifyBlockLog)
 	dgpWrap := table.NewSoGlobalWrap(c.db, &SingleId)
 	if !dgpWrap.CheckExist() {
 
@@ -108,7 +109,6 @@ func (c *TrxPool) Open() {
 	latest, _, _ := c.iceberg.LatestBlock()
 	c.tm = NewTrxMgr(c.ctx.ChainId(), c.db, c.log, latest, commit)
 	c.resourceLimiter = utils.NewResourceLimiter()
-	c.blockLogWatcher = blocklog.NewWatcher(c.db.ServiceId(), c.notifyBlockLog)
 }
 
 func (c *TrxPool) Stop() error {
@@ -637,13 +637,24 @@ func (c *TrxPool) ValidateAddress(name string, pubKey *prototype.PublicKeyType) 
 }
 
 func (c *TrxPool) initGenesis() {
-
+	_ = c.blockLogWatcher.BeginBlock(0)
+	c.blockLogWatcher.CurrentBlockContext().SetCause("genesis")
 	c.db.BeginTransaction()
 	defer func() {
 		if err := recover(); err != nil {
+			_ = c.blockLogWatcher.EndBlock(false, nil)
 			mustNoError(c.db.EndTransaction(false), "EndTransaction error")
 			panic(err)
 		} else {
+			dummyBlock :=&prototype.SignedBlock {
+				SignedHeader: &prototype.SignedBlockHeader{
+					Header: &prototype.BlockHeader{
+						Previous: &prototype.Sha256{ Hash: bytes.Repeat([]byte{0}, 32)},
+						Timestamp: prototype.NewTimePointSec(1),
+					},
+				},
+			}
+			_ = c.blockLogWatcher.EndBlock(true, dummyBlock)
 			mustNoError(c.db.EndTransaction(true), "EndTransaction error")
 		}
 	}()
