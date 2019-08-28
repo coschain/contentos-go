@@ -942,24 +942,7 @@ func (as *APIService) getAccountResponseByName(name *prototype.AccountName, isNe
 		}
 		acctInfo.NextWithdrawTime = withdrawTime
 
-		witWrap := table.NewSoBlockProducerWrap(as.db, accWrap.GetName())
-		if witWrap != nil && witWrap.CheckExist() && witWrap.GetBpVest().Active {
-			acctInfo.BlockProducer = &grpcpb.BlockProducerResponse{
-				Owner:                 witWrap.GetOwner(),
-				CreatedTime:           witWrap.GetCreatedTime(),
-				Url:                   witWrap.GetUrl(),
-				BpVest:                witWrap.GetBpVest(),
-				SigningKey:            witWrap.GetSigningKey(),
-				ProposedStaminaFree:   witWrap.GetProposedStaminaFree(),
-				TpsExpected:           witWrap.GetTpsExpected(),
-				AccountCreateFee:      witWrap.GetAccountCreateFee(),
-				TopNAcquireFreeToken:  witWrap.GetTopNAcquireFreeToken(),
-				TicketFlushInterval:   witWrap.GetEpochDuration(),
-				PerTicketPrice:        witWrap.GetPerTicketPrice(),
-				PerTicketWeight:       witWrap.GetPerTicketWeight(),
-				VoterCount:            witWrap.GetVoterCount(),
-			}
-		}
+		acctInfo.BlockProducer = as.getBlockProducerResponseByName(accWrap.GetName(), false)
 
 		followWrap := table.NewSoExtFollowCountWrap(as.db, name)
 		if followWrap != nil && followWrap.CheckExist() {
@@ -1014,6 +997,7 @@ func (as *APIService) getBlockProducerResponseByName(name *prototype.AccountName
 		bp.PerTicketPrice        = bpWrap.GetPerTicketPrice()
 		bp.PerTicketWeight       = bpWrap.GetPerTicketWeight()
 		bp.VoterCount            = bpWrap.GetVoterCount()
+		bp.GenBlockCount		 = bpWrap.GetGenBlockCount()
 	}else {
 		return nil
 	}
