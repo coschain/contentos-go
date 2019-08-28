@@ -20,7 +20,7 @@ type TrxContext struct {
 	Wrapper         *prototype.TransactionWrapperWithInfo
 	msg         []string
 	signer      string
-	observer iservices.ITrxObserver
+//	observer iservices.ITrxObserver
 	output *prototype.OperationReceiptWithInfo
 	control         *TrxPool
 	gasMap          map[string]*resourceUnit
@@ -200,12 +200,11 @@ func (p *TrxContext) GetCpuUse() uint64 {
 	return all
 }
 
-func NewTrxContext(wrapper *prototype.TransactionWrapperWithInfo, db iservices.IDatabaseRW, signer string, control *TrxPool, observer iservices.ITrxObserver, stateChangeCtx *blocklog.StateChangeContext) *TrxContext {
+func NewTrxContext(wrapper *prototype.TransactionWrapperWithInfo, db iservices.IDatabaseRW, signer string, control *TrxPool, stateChangeCtx *blocklog.StateChangeContext) *TrxContext {
 	return &TrxContext{
 		DynamicGlobalPropsRW: DynamicGlobalPropsRW{ db:db },
 		Wrapper: wrapper,
 		signer: signer,
-		observer: observer,
 		gasMap: make(map[string]*resourceUnit),
 		netMap: make(map[string]*resourceUnit),
 		resourceLimiter: control.resourceLimiter,
@@ -352,10 +351,6 @@ func (p *TrxContext) GlobalProp() iservices.IGlobalPropRW {
 
 func (p *TrxContext) VMInjector() vminjector.Injector {
 	return p
-}
-
-func (p *TrxContext) TrxObserver() iservices.ITrxObserver {
-	return p.observer
 }
 
 func (p *TrxContext) Logger() *logrus.Logger {

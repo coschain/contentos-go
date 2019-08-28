@@ -164,18 +164,18 @@ func (t *TrxMysqlService) handleLibNotification(lib uint64) {
 		//operation := trx.SigTrx.GetTrx().GetOperations()[0]
 		creator := FindCreator(trx.SigTrx.GetTrx().GetOperations()[0])
 		_, _ = t.outDb.Exec("INSERT IGNORE INTO trxinfo (trx_id, block_height, block_id, block_time, invoice, operations, creator)  value (?, ?, ?, ?, ?, ?, ?)", trxId, blockHeight, blockId, blockTime, invoice, operationsJson, creator)
-		for _, operation := range trx.SigTrx.GetTrx().GetOperations() {
-			if IsCreateAccountOp(operation) {
-				_, _ = t.outDb.Exec("INSERT IGNORE INTO createaccountinfo (trx_id, create_time, creator, pubkey, account) values (?, ?, ?, ?, ?)", trxId, blockTime, creator, operation.GetOp1().PubKey.ToWIF(), operation.GetOp1().NewAccountName.Value)
-				break
-			}
-		}
-		for _, operation := range trx.SigTrx.GetTrx().GetOperations() {
-			if IsTransferOp(operation) {
-				_, _ = t.outDb.Exec("INSERT IGNORE INTO transferinfo (trx_id, create_time, sender, receiver, amount, memo) values (?, ?, ?, ?, ?, ?)", trxId, blockTime, creator, operation.GetOp2().To.Value, operation.GetOp2().Amount.Value, operation.GetOp2().Memo)
-				break
-			}
-		}
+		//for _, operation := range trx.SigTrx.GetTrx().GetOperations() {
+		//	if IsCreateAccountOp(operation) {
+		//		_, _ = t.outDb.Exec("INSERT IGNORE INTO createaccountinfo (trx_id, create_time, creator, pubkey, account) values (?, ?, ?, ?, ?)", trxId, blockTime, creator, operation.GetOp1().PubKey.ToWIF(), operation.GetOp1().NewAccountName.Value)
+		//		break
+		//	}
+		//}
+		//for _, operation := range trx.SigTrx.GetTrx().GetOperations() {
+		//	if IsTransferOp(operation) {
+		//		_, _ = t.outDb.Exec("INSERT IGNORE INTO transferinfo (trx_id, create_time, sender, receiver, amount, memo) values (?, ?, ?, ?, ?, ?)", trxId, blockTime, creator, operation.GetOp2().To.Value, operation.GetOp2().Amount.Value, operation.GetOp2().Memo)
+		//		break
+		//	}
+		//}
 	}
 }
 

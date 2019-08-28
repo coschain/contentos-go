@@ -2,7 +2,6 @@ package app
 
 import (
 	"bytes"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"github.com/asaskevich/EventBus"
@@ -44,7 +43,6 @@ type TrxPool struct {
 
 	iceberg   *BlockIceberg
 	economist *Economist
-	stateObserver *StateObserver
 	tm *TrxMgr
 
 	resourceLimiter utils.IResourceLimiter
@@ -103,7 +101,6 @@ func (c *TrxPool) Open() {
 	}
 	c.iceberg = NewBlockIceberg(c.db, c.log, c.enableBAH)
 	c.economist = NewEconomist(c.db, c.noticer, c.log)
-	c.stateObserver = NewStateObserver(c.noticer, c.log)
 
 	commit, _ := c.iceberg.LastFinalizedBlock()
 	latest, _, _ := c.iceberg.LatestBlock()
@@ -162,7 +159,6 @@ func (c *TrxPool) pushBlockNoLock(blk *prototype.SignedBlock, skip prototype.Ski
 			}
 			// undo changes
 			_ = c.iceberg.EndBlock(false)
-			c.stateObserver.EndBlock("")
 			_ = c.blockLogWatcher.EndBlock(false, blk)
 			c.log.Debug("ICEBERG: EndBlock FALSE")
 			c.log.Errorf("push block fail,the error is %v,the block num is %v", r, blk.Id().BlockNum())
@@ -174,12 +170,8 @@ func (c *TrxPool) pushBlockNoLock(blk *prototype.SignedBlock, skip prototype.Ski
 		blkNum := blk.Id().BlockNum()
 		c.log.Debugf("ICEBERG: BeginBlock %d", blkNum)
 		_ = c.iceberg.BeginBlock(blkNum)
-		c.stateObserver.BeginBlock(blkNum)
-		c.stateObserver.SetBlockTime(blk.Timestamp())
 		_ = c.blockLogWatcher.BeginBlock(blkNum)
 		c.applyBlock(blk, skip)
-		data := blk.Id().Data
-		c.stateObserver.EndBlock(hex.EncodeToString(data[:]))
 		c.log.Debug("ICEBERG: EndBlock TRUE")
 		_ = c.iceberg.EndBlock(true)
 		_ = c.blockLogWatcher.EndBlock(true, blk)
@@ -187,8 +179,6 @@ func (c *TrxPool) pushBlockNoLock(blk *prototype.SignedBlock, skip prototype.Ski
 		// we have do a BeginTransaction at GenerateBlock
 		c.applyBlock(blk, skip)
 		c.log.Debug("ICEBERG: EndBlock TRUE")
-		data := blk.Id().Data
-		c.stateObserver.EndBlock(hex.EncodeToString(data[:]))
 		_ = c.iceberg.EndBlock(true)
 		_ = c.blockLogWatcher.EndBlock(true, blk)
 	}
@@ -250,7 +240,6 @@ func (c *TrxPool) generateBlockNoLock(bpName string, pre *prototype.Sha256, time
 		if err := recover(); err != nil {
 			c.log.Debug("ICEBERG: EndBlock FALSE")
 			_ = c.iceberg.EndBlock(false)
-			c.stateObserver.EndBlock("")
 			_ = c.blockLogWatcher.EndBlock(false, nil)
 
 			b, e = nil, fmt.Errorf("%v", err)
@@ -281,8 +270,6 @@ func (c *TrxPool) generateBlockNoLock(bpName string, pre *prototype.Sha256, time
 	blkNum++
 	c.log.Debugf("ICEBERG: BeginBlock %d", blkNum)
 	_ = c.iceberg.BeginBlock(blkNum)
-	c.stateObserver.BeginBlock(blkNum)
-	c.stateObserver.SetBlockTime(uint64(timestamp))
 	_ = c.blockLogWatcher.BeginBlock(blkNum)
 
 	timeOut := maxTimeout - time.Since(entryTime)
@@ -430,13 +417,10 @@ func (c *TrxPool) applyTransactionOnDb(db iservices.IDatabasePatch, entry *TrxEn
 
 	trxDB := db.NewPatch()
 
-	trxObserver := c.stateObserver.NewTrxObserver()
-	trxHash, _ := sigTrx.GetTrxHash(c.ctx.ChainId())
-	trxObserver.BeginTrx(hex.EncodeToString(trxHash))
 	trxId, _ := sigTrx.Id()
 	trxStateChange := c.blockLogWatcher.GetOrCreateStateChangeContext(db.BranchId(), fmt.Sprintf("%x", trxId.Hash), -1, "")
 	restorePoint := trxStateChange.RestorePoint()
-	trxContext := NewTrxContext(result, trxDB, entry.GetTrxSigner(), c, trxObserver, trxStateChange)
+	trxContext := NewTrxContext(result, trxDB, entry.GetTrxSigner(), c, trxStateChange)
 
 	defer func() {
 		useGas := trxContext.HasGasFee()
@@ -444,7 +428,6 @@ func (c *TrxPool) applyTransactionOnDb(db iservices.IDatabasePatch, entry *TrxEn
 		if err := recover(); err != nil {
 			receipt.ErrorInfo = fmt.Sprintf("applyTransaction failed : %v", err)
 			c.log.Warnf("applyTransaction failed : %v", err)
-			trxObserver.EndTrx(false)
 			trxStateChange.Restore(restorePoint)
 			if useGas && constants.EnableResourceControl {
 				receipt.Status = prototype.StatusFailDeductStamina
@@ -458,7 +441,6 @@ func (c *TrxPool) applyTransactionOnDb(db iservices.IDatabasePatch, entry *TrxEn
 			// commit changes to db
 			_ = trxDB.Apply()
 			receipt.Status = prototype.StatusSuccess
-			trxObserver.EndTrx(true)
 			c.notifyTrxApplyResult(sigTrx, true, receipt, blockNum)
 		}
 		trxStateChange.SetOperation(-1)
@@ -584,9 +566,6 @@ func (c *TrxPool) applyBlock(blk *prototype.SignedBlock, skip prototype.SkipFlag
 	afterTiming := common.NewTiming()
 	eTiming := common.NewTiming()
 
-	pseudoTrxObserver := c.stateObserver.NewTrxObserver()
-	pseudoTrxObserver.BeginTrx("")
-
 	afterTiming.Begin()
 
 	c.createBlockSummary(blk)
@@ -600,18 +579,17 @@ func (c *TrxPool) applyBlock(blk *prototype.SignedBlock, skip prototype.SkipFlag
 	c.blockLogWatcher.CurrentBlockContext().SetCause("esys")
 	c.economist.SetStateChangeContext(c.blockLogWatcher.CurrentBlockContext())
 	eTiming.Begin()
-	c.economist.Mint(pseudoTrxObserver)
+	c.economist.Mint()
 	eTiming.Mark()
-	c.economist.Distribute(pseudoTrxObserver)
+	c.economist.Distribute()
 	eTiming.Mark()
-	c.economist.Do(pseudoTrxObserver)
+	c.economist.Do()
 	eTiming.Mark()
 	c.economist.PowerDown()
 	eTiming.End()
 	c.economist.SetStateChangeContext(nil)
 	c.blockLogWatcher.CurrentBlockContext().SetCause("")
 	c.log.Debugf("Economist: %s", eTiming.String())
-	pseudoTrxObserver.EndTrx(true)
 
 	afterTiming.Mark()
 

@@ -29,7 +29,6 @@ type ApplyDelegate interface {
 	Database() iservices.IDatabaseRW
 	GlobalProp() iservices.IGlobalPropRW
 	VMInjector() vminjector.Injector
-	TrxObserver() iservices.ITrxObserver
 	Logger() *logrus.Logger
 }
 
@@ -47,10 +46,6 @@ func (d *BaseDelegate) GlobalProp() iservices.IGlobalPropRW {
 
 func (d *BaseDelegate) VMInjector() vminjector.Injector {
 	return d.delegate.VMInjector()
-}
-
-func (d *BaseDelegate) TrxObserver() iservices.ITrxObserver {
-	return d.delegate.TrxObserver()
 }
 
 func (d *BaseDelegate) Logger() *logrus.Logger {

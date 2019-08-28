@@ -8,7 +8,6 @@ import (
 	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/common/encoding/vme"
 	"github.com/coschain/contentos-go/iservices"
-	"github.com/coschain/contentos-go/iservices/itype"
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/coschain/contentos-go/vm"
 	"github.com/coschain/contentos-go/vm/context"
@@ -313,9 +312,6 @@ func (ev *TransferEvaluator) Apply() {
 	toWrap.Modify(func(tInfo *table.SoAccount) {
 		tInfo.Balance.Add(op.Amount)
 	})
-
-	ev.TrxObserver().AddOpState(iservices.Replace, "balance", fromWrap.GetName().Value, fromWrap.GetBalance().Value)
-	ev.TrxObserver().AddOpState(iservices.Replace, "balance", toWrap.GetName().Value, toWrap.GetBalance().Value)
 }
 
 func (ev *PostEvaluator) checkBeneficiaries(beneficiaries []*prototype.BeneficiaryRouteType) {
@@ -377,15 +373,6 @@ func (ev *PostEvaluator) Apply() {
 	ev.GlobalProp().ModifyProps(func(props *prototype.DynamicProperties) {
 		props.TotalPostCnt++
 	})
-	pInfo := &itype.PostInfo{
-		Id:op.Uuid,
-		Tags:op.Tags,
-		Created:ev.GlobalProp().HeadBlockTime().UtcSeconds,
-		Author:op.Owner.Value,
-		Content:op.Content,
-		Title:op.Title,
-	}
-	ev.TrxObserver().AddOpState(iservices.Add, "post", op.Owner.Value,pInfo)
 }
 
 func (ev *ReplyEvaluator) checkBeneficiaries(beneficiaries []*prototype.BeneficiaryRouteType) {
@@ -464,15 +451,6 @@ func (ev *ReplyEvaluator) Apply() {
 	//key := fmt.Sprintf("cashout:%d_%d", common.GetBucket(timestamp), op.Uuid)
 	//value := "reply"
 	//opAssertE(ev.Database().Put([]byte(key), []byte(value)), "put reply key into db error")
-
-	rInfo := &itype.ReplyInfo{
-		Id:op.Uuid,
-		Created:ev.GlobalProp().HeadBlockTime().UtcSeconds,
-		Author:op.Owner.Value,
-		ParentId:op.ParentUuid,
-		Content:op.Content,
-	}
-	ev.TrxObserver().AddOpState(iservices.Add, "reply", op.Owner.Value,rInfo)
 }
 
 // upvote is true: upvote otherwise downvote
@@ -570,14 +548,6 @@ func (ev *VoteEvaluator) Apply() {
 			})
 		}
 	}
-
-	vInfo := &itype.VoteInfo{
-		Voter:op.Voter.Value,
-		PostId:op.Idx,
-		Created:ev.GlobalProp().HeadBlockTime().UtcSeconds,
-		VotePower:weightedVp.String(),
-	}
-	ev.TrxObserver().AddOpState(iservices.Add, "vote", op.Voter.Value,vInfo)
 }
 
 func (ev *BpRegisterEvaluator) Apply() {
@@ -975,8 +945,7 @@ func (ev *ContractApplyEvaluator) Apply() {
 		tables = ct.NewContractTables(op.Owner.Value, op.Contract, abiInterface, ev.Database())
 	}
 
-	vmCtx := vmcontext.NewContextFromApplyOp(op, paramsData, code, codeHash, abiInterface, tables, ev.VMInjector(),
-		ev.TrxObserver())
+	vmCtx := vmcontext.NewContextFromApplyOp(op, paramsData, code, codeHash, abiInterface, tables, ev.VMInjector() )
 	// set max gas
 	remain := ev.VMInjector().GetVmRemainCpuStamina(op.Caller.Value)
 	remainGas := remain * constants.CpuConsumePointDen
@@ -1055,7 +1024,7 @@ func (ev *InternalContractApplyEvaluator) Apply() {
 		tables = ct.NewContractTables(op.ToOwner.Value, op.ToContract, abiInterface, ev.Database())
 	}
 
-	vmCtx := vmcontext.NewContextFromInternalApplyOp(op, code, codeHash, abiInterface, tables, ev.VMInjector(), ev.TrxObserver())
+	vmCtx := vmcontext.NewContextFromInternalApplyOp(op, code, codeHash, abiInterface, tables, ev.VMInjector() )
 	vmCtx.Gas = ev.remainGas
 
 	if op.Amount != nil && op.Amount.Value > 0 {

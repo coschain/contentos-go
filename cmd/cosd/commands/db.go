@@ -47,49 +47,13 @@ var DbCmd = func() *cobra.Command {
 		Use: "statedb",
 	}
 
-	stateInitCmd := &cobra.Command{
-		Use: "init",
-		Short: "init state log db",
-		Run: initStateDb,
-	}
-
-	tokenCmd := &cobra.Command{
-		Use: "tokendb",
-	}
-
-	tokenInitCmd := &cobra.Command{
-		Use: "init",
-		Short: "init token db",
-		Run: initTokenInfo,
-	}
-
-	tokenAddCmd := &cobra.Command{
-		Use: "add",
-		Short: "add token",
-		Example: "cosd db tokendb add [symbol] [owner]",
-		Args:  cobra.ExactArgs(2),
-		Run: addMarkedToken,
-	}
-
-	tokenRemoveCmd := &cobra.Command{
-		Use: "remove",
-		Short: "remove token",
-		Example: "cosd db tokendb remove [symbol] [owner]",
-		Args:  cobra.ExactArgs(2),
-		Run: removeMarkedToken,
-	}
 
 	trxCmd.AddCommand(trxInitCmd)
-	stateCmd.AddCommand(stateInitCmd)
 	dailyCmd.AddCommand(dailyInitCmd)
-	tokenCmd.AddCommand(tokenInitCmd)
-	tokenCmd.AddCommand(tokenAddCmd)
-	tokenCmd.AddCommand(tokenRemoveCmd)
 	cmd.AddCommand(trxCmd)
 	cmd.AddCommand(stateCmd)
 	cmd.AddCommand(dailyCmd)
 	cmd.AddCommand(initCmd)
-	cmd.AddCommand(tokenCmd)
 	return cmd
 }
 
@@ -148,35 +112,6 @@ func initTrxDb(cmd *cobra.Command, args []string) {
 		last_check_time int unsigned not null
 	);`
 
-		createCreateAccountInfo := `create table createaccountinfo
-	(
-        id bigint AUTO_INCREMENT PRIMARY KEY,
-		trx_id varchar(64) not null,
-		create_time int unsigned not null,
-		creator varchar(64) not null,
-		pubkey varchar(64) not null,
-		account varchar(64) not null,
-		INDEX createaccount_create_time (create_time),
-		INDEX createaccount_creator (creator),
-		INDEX creatoraccount_account (account),
-	  constraint createaccount_trx_id_uindex unique (trx_id)
-	);`
-
-		createTransferInfo := `create table transferinfo
-	(
-        id bigint AUTO_INCREMENT PRIMARY KEY,
-		trx_id varchar(64) not null,
-		create_time int unsigned not null,
-		sender varchar(64) not null,
-		receiver varchar(64) not null,
-		amount bigint default 0,
-		memo TEXT ,
-		INDEX transfer_create_time (create_time),
-		INDEX transfer_sender (sender),
-		INDEX transfer_receiver (receiver),
-	  constraint transferinfo_trx_id_uindex unique (trx_id)
-	);`
-
 	dropTables := []string{"trxinfo", "libinfo", "createaccountinfo", "transferinfo"}
 	for _, table := range dropTables {
 		dropSql := fmt.Sprintf("DROP TABLE IF EXISTS `%s`", table)
@@ -184,7 +119,7 @@ func initTrxDb(cmd *cobra.Command, args []string) {
 			fmt.Println(err)
 		}
 	}
-	createTables := []string{createTrxInfo, createLibInfo, createCreateAccountInfo, createTransferInfo}
+	createTables := []string{createTrxInfo, createLibInfo }
 	for _, table := range createTables {
 		if _, err = db.Exec(table); err != nil {
 			fmt.Println(err)
@@ -246,180 +181,7 @@ func initDailyDb(cmd *cobra.Command, args []string) {
 		"photogrid", "PG", "contentos", "CT", "game 2048", "G2", "walk coin", "EC")
 }
 
-func initStateDb(cmd *cobra.Command, args []string) {
-	cfg := readConfig()
-	dbConfig := cfg.Database
-	dsn := fmt.Sprintf("%s:%s@/%s", dbConfig.User, dbConfig.Password, dbConfig.Db)
-	db, err := sql.Open(dbConfig.Driver, dsn)
-	defer db.Close()
-	if err != nil {
-		fmt.Printf("fatal: init database failed, dsn:%s\n", dsn)
-		os.Exit(1)
-	}
-
-	createStateLogLibInfo := `create table stateloglibinfo
-(
-  lib int unsigned not null,
-  last_check_time int unsigned not null
-);`
-
-	createStateLog := `create table statelog
-(
-  id bigint AUTO_INCREMENT PRIMARY KEY,
-  block_id varchar(64) not null,
-  block_height int unsigned,
-  block_time int unsigned,
-  pick bool,
-  block_log json,
-  UNIQUE KEY statelog_block_id (block_id)
-);`
-
-	createStateAccount := `create table stateaccount
-(
-  account varchar(64),
-  balance bigint unsigned default 0,
-  UNIQUE Key stateaccount_account_index (account)
-);`
-
-	createStateMint := `create table statemint
-(
-  bp varchar(64),
-  revenue bigint unsigned default 0,
-  unique key statemint_bp_index (bp)
-);`
-
-	createStateCashout := `create table statecashout
-(
-  account varchar(64),
-  cashout bigint unsigned default 0,
-  unique key statecashout_account_index (account)
-);`
-	dropTables := []string{"statelog", "stateloglibinfo", "stateaccount", "statemint", "statecashout"}
-	for _, table := range dropTables {
-		dropSql := fmt.Sprintf("DROP TABLE IF EXISTS `%s`", table)
-		if _, err = db.Exec(dropSql); err != nil {
-			fmt.Println(err)
-		}
-	}
-	createTables := []string{createStateLog, createStateLogLibInfo, createStateAccount, createStateMint, createStateCashout}
-	for _, table := range createTables {
-		if _, err = db.Exec(table); err != nil {
-			fmt.Println(err)
-		}
-	}
-	_, _ = db.Exec("INSERT INTO `stateloglibinfo` (lib, last_check_time) VALUES (?, ?)", 0, time.Now().UTC().Unix())
-}
-
-func initTokenInfo(cmd *cobra.Command, args []string) {
-	cfg := readConfig()
-	dbConfig := cfg.Database
-	dsn := fmt.Sprintf("%s:%s@/%s", dbConfig.User, dbConfig.Password, dbConfig.Db)
-	db, err := sql.Open(dbConfig.Driver, dsn)
-	defer db.Close()
-	if err != nil {
-		fmt.Printf("fatal: init database failed, dsn:%s\n", dsn)
-		os.Exit(1)
-	}
-
-	createTokenLibInfo := `create table tokenlibinfo
-(
-    lib int unsigned not null,
-    last_check_time int unsigned not null
-);`
-
-	createMarkedToken := `create table markedtoken
-(
-    symbol varchar(64),
-    owner varchar(64)
-);`
-
-	createTokenBalance := `create table tokenbalance
-(
-    symbol varchar(64),
-    owner varchar(64),
-    account varchar(64),
-    balance bigint unsigned default 0
-);`
-
-	dropTables := []string{"tokenlibinfo", "markedtoken", "tokenbalance"}
-	for _, table := range dropTables {
-		dropSql := fmt.Sprintf("DROP TABLE IF EXISTS `%s`", table)
-		if _, err = db.Exec(dropSql); err != nil {
-			fmt.Println(err)
-		}
-	}
-	createTables := []string{createTokenLibInfo, createMarkedToken, createTokenBalance}
-	for _, table := range createTables {
-		if _, err = db.Exec(table); err != nil {
-			fmt.Println(err)
-		}
-	}
-	_, _ = db.Exec("INSERT INTO `tokenlibinfo` (lib, last_check_time) VALUES (?, ?)", 0, time.Now().UTC().Unix())
-	//_, _ = db.Exec("INSERT INTO `markedtoken` (symbol, owner) VALUES (?, ?)", "coc", "initminer")
-}
-
-func addMarkedToken(cmd *cobra.Command, args []string) {
-	cfg := readConfig()
-	dbConfig := cfg.Database
-	dsn := fmt.Sprintf("%s:%s@/%s", dbConfig.User, dbConfig.Password, dbConfig.Db)
-	db, err := sql.Open(dbConfig.Driver, dsn)
-	defer db.Close()
-	if err != nil {
-		fmt.Printf("fatal: open database failed, dsn:%s\n", dsn)
-		os.Exit(1)
-	}
-
-	createTokenLibInfo := `create table tokenlibinfo
-(
-    lib int unsigned not null,
-    last_check_time int unsigned not null
-);`
-
-	createTokenBalance := `create table tokenbalance
-(
-    symbol varchar(64),
-    owner varchar(64),
-    account varchar(64),
-    balance bigint unsigned default 0
-);`
-
-	dropTables := []string{"tokenlibinfo", "tokenbalance"}
-	for _, table := range dropTables {
-		dropSql := fmt.Sprintf("DROP TABLE IF EXISTS `%s`", table)
-		if _, err = db.Exec(dropSql); err != nil {
-			fmt.Println(err)
-		}
-	}
-	createTables := []string{createTokenLibInfo, createTokenBalance}
-	for _, table := range createTables {
-		if _, err = db.Exec(table); err != nil {
-			fmt.Println(err)
-		}
-	}
-	_, _ = db.Exec("INSERT INTO `tokenlibinfo` (lib, last_check_time) VALUES (?, ?)", 0, time.Now().UTC().Unix())
-	symbol := args[0]
-	owner := args[1]
-	_, _ = db.Exec("INSERT INTO `markedtoken` (symbol, owner) VALUES (?, ?)", symbol, owner)
-}
-
-func removeMarkedToken(cmd *cobra.Command, args []string) {
-	cfg := readConfig()
-	dbConfig := cfg.Database
-	dsn := fmt.Sprintf("%s:%s@/%s", dbConfig.User, dbConfig.Password, dbConfig.Db)
-	db, err := sql.Open(dbConfig.Driver, dsn)
-	defer db.Close()
-	if err != nil {
-		fmt.Printf("fatal: open database failed, dsn:%s\n", dsn)
-		os.Exit(1)
-	}
-	symbol := args[0]
-	owner := args[1]
-	_, _ = db.Exec("DELETE FROM `markedtoken` where symbol=? and owner=?", symbol, owner)
-}
-
 func initAllDb(cmd *cobra.Command, args []string) {
 	initTrxDb(cmd, args)
 	initDailyDb(cmd, args)
-	initStateDb(cmd, args)
-	initTokenInfo(cmd, args)
 }

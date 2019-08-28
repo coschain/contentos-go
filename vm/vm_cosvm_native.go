@@ -5,7 +5,6 @@ import (
 	"github.com/coschain/contentos-go/app/blocklog"
 	"github.com/coschain/contentos-go/app/table"
 	"github.com/coschain/contentos-go/common/constants"
-	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/iservices/itype"
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/coschain/contentos-go/vm/contract/abi"
@@ -197,7 +196,6 @@ func (w *CosVMNative) TableNewRecord(tableName string, record []byte) {
 	contractData.Contract = w.ReadContractName()
 	contractData.ContractOwner = w.ReadContractOwner()
 	contractData.Record = decodeRecord
-	w.cosVM.ctx.TrxObserver.AddOpState(iservices.Insert, "contract", tableName, contractData)
 }
 
 func (w *CosVMNative) TableUpdateRecord(tableName string, primary []byte, record []byte) {
@@ -216,7 +214,6 @@ func (w *CosVMNative) TableUpdateRecord(tableName string, primary []byte, record
 	contractData.Contract = w.ReadContractName()
 	contractData.ContractOwner = w.ReadContractOwner()
 	contractData.Record = decodeRecord
-	w.cosVM.ctx.TrxObserver.AddOpState(iservices.Update, "contract", tableName, contractData)
 }
 
 func (w *CosVMNative) TableDeleteRecord(tableName string, primary []byte) {
@@ -229,11 +226,6 @@ func (w *CosVMNative) TableDeleteRecord(tableName string, primary []byte) {
 	err := currentTable.DeleteRecord(primary)
 	currentTable.SetRecordCallback(nil)
 	w.CosAssert(err == nil, fmt.Sprintf("TableDeleteRecord(): table.DeleteRecord() failed. %v", err))
-	// delete should be observer ? Yes and No
-	// For yes, every modify should be record of course
-	// For No, delete record using primary key which only used in delete
-	//m := map[string]string{"contract": w.ReadCallingContractName(), "contract_owner": w.ReadCallingContractOwner(), "record": decodeRecord}
-	//w.cosVM.ctx.TrxObserver.AddOpState(iservices.Delete, "contract", tableName, string(primary))
 }
 
 func (w *CosVMNative) TableGetRecordEx(ownerName, contractName, tableName string, primary []byte) []byte {

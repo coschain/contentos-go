@@ -9,7 +9,6 @@ import (
 	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/iservices"
-	"github.com/coschain/contentos-go/iservices/itype"
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
@@ -101,7 +100,6 @@ type Economist struct {
 	noticer  EventBus.Bus
 	log *logrus.Logger
 	dgp *DynamicGlobalPropsRW
-	observer iservices.ITrxObserver
 	stateChange *blocklog.StateChangeContext
 }
 
@@ -117,7 +115,7 @@ func (e *Economist) getAccount(account *prototype.AccountName) (*table.SoAccount
 	return accountWrap, nil
 }
 
-func (e *Economist) Mint(trxObserver iservices.ITrxObserver) {
+func (e *Economist) Mint() {
 	e.stateChange.PushCause("mint")
 
 	//t0 := time.Now()
@@ -185,7 +183,6 @@ func (e *Economist) Mint(trxObserver iservices.ITrxObserver) {
 	})
 
 	updateBpVoteValue(e.db, globalProps.CurrentBlockProducer, oldVest, bpRewardVest)
-	trxObserver.AddOpState(iservices.Add, "mint", globalProps.CurrentBlockProducer.Value, bpReward)
 	e.stateChange.PopCause()
 	e.stateChange.PopCause()
 
@@ -202,7 +199,7 @@ func (e *Economist) Mint(trxObserver iservices.ITrxObserver) {
 }
 
 // maybe slow
-func (e *Economist) Distribute(trxObserver iservices.ITrxObserver) {
+func (e *Economist) Distribute() {
 	e.stateChange.PushCause("free_ticket")
 	defer e.stateChange.PopCause()
 
@@ -269,11 +266,7 @@ func (e *Economist) decayGlobalWvp() {
 	})
 }
 
-func  (e *Economist) setCurrentBlockObserver(observer iservices.ITrxObserver) {
-	e.observer = observer
-}
-
-func (e *Economist) Do(trxObserver iservices.ITrxObserver) {
+func (e *Economist) Do() {
 	e.stateChange.PushCause("reward")
 	defer e.stateChange.PopCause()
 
@@ -282,7 +275,6 @@ func (e *Economist) Do(trxObserver iservices.ITrxObserver) {
 		return
 	}
 	e.decayGlobalWvp()
-	e.setCurrentBlockObserver(trxObserver)
 	iterator := table.NewPostCashoutBlockNumWrap(e.db)
 	//end := globalProps.HeadBlockNumber
 	// in iterator, the right is open.
@@ -615,49 +607,48 @@ func (e *Economist) finalizePostDappCashout(postId uint64, reward *big.Int) {
 
 func (e *Economist) notifyPostCashoutResult(beneficiary string, postId uint64, weightedVp *big.Int, reward *big.Int, prop *prototype.DynamicProperties) {
 	if GreaterThanZero(reward) {
-		rInfo := &itype.RewardInfo{
-			Beneficiary:beneficiary,
-			Reward: reward.Uint64(),
-			PostId: postId,
-		}
-		e.noticer.Publish(constants.NoticeCashout, beneficiary, postId, reward.Uint64(), prop.GetHeadBlockNumber())
-		e.observer.AddOpState(iservices.Update, "postReward", beneficiary, rInfo)
+		//rInfo := &itype.RewardInfo{
+		//	Beneficiary:beneficiary,
+		//	Reward: reward.Uint64(),
+		//	PostId: postId,
+		//}
+		//e.noticer.Publish(constants.NoticeCashout, beneficiary, postId, reward.Uint64(), prop.GetHeadBlockNumber())
 	}
 }
 
 func (e *Economist) notifyReplyCashoutResult(beneficiary string, postId uint64, weightedVp *big.Int, reward *big.Int, prop *prototype.DynamicProperties) {
 	if GreaterThanZero(reward) {
-		rInfo := &itype.RewardInfo{
-			Beneficiary:beneficiary,
-			Reward: reward.Uint64(),
-			PostId: postId,
-		}
-		e.noticer.Publish(constants.NoticeCashout, beneficiary, postId, reward.Uint64(), prop.GetHeadBlockNumber())
-		e.observer.AddOpState(iservices.Update, "replyReward", beneficiary, rInfo)
+		//rInfo := &itype.RewardInfo{
+		//	Beneficiary:beneficiary,
+		//	Reward: reward.Uint64(),
+		//	PostId: postId,
+		//}
+		//e.noticer.Publish(constants.NoticeCashout, beneficiary, postId, reward.Uint64(), prop.GetHeadBlockNumber())
+		//e.observer.AddOpState(iservices.Update, "replyReward", beneficiary, rInfo)
 	}
 }
 
 func (e *Economist) notifyVoteCashoutResult(beneficiary string, postId uint64, weightedVp *big.Int, reward *big.Int, prop *prototype.DynamicProperties) {
 	if GreaterThanZero(reward) {
-		b := &itype.VoteRewardInfo{
-			Beneficiary:beneficiary,
-			Reward:reward.Uint64(),
-			VotePostId:postId,
-		}
-		e.noticer.Publish(constants.NoticeCashout, beneficiary, postId, reward.Uint64(), prop.GetHeadBlockNumber())
-		e.observer.AddOpState(iservices.Add, "voteReward", beneficiary, b)
+		//b := &itype.VoteRewardInfo{
+		//	Beneficiary:beneficiary,
+		//	Reward:reward.Uint64(),
+		//	VotePostId:postId,
+		//}
+		//e.noticer.Publish(constants.NoticeCashout, beneficiary, postId, reward.Uint64(), prop.GetHeadBlockNumber())
+		//e.observer.AddOpState(iservices.Add, "voteReward", beneficiary, b)
 	}
 }
 
 func (e *Economist) notifyDappCashoutResult(beneficiary string, postId uint64, weightedVp *big.Int, reward *big.Int, prop *prototype.DynamicProperties) {
 	if GreaterThanZero(reward) {
-		rInfo := &itype.DappRewardInfo{
-			Beneficiary:beneficiary,
-			Reward:reward.Uint64(),
-			RelatedPostId:postId,
-		}
-		e.noticer.Publish(constants.NoticeCashout, beneficiary, postId, reward.Uint64(), prop.GetHeadBlockNumber())
-		e.observer.AddOpState(iservices.Add, "dappcashout", beneficiary, rInfo)
+		//rInfo := &itype.DappRewardInfo{
+		//	Beneficiary:beneficiary,
+		//	Reward:reward.Uint64(),
+		//	RelatedPostId:postId,
+		//}
+		//e.noticer.Publish(constants.NoticeCashout, beneficiary, postId, reward.Uint64(), prop.GetHeadBlockNumber())
+		//e.observer.AddOpState(iservices.Add, "dappcashout", beneficiary, rInfo)
 	}
 }
 
