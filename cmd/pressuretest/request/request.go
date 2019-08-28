@@ -104,12 +104,12 @@ func createAccount(mywallet *wallet.BaseWallet, rpcClient grpcpb.ApiServiceClien
 		}
 
 		if strings.Contains(resp.Invoice.ErrorInfo, "Insufficient") {
-			err := transfer(rpcClient, GlobalAccountLIst.arr[0], creatorAccount, 5)
+			err := transfer(rpcClient, GlobalAccountLIst.arr[0], creatorAccount, 5 * constants.DefaultAccountCreateFee)
 			if err != nil {
 				fmt.Println(err)
 				return
 			}
-			err = vest(rpcClient, GlobalAccountLIst.arr[0], creatorAccount, 5)
+			err = vest(rpcClient, GlobalAccountLIst.arr[0], creatorAccount, 2 * constants.DefaultAccountCreateFee)
 			if err != nil {
 				fmt.Println(err)
 				return
