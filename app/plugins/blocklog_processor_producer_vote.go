@@ -17,8 +17,15 @@ type ProducerVoteRecord struct {
 	Cancel bool
 }
 
+type ProducerVoteState struct {
+	Composer string				`gorm:"primary_key"`
+	Voter string				`gorm:"index"`
+	Producer string				`gorm:"index"`
+}
+
 type ProducerVoteProcessor struct {
-	tableReady bool
+	tableRecordReady bool
+	tableStateReady bool
 }
 
 func NewProducerVoteProcessor() *ProducerVoteProcessor {
@@ -26,13 +33,22 @@ func NewProducerVoteProcessor() *ProducerVoteProcessor {
 }
 
 func (p *ProducerVoteProcessor) Prepare(db *gorm.DB, blockLog *blocklog.BlockLog) (err error) {
-	if !p.tableReady {
+	if !p.tableRecordReady {
 		if !db.HasTable(&ProducerVoteRecord{}) {
 			if err = db.CreateTable(&ProducerVoteRecord{}).Error; err == nil {
-				p.tableReady = true
+				p.tableRecordReady = true
 			}
 		}
 	}
+
+	if !p.tableStateReady {
+		if !db.HasTable(&ProducerVoteState{}) {
+			if err = db.CreateTable(&ProducerVoteState{}).Error; err == nil {
+				p.tableStateReady = true
+			}
+		}
+	}
+
 	return
 }
 
@@ -55,13 +71,28 @@ func (p *ProducerVoteProcessor) ProcessOperation(db *gorm.DB, blockLog *blocklog
 	if !ok {
 		return errors.New("failed conversion to BpVoteOperation")
 	}
-	return db.Create(&ProducerVoteRecord{
+	err := db.Create(&ProducerVoteRecord{
 		BlockHeight: blockLog.BlockNum,
 		BlockTime: time.Unix(int64(blockLog.BlockTime), 0),
 		Voter: op.GetVoter().GetValue(),
 		Producer: op.GetBlockProducer().GetValue(),
 		Cancel: op.Cancel,
 	}).Error
+
+	if err != nil {
+		return err
+	}
+
+	composer := op.GetVoter().GetValue() + "*" + op.GetBlockProducer().GetValue()
+	state := ProducerVoteState{ Composer: composer, Voter: op.GetVoter().Value, Producer: op.GetBlockProducer().Value }
+
+	if op.Cancel {
+		return db.Delete( &state ).Error
+	} else {
+		return db.Create(&state).Error
+	}
+
+	return nil
 }
 
 func (p *ProducerVoteProcessor) Finalize(db *gorm.DB, blockLog *blocklog.BlockLog) error {
