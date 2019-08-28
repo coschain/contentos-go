@@ -260,7 +260,7 @@ func vest(rpcClient grpcpb.ApiServiceClient, fromAccount, toAccount  *wallet.Pri
 			if fromAccount == GlobalAccountLIst.arr[0] {
 				return errors.New("initminer has no money left")
 			}
-			err := vest(rpcClient, GlobalAccountLIst.arr[0], fromAccount, 10)
+			err := vest(rpcClient, GlobalAccountLIst.arr[0], fromAccount, 10 * constants.COSTokenDecimals)
 			if err != nil {
 				fmt.Println(err)
 				return err
@@ -571,12 +571,12 @@ func acquireTicket(rpcClient grpcpb.ApiServiceClient, fromAccount *wallet.PrivAc
 	if err != nil {
 		fmt.Println(err)
 	} else {
-		if strings.Contains(resp.Invoice.ErrorInfo, "Insufficient") {
+		if strings.Contains(resp.Invoice.ErrorInfo, "Overflow") {
 			if fromAccount == GlobalAccountLIst.arr[0] {
 				fmt.Println("Initminer has no money left")
 				return
 			}
-			err := vest(rpcClient, GlobalAccountLIst.arr[0], fromAccount, 10 * constants.COSTokenDecimals)
+			err := transfer(rpcClient, GlobalAccountLIst.arr[0], fromAccount, 10 * constants.COSTokenDecimals)
 			if err != nil {
 				fmt.Println(err)
 				return
