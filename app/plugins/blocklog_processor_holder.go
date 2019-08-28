@@ -66,3 +66,8 @@ func (p *HolderProcessor) ProcessOperation(db *gorm.DB, blockLog *blocklog.Block
 func (p *HolderProcessor) Finalize(db *gorm.DB, blockLog *blocklog.BlockLog) error {
 	return nil
 }
+
+
+func init() {
+	RegisterSQLTableNamePattern("holders")
+}

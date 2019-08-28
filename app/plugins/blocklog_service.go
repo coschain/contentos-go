@@ -46,7 +46,7 @@ func (s *BlockLogService) Stop() error {
 
 func (s *BlockLogService) initDatabase() error {
 	connStr := fmt.Sprintf("%s:%s@/%s?charset=utf8&parseTime=True&loc=Local", s.config.User, s.config.Password, s.config.Db)
-	if db, err := gorm.Open("mysql", connStr); err != nil {
+	if db, err := gorm.Open(s.config.Driver, connStr); err != nil {
 		return err
 	} else {
 		s.db = db
@@ -83,4 +83,9 @@ func (s *BlockLogService) onLibChange(blocks []common.ISignedBlock) {
 		}
 		tx.Commit()
 	}
+}
+
+
+func init() {
+	RegisterSQLTableNamePattern(fmt.Sprintf("%s\\w*", iservices.BlockLogTable))
 }

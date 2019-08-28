@@ -102,3 +102,9 @@ func (p *ProducerVoteProcessor) ProcessOperation(db *gorm.DB, blockLog *blocklog
 func (p *ProducerVoteProcessor) Finalize(db *gorm.DB, blockLog *blocklog.BlockLog) error {
 	return nil
 }
+
+
+func init() {
+	RegisterSQLTableNamePattern("producer_vote_records")
+	RegisterSQLTableNamePattern("producer_vote_states")
+}

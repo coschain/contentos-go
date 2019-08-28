@@ -6,6 +6,7 @@ import (
 )
 
 const BlockLogServiceName = "block_log_svc"
+const BlockLogTable = "blocklogs"
 
 // table splitting size in million records, set to 0 for no-splitting.
 const BlockLogSplitSizeInMillion = 5
@@ -24,7 +25,6 @@ func (log *BlockLogRecord) TableName() string {
 }
 
 func BlockLogTableNameForBlockHeight(num uint64) string {
-	const BlockLogTable = "blocklogs"
 	if BlockLogSplitSizeInMillion <= 0 {
 		return BlockLogTable
 	}

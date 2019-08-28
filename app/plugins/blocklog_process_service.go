@@ -80,7 +80,7 @@ func (s *BlockLogProcessService) addProcessors() {
 
 func (s *BlockLogProcessService) initDatabase() error {
 	connStr := fmt.Sprintf("%s:%s@/%s?charset=utf8&parseTime=True&loc=Local", s.config.User, s.config.Password, s.config.Db)
-	if db, err := gorm.Open("mysql", connStr); err != nil {
+	if db, err := gorm.Open(s.config.Driver, connStr); err != nil {
 		return err
 	} else {
 		s.db = db
@@ -226,4 +226,8 @@ func (s *BlockLogProcessService) callProcessors(f func(IBlockLogProcessor)error)
 		}
 	}
 	return
+}
+
+func init() {
+	RegisterSQLTableNamePattern("blocklog_process")
 }

@@ -89,3 +89,8 @@ func (p *StakeProcessor) processStake(db *gorm.DB, from, to string, amount uint6
 	}
 	return
 }
+
+
+func init() {
+	RegisterSQLTableNamePattern("stakes")
+}

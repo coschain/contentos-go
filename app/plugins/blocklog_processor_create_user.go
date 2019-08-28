@@ -69,3 +69,7 @@ func (p *CreateUserProcessor) ProcessOperation(db *gorm.DB, blockLog *blocklog.B
 func (p *CreateUserProcessor) Finalize(db *gorm.DB, blockLog *blocklog.BlockLog) error {
 	return nil
 }
+
+func init() {
+	RegisterSQLTableNamePattern("create_user_records")
+}

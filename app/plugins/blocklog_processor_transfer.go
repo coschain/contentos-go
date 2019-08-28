@@ -76,3 +76,8 @@ func (p *TransferProcessor) ProcessOperation(db *gorm.DB, blockLog *blocklog.Blo
 func (p *TransferProcessor) Finalize(db *gorm.DB, blockLog *blocklog.BlockLog) error {
 	return nil
 }
+
+
+func init() {
+	RegisterSQLTableNamePattern("transfer_records")
+}

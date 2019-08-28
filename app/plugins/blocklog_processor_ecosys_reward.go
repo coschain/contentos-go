@@ -22,10 +22,9 @@ type EcosysReward struct {
 	Pool uint64
 }
 
+const RewardTableName = "ecosys_reward"
 
 func (rec *EcosysReward) TableName() string {
-	const RewardTableName = "ecosys_reward"
-
 	num := rec.BlockHeight
 	if num <= 0 {
 		return RewardTableName
@@ -103,4 +102,9 @@ func (p *EcosysProcessor) ProcessOperation(db *gorm.DB, blockLog *blocklog.Block
 
 func (p *EcosysProcessor) Finalize(db *gorm.DB, blockLog *blocklog.BlockLog) error {
 	return nil
+}
+
+
+func init() {
+	RegisterSQLTableNamePattern(fmt.Sprintf("%s\\w*", RewardTableName))
 }

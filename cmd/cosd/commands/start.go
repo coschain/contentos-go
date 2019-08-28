@@ -85,7 +85,8 @@ func startNode(cmd *cobra.Command, args []string) {
 	// _ is cfg as below process has't used
 
 	_, _ = cmd, args
-	if len(args) > 0 && args[0] == "replay" {
+	replaying := len(args) > 0 && args[0] == "replay"
+	if replaying {
 		//If replay, remove level db first then  sync blocks from block log and snapshot to db
 		err := os.RemoveAll(filepath.Join(config.DefaultDataDir(), ClientIdentifier, "db"))
 		if err != nil {
@@ -93,6 +94,12 @@ func startNode(cmd *cobra.Command, args []string) {
 		}
 	}
 	app, cfg := makeNode()
+	if replaying && len(pluginList) > 0 {
+		if err := plugins.RemoveSQLTables(cfg.Database); err != nil {
+			panic(fmt.Sprintf("remove sql tables fail when node replay: %s", err.Error()))
+		}
+	}
+
 	app.Log = mylog.Init(cfg.ResolvePath("logs"), cfg.LogLevel, 3600 * 24 * 7)
 	app.Log.Info("Cosd running version: ", NodeName)
 
