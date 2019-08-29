@@ -116,3 +116,7 @@ message peer_addr {
     uint32 ConsensusPort = 5;
     uint64 ID = 6;
 }
+
+message consensus_extra_data {
+    uint32 bcast = 1;
+}

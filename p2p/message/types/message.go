@@ -161,7 +161,7 @@ func MakeEmptyMessage(cmdType string) (Message, error) {
 	case common.CLEAR_OUT_OF_RABGE_STATE:
 		return &TransferMsg{}, nil
 	case common.CONSENSUS_TYPE:
-		return &ConsMsg{}, nil
+		return &ConsMsg{Extra:&ConsensusExtraData{},}, nil
 	default:
 		return nil, errors.New("unsupported cmd type:" + cmdType)
 	}
