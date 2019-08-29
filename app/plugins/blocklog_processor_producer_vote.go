@@ -18,8 +18,7 @@ type ProducerVoteRecord struct {
 }
 
 type ProducerVoteState struct {
-	Composer string				`gorm:"primary_key"`
-	Voter string				`gorm:"index"`
+	Voter string				`gorm:"primary_key"`
 	Producer string				`gorm:"index"`
 }
 
@@ -87,8 +86,7 @@ func (p *ProducerVoteProcessor) ProcessOperation(db *gorm.DB, blockLog *blocklog
 		return err
 	}
 
-	composer := op.GetVoter().GetValue() + "*" + op.GetBlockProducer().GetValue()
-	state := ProducerVoteState{ Composer: composer, Voter: op.GetVoter().Value, Producer: op.GetBlockProducer().Value }
+	state := ProducerVoteState{ Voter: op.GetVoter().Value, Producer: op.GetBlockProducer().Value }
 
 	if op.Cancel {
 		return db.Delete( &state ).Error
