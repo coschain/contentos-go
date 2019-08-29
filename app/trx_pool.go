@@ -109,6 +109,13 @@ func (c *TrxPool) Open() {
 }
 
 func (c *TrxPool) Stop() error {
+	//
+	// the node is shutting down, and we should wait when PushBlock()/GenerateAndApplyBlock() is running.
+	// otherwise, database will be closed soon and running PushBlock()/GenerateAndApplyBlock() will fail or crash.
+	//
+	c.db.Lock()
+	defer c.db.Unlock()
+
 	return nil
 }
 
