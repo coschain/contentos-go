@@ -534,6 +534,7 @@ func (sabft *SABFT) Stop() error {
 	sabft.prodTimer.Stop()
 	sabft.cp.db.Close()
 	close(sabft.stopCh)
+	sabft.readyToProduce = false
 	sabft.wg.Wait()
 	return nil
 }

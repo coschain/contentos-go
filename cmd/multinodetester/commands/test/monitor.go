@@ -13,10 +13,18 @@ import (
 	"time"
 )
 
+type NodeState int
+
+const (
+	OffLine NodeState = 0
+	Syncing NodeState = 1
+	OnLine NodeState = 2
+)
+
 type Components struct {
 	ConsensusSvc iservices.IConsensus
 	P2pSvc       iservices.IP2P
-	IsRunning    bool
+	State    NodeState
 }
 
 type Monitor struct {
@@ -191,9 +199,11 @@ func (m *Monitor) draw() {
 func formattedLine(c *Components) string {
 	peers := c.P2pSvc.GetNodeNeighbours()
 	ps := strings.Split(peers, ",")
-	status := "online"
-	if c.IsRunning == false {
-		status = "offline"
+	status := "offline"
+	if c.State == Syncing {
+		status = "syncing"
+	} else if c.State == OnLine {
+		status = "online"
 	}
 	return fmt.Sprintf("%12s %12d %12d %12d %12s",
 		c.ConsensusSvc.GetName(),

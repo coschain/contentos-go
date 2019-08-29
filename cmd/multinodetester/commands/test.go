@@ -2,6 +2,16 @@ package commands
 
 import (
 	"fmt"
+	"math/rand"
+	"os"
+	"os/exec"
+	"os/signal"
+	"path/filepath"
+	"strconv"
+	"strings"
+	"syscall"
+	"time"
+
 	"github.com/coschain/cobra"
 	ctrl "github.com/coschain/contentos-go/app"
 	"github.com/coschain/contentos-go/cmd/multinodetester/commands/test"
@@ -15,15 +25,6 @@ import (
 	"github.com/coschain/contentos-go/p2p"
 	"github.com/coschain/gobft/message"
 	"github.com/spf13/viper"
-	"math/rand"
-	"os"
-	"os/exec"
-	"os/signal"
-	"path/filepath"
-	"strconv"
-	"strings"
-	"syscall"
-	"time"
 )
 
 var VERSION = "defaultVersion"
@@ -205,7 +206,16 @@ func resetSvc(node *node.Node, comp *test.Components) {
 	css.EnableMockSignal()
 	comp.ConsensusSvc = css
 	comp.P2pSvc = p2p
-	comp.IsRunning = true
+	comp.State = test.Syncing
+	go func() {
+		for {
+			time.Sleep(time.Second)
+			if css.CheckSyncFinished() {
+				comp.State = test.OnLine
+				break
+			}
+		}
+	}()
 }
 
 func readyToShutDown(node *node.Node) bool {
@@ -238,12 +248,11 @@ func eraseNodeDataAndRestart(node *node.Node, comp *test.Components, idx int, ch
 
 				name := fmt.Sprintf("%s_%d", TesterClientIdentifier, idx)
 				confdir := filepath.Join(config.DefaultDataDir(), name)
-				//cmdLine := rm -rf `ls | grep -v "config"`
 				cmdLine := fmt.Sprintf("ls %s | grep -v %q", confdir, "config")
-				cmd := exec.Command("/bin/bash","-c", cmdLine)
+				cmd := exec.Command("/bin/bash", "-c", cmdLine)
 				out, err := cmd.CombinedOutput()
 				if err != nil {
-					fmt.Errorf("Error: %v\n", err)
+					panic(err)
 				}
 
 				files := strings.Split(string(out), "\n")
@@ -252,20 +261,12 @@ func eraseNodeDataAndRestart(node *node.Node, comp *test.Components, idx int, ch
 						continue
 					}
 					cmdLine = fmt.Sprintf("rm -rf %s", filepath.Join(confdir, files[i]))
-					_, err = exec.Command("/bin/bash","-c", cmdLine).CombinedOutput()
+					_, err = exec.Command("/bin/bash", "-c", cmdLine).CombinedOutput()
 					if err != nil {
 						panic(err)
 					}
 				}
 
-				//app, cfg := makeNode(name)
-				//app.Log = mylog.Init(cfg.ResolvePath("logs"), cfg.LogLevel, 3600*24*7)
-				//app.Log.Out = &emptyWriter{}
-				//app.Log.Info("Cosd running version: ", VERSION)
-				//RegisterService(app, cfg)
-				//if err := app.Start(); err != nil {
-				//	common.Fatalf("start node failed, err: %v\n", err)
-				//}
 				if err := node.Start(); err != nil {
 					panic(err)
 				}
@@ -295,17 +296,17 @@ func randomlyShutdownNodes(nodes []*node.Node, c []*test.Components, ch chan str
 			}
 			totalOffline := 0
 			for i := range c {
-				if c[i].IsRunning == false {
+				if c[i].State == test.OffLine {
 					totalOffline++
 				}
 			}
-			if c[idx].IsRunning == false || totalOffline > len(nodes)/2 {
+			if c[idx].State == test.OffLine || totalOffline > len(nodes)/2 {
 				continue
 			}
 			if err := nodes[idx].Stop(); err != nil {
 				panic(err)
 			}
-			c[idx].IsRunning = false
+			c[idx].State = test.OffLine
 			go func() {
 				time.Sleep(10 * time.Second)
 				if err := nodes[idx].Start(); err != nil {
