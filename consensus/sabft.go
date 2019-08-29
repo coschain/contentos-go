@@ -1532,6 +1532,7 @@ func (sabft *SABFT) handleBlockSync() error {
 					"%v", i)
 				return err
 			}
+			sabft.noticer.Publish(constants.NoticeLibChange, []common.ISignedBlock{blk})
 		}
 	}
 
