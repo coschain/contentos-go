@@ -185,10 +185,6 @@ func (sabft *SABFT) shuffle(head common.ISignedBlock) (bool, []string) {
 }
 
 func (sabft *SABFT) addDynasty(d *Dynasty) {
-	for !sabft.dynasties.Empty() && sabft.dynasties.Front().GetValidatorNum() < 3 {
-		sabft.log.Info("remove inferior dynasty: ", sabft.dynasties.Front().Seq)
-		sabft.dynasties.PopFront()
-	}
 	sabft.log.Info("add dynasty: ", d.Seq)
 	sabft.dynasties.PushBack(d)
 }
