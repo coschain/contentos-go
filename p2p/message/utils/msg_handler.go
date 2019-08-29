@@ -903,7 +903,7 @@ func (p *MsgHandler) ConsMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args 
 		return
 	}
 
-	if msgdata.Bcast == 1 {
+	if msgdata.Extra.Bcast == 1 {
 		hash := msgdata.Hash()
 		if remotePeer.HasConsensusMsg(hash) {
 			//log.Info("[p2p] we alerady have this consensus msg, msg hash: ", hash)
@@ -925,7 +925,7 @@ func (p *MsgHandler) ConsMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args 
 
 	ctrl.Push(msgdata.MsgData, remotePeer)
 
-	if msgdata.Bcast == 1 {
+	if msgdata.Extra.Bcast == 1 {
 		//log.Info("forward broadcast consensus msg")
 		p2p.Broadcast(msgdata, false)
 	}
