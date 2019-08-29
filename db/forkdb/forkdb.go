@@ -203,7 +203,7 @@ func (db *DB) pushBlock(b common.ISignedBlock) RetCode {
 		return RTDuplicated
 	}
 
-	if num > db.head.BlockNum()+1 || num <= db.start {
+	if num > db.head.BlockNum()+1 || num <= db.start || num-db.start >= uint64(len(db.list)){
 		return RTOutOfRange
 	}
 
@@ -212,9 +212,6 @@ func (db *DB) pushBlock(b common.ISignedBlock) RetCode {
 		db.detachedLink[prev] = b
 		return RTDetached
 	} else {
-		if num-db.start < 0 || num-db.start >= uint64(len(db.list)) {
-			return RTInvalid
-		}
 		db.list[num-db.start] = append(db.list[num-db.start], id)
 		db.branches[id] = b
 		db.tryNewHead(id)
