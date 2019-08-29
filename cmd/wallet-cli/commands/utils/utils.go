@@ -120,3 +120,24 @@ func ProcessEstimate(cmd *cobra.Command) bool {
 	return EstimateStamina
 }
 
+func ParseAccountCreateFee(client grpcpb.ApiServiceClient, accountCreateFee string) (*prototype.Coin, error) {
+	fee := prototype.NewCoin(0)
+	if len(accountCreateFee) > 0 {
+		value, err := ParseCos(accountCreateFee)
+		if err != nil {
+			return fee, err
+		} else {
+			fee.Value = value
+			return fee, nil
+		}
+	} else {
+		chainstate, err := GetChainState(client)
+		if err != nil {
+			return fee, err
+		} else {
+			fee = chainstate.Dgpo.AccountCreateFee
+			return fee, nil
+		}
+	}
+}
+

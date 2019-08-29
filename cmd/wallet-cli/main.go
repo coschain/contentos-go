@@ -138,6 +138,7 @@ func addCommands() {
 	rootCmd.AddCommand(commands.TransferVestCmd())
 	rootCmd.AddCommand(commands.ConvertVestCmd())
 	rootCmd.AddCommand(commands.VoteCmd())
+	rootCmd.AddCommand(commands.ImportFromMnemonicCmd())
 	rootCmd.AddCommand(commands.ImportCmd())
 	rootCmd.AddCommand(commands.BpCmd())
 	rootCmd.AddCommand(commands.PostCmd())

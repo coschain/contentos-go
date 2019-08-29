@@ -24,7 +24,7 @@ var CreateCmd = func() *cobra.Command {
 		Run:     create,
 	}
 
-	cmd.Flags().StringVarP(&createAccountFee, "fee", "f", utils.MinimumCos, `create alice bob --fee 1.000000`)
+	cmd.Flags().StringVarP(&createAccountFee, "fee", "f", "", `create alice bob --fee 1.000000`)
 	utils.ProcessEstimate(cmd)
 	return cmd
 }
@@ -37,7 +37,7 @@ var CreateFromMnemonic = func() *cobra.Command {
 		Args: cobra.ExactArgs(2),
 		Run: createFromMnemonic,
 	}
-	cmd.Flags().StringVarP(&createAccountFee, "fee", "f", utils.MinimumCos, `create alice bob --fee 1.000000`)
+	cmd.Flags().StringVarP(&createAccountFee, "fee", "f", "", `create_from_mnemonic alice  bob --fee 1.000000`)
 	utils.ProcessEstimate(cmd)
 	return cmd
 }
@@ -45,7 +45,7 @@ var CreateFromMnemonic = func() *cobra.Command {
 func create(cmd *cobra.Command, args []string) {
 	defer func() {
 		utils.EstimateStamina = false
-		createAccountFee = utils.MinimumCos
+		createAccountFee = ""
 	}()
 	c := cmd.Context["rpcclient"]
 	client := c.(grpcpb.ApiServiceClient)
@@ -68,14 +68,14 @@ func create(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	fee,err := utils.ParseCos(createAccountFee)
+	fee, err := utils.ParseAccountCreateFee(client, createAccountFee)
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 
 	acop := &prototype.AccountCreateOperation{
-		Fee:            prototype.NewCoin(fee),
+		Fee:            fee,
 		Creator:        &prototype.AccountName{Value: creator},
 		NewAccountName: &prototype.AccountName{Value: name},
 		PubKey:          pubkey,
@@ -114,7 +114,7 @@ func create(cmd *cobra.Command, args []string) {
 func createFromMnemonic(cmd *cobra.Command, args []string) {
 	defer func() {
 		utils.EstimateStamina = false
-		createAccountFee = utils.MinimumCos
+		createAccountFee = ""
 	}()
 	c := cmd.Context["rpcclient"]
 	client := c.(grpcpb.ApiServiceClient)
@@ -150,14 +150,14 @@ func createFromMnemonic(cmd *cobra.Command, args []string) {
 
 	pubkey, _ := prototype.PublicKeyFromWIF(pubKeyStr)
 
-	fee,err := utils.ParseCos(createAccountFee)
+	fee, err := utils.ParseAccountCreateFee(client, createAccountFee)
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 
 	acop := &prototype.AccountCreateOperation{
-		Fee:            prototype.NewCoin(fee),
+		Fee:            fee,
 		Creator:        &prototype.AccountName{Value: creator},
 		NewAccountName: &prototype.AccountName{Value: name},
 		PubKey:          pubkey,
