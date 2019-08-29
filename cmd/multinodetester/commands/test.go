@@ -13,6 +13,7 @@ import (
 	"github.com/coschain/contentos-go/mylog"
 	"github.com/coschain/contentos-go/node"
 	"github.com/coschain/contentos-go/p2p"
+	"github.com/coschain/gobft/message"
 	"github.com/spf13/viper"
 	"math/rand"
 	"os"
@@ -112,8 +113,8 @@ func startNodes2(cnt int, runSecond int32) {
 
 	stopCh := make(chan struct{})
 	go func() {
-		if runSecond != 0{
-			time.Sleep(time.Duration( uint64(runSecond) * uint64(time.Second) ) )
+		if runSecond != 0 {
+			time.Sleep(time.Duration(uint64(runSecond) * uint64(time.Second)))
 			close(stopCh)
 			return
 		}
@@ -200,6 +201,16 @@ func resetSvc(node *node.Node, comp *test.Components) {
 	comp.IsRunning = true
 }
 
+func readyToShutDown(node *node.Node) bool {
+	c, err := node.Service(iservices.ConsensusServerName)
+	if err != nil {
+		panic(err)
+	}
+	css := c.(iservices.IConsensus)
+	lastCommit := css.GetLastBFTCommit()
+	return time.Since(lastCommit.(*message.Commit).CommitTime) < 10*time.Second
+}
+
 func randomlyShutdownNodes(nodes []*node.Node, c []*test.Components, ch chan struct{}) {
 	ticker := time.NewTicker(10 * time.Second).C
 	for {
@@ -207,6 +218,10 @@ func randomlyShutdownNodes(nodes []*node.Node, c []*test.Components, ch chan str
 		case <-ch:
 			return
 		case <-ticker:
+			if !readyToShutDown(nodes[1]) {
+				continue
+			}
+
 			idx := rand.Int() % len(nodes)
 			if idx <= 1 {
 				idx = 2
