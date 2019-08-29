@@ -470,27 +470,11 @@ func (as *APIService) getState() *grpcpb.ChainState {
 func (as *APIService) GetBlockList(ctx context.Context, req *grpcpb.GetBlockListRequest) (*grpcpb.GetBlockListResponse, error) {
 	from := req.Start
 	to := req.End
-	limit := req.Limit
-	//isFetchOne := false
-	//if from == to && from != 0 {
-	//	isFetchOne = true
-	//	to = from + 1
-	//}
+	limit := checkLimit(req.Limit)
 	headNum := as.consensus.GetHeadBlockId().BlockNum()
-	//if from == 0 && to == 0 {
-	//	if headNum >= uint64(limit) {
-	//		from = headNum - uint64(limit) + 1
-	//	}
-	//	to = headNum
-	//} else if from >= 0 && to == 0 {
-	//	to = headNum
-	//}
 	if to == 0 {
 		to = headNum
 	}
-	//if from == 0 {
-	//	from = headNum
-	//}
 	if from == to {
 		from = to - 1
 	}
@@ -516,10 +500,6 @@ func (as *APIService) GetBlockList(ctx context.Context, req *grpcpb.GetBlockList
 		blkInfo.BlockId.FromBlockID(b.Id())
 		blkInfo.PreId = b.SignedHeader.Header.Previous
 		blkInfo.BlockSize = uint32(b.GetBlockSize())
-		//if isFetchOne && b.Id().BlockNum() == from {
-		//	blkList = append(blkList, blkInfo)
-		//	break
-		//}
 		blkList = append(blkList, blkInfo)
 
 	}
