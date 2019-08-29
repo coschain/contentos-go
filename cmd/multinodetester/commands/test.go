@@ -17,9 +17,11 @@ import (
 	"github.com/spf13/viper"
 	"math/rand"
 	"os"
+	"os/exec"
 	"os/signal"
 	"path/filepath"
 	"strconv"
+	"strings"
 	"syscall"
 	"time"
 )
@@ -27,6 +29,7 @@ import (
 var VERSION = "defaultVersion"
 var latency int
 var shut bool
+var testSync bool
 
 var TestCmd = func() *cobra.Command {
 	cmd := &cobra.Command{
@@ -36,6 +39,7 @@ var TestCmd = func() *cobra.Command {
 	}
 	cmd.Flags().IntVarP(&latency, "latency", "l", 1500, "test count -l 1500 (in ms)")
 	cmd.Flags().BoolVarP(&shut, "random_shutdown", "s", false, "")
+	cmd.Flags().BoolVarP(&testSync, "test_sync", "e", false, "")
 	return cmd
 }
 
@@ -152,7 +156,7 @@ func startNodes2(cnt int, runSecond int32) {
 	fmt.Printf("created %d accounts\n", cnt-1)
 
 	time.Sleep(2 * time.Second)
-	for i := 1; i < cnt; i++ {
+	for i := 1; i < cnt-1; i++ {
 		if err = test.RegisterBP(names[i], sks[i], css); err != nil {
 			panic(err)
 		}
@@ -168,9 +172,12 @@ func startNodes2(cnt int, runSecond int32) {
 	go monitor.Run()
 
 	time.Sleep(2 * time.Second)
-	go monitor.Shuffle(names[1:], sks[1:], css, stopCh)
+	go monitor.Shuffle(names[1:cnt-1], sks[1:cnt-1], css, stopCh)
 	if shut {
 		go randomlyShutdownNodes(nodes, comp, stopCh)
+	}
+	if testSync {
+		go eraseNodeDataAndRestart(nodes[cnt-1], comp[cnt-1], cnt-1, stopCh)
 	}
 
 	<-stopCh
@@ -211,6 +218,63 @@ func readyToShutDown(node *node.Node) bool {
 	return time.Since(lastCommit.(*message.Commit).CommitTime) < 10*time.Second
 }
 
+func eraseNodeDataAndRestart(node *node.Node, comp *test.Components, idx int, ch chan struct{}) {
+	c, err := node.Service(iservices.ConsensusServerName)
+	if err != nil {
+		panic(err)
+	}
+	css := c.(iservices.IConsensus)
+
+	ticker := time.NewTicker(10 * time.Second).C
+	for {
+		select {
+		case <-ch:
+			return
+		case <-ticker:
+			if css.CheckSyncFinished() {
+				if err := node.Stop(); err != nil {
+					panic(err)
+				}
+
+				name := fmt.Sprintf("%s_%d", TesterClientIdentifier, idx)
+				confdir := filepath.Join(config.DefaultDataDir(), name)
+				//cmdLine := rm -rf `ls | grep -v "config"`
+				cmdLine := fmt.Sprintf("ls %s | grep -v %q", confdir, "config")
+				cmd := exec.Command("/bin/bash","-c", cmdLine)
+				out, err := cmd.CombinedOutput()
+				if err != nil {
+					fmt.Errorf("Error: %v\n", err)
+				}
+
+				files := strings.Split(string(out), "\n")
+				for i := range files {
+					if files[i] == "" {
+						continue
+					}
+					cmdLine = fmt.Sprintf("rm -rf %s", filepath.Join(confdir, files[i]))
+					_, err = exec.Command("/bin/bash","-c", cmdLine).CombinedOutput()
+					if err != nil {
+						panic(err)
+					}
+				}
+
+				//app, cfg := makeNode(name)
+				//app.Log = mylog.Init(cfg.ResolvePath("logs"), cfg.LogLevel, 3600*24*7)
+				//app.Log.Out = &emptyWriter{}
+				//app.Log.Info("Cosd running version: ", VERSION)
+				//RegisterService(app, cfg)
+				//if err := app.Start(); err != nil {
+				//	common.Fatalf("start node failed, err: %v\n", err)
+				//}
+				if err := node.Start(); err != nil {
+					panic(err)
+				}
+				resetSvc(node, comp)
+			}
+		}
+	}
+}
+
 func randomlyShutdownNodes(nodes []*node.Node, c []*test.Components, ch chan struct{}) {
 	ticker := time.NewTicker(10 * time.Second).C
 	for {
@@ -225,6 +289,9 @@ func randomlyShutdownNodes(nodes []*node.Node, c []*test.Components, ch chan str
 			idx := rand.Int() % len(nodes)
 			if idx <= 1 {
 				idx = 2
+			}
+			if idx == len(nodes)-1 {
+				idx--
 			}
 			totalOffline := 0
 			for i := range c {
