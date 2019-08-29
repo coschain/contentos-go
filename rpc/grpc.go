@@ -1413,8 +1413,20 @@ func (as *APIService) GetBlockProducerListByVoteCount(ctx context.Context, req *
 			lastSubVal = lastWit.BpVest
 
 		}
-		startKey := &prototype.BpVestId{Active:true, VoteVest:req.Start}
-		endKey := &prototype.BpVestId{Active:true, VoteVest:req.End}
+
+		var startKey, endKey *prototype.BpVestId
+		if req.Start == nil {
+			startKey = &prototype.BpVestId{Active:true, VoteVest:prototype.MaxVest}
+		} else {
+			startKey = &prototype.BpVestId{Active:true, VoteVest:req.Start}
+		}
+
+		if req.End == nil {
+			endKey = &prototype.BpVestId{Active:true, VoteVest:prototype.MinVest}
+		} else {
+			endKey = &prototype.BpVestId{Active:true, VoteVest:req.End}
+		}
+
 		err = srtWrap.ForEachByRevOrder(startKey, endKey, lastMainKey,  lastSubVal,
 			func(mVal *prototype.AccountName, sVal *prototype.BpVestId, idx uint32) bool {
 				if mVal != nil {
