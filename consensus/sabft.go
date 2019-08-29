@@ -344,7 +344,10 @@ func (sabft *SABFT) Start(node *node.Node) error {
 }
 
 func (sabft *SABFT) restoreDynasty() {
-	if sabft.ForkDB.Empty() {
+	latestStateBlock, _ := sabft.ctrl.GetLastPushedBlockNum()
+	replaying := latestStateBlock == 0 && !sabft.ForkDB.Empty()
+
+	if sabft.ForkDB.Empty() || replaying {
 		// new chain, no blocks
 		prods, pubKeys := sabft.ctrl.GetBlockProducerTopN(constants.MaxBlockProducerCount)
 		dyn := sabft.makeDynasty(0, prods, pubKeys, sabft.localPrivKey)
