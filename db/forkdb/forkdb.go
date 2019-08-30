@@ -6,6 +6,7 @@ import (
 	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/db/blocklog"
 	"github.com/sasha-s/go-deadlock"
+	"github.com/sirupsen/logrus"
 	"os"
 )
 
@@ -14,12 +15,12 @@ const defaultSize = 1024 * 2
 type RetCode string
 
 const (
-	RTDetached   RetCode = "detached block"
-	RTDuplicated RetCode = "duplicated block"
-	RTPushedOnFork     RetCode = "block is pushed on fork branch"
-	RTPushedOnMain     RetCode = "block is pushed on main branch"
-	RTInvalid    RetCode = "block is invalid"
-	RTOutOfRange RetCode = "block number is out of range"
+	RTDetached     RetCode = "detached block"
+	RTDuplicated   RetCode = "duplicated block"
+	RTPushedOnFork RetCode = "block is pushed on fork branch"
+	RTPushedOnMain RetCode = "block is pushed on main branch"
+	RTInvalid      RetCode = "block is invalid"
+	RTOutOfRange   RetCode = "block number is out of range"
 )
 
 // DB ...
@@ -37,17 +38,28 @@ type DB struct {
 
 	snapshot blocklog.BLog
 	deadlock.RWMutex
+
+	log *logrus.Logger
 }
 
 // NewDB ...
-func NewDB() *DB {
+func NewDB(lg *logrus.Logger) *DB {
 	// TODO: purge the detachedLink
 	return &DB{
 		list:         make([][]common.BlockID, defaultSize+1),
 		branches:     make(map[common.BlockID]common.ISignedBlock),
 		detachedLink: make(map[common.BlockID]common.ISignedBlock),
-		//detached:     make(map[common.BlockID]common.ISignedBlock),
+		log:          lg,
 	}
+}
+
+func (db *DB) Reset() {
+	db.start = 0
+	db.head = common.EmptyBlockID
+	db.lastCommitted = common.EmptyBlockID
+	db.list = make([][]common.BlockID, defaultSize+1)
+	db.branches = make(map[common.BlockID]common.ISignedBlock)
+	db.detachedLink = make(map[common.BlockID]common.ISignedBlock)
 }
 
 // Snapshot...
@@ -88,22 +100,32 @@ func (db *DB) LoadSnapshot(avatar []common.ISignedBlock, dir string, blog *block
 			}
 			everCommitted = true
 		}
+		// Note: if blog is empty, it's possible that it is deliberately removed
+
 		if r := recover(); r != nil {
 			// since there's something wrong with snapshot,
 			// restore from blog by reading the last committed block
+			db.log.Warn("[LoadSnapshot] ", r)
 			if everCommitted {
 				db.pushBlock(avatar[len(avatar)-1])
 				db.lastCommitted = avatar[len(avatar)-1].Id()
 			}
 		} else {
 			// successfully restored the forkdb branch
-			if avatar[len(avatar)-1].Id() != avatar[0].Id() {
-				errMsg := "inconsistent blog and forkdb, please remove " + dir
-				panic(errMsg)
+			if everCommitted {
+				if avatar[len(avatar)-1].Id() != avatar[0].Id() {
+					db.log.Warn("[LoadSnapshot] inconsistent blog and forkdb, clear forkdb")
+					db.Reset()
+					db.pushBlock(avatar[len(avatar)-1])
+				}
+				db.lastCommitted = avatar[len(avatar)-1].Id()
+			} else if avatar[0].Id().BlockNum() != 1 {
+				db.log.Warn("[LoadSnapshot] blog was removed manually, clear forkdb")
+				db.Reset()
 			}
-			db.lastCommitted = avatar[0].Id()
 		}
 		db.snapshot.Remove(dir)
+		db.log.Info("[LoadSnapshot] snapshot removed")
 	}()
 
 	if _, err := os.Stat(dir); os.IsNotExist(err) {
@@ -208,7 +230,7 @@ func (db *DB) pushBlock(b common.ISignedBlock) RetCode {
 		return RTDuplicated
 	}
 
-	if num > db.head.BlockNum()+1 || num <= db.start || num-db.start >= uint64(len(db.list)){
+	if num > db.head.BlockNum()+1 || num <= db.start || num-db.start >= uint64(len(db.list)) {
 		return RTOutOfRange
 	}
 

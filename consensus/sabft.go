@@ -44,7 +44,7 @@ type SABFT struct {
 	bftStarted    uint32
 	commitCh      chan message.Commit
 	cp            *BFTCheckPoint
-	noticer 	  EventBus.Bus
+	noticer       EventBus.Bus
 
 	producers      []*Producer
 	readyToProduce bool
@@ -79,7 +79,7 @@ func NewSABFT(ctx *node.ServiceContext, lg *logrus.Logger) *SABFT {
 		lg.SetOutput(ioutil.Discard)
 	}
 	ret := &SABFT{
-		ForkDB:     forkdb.NewDB(),
+		ForkDB:     forkdb.NewDB(lg),
 		dynasties:  NewDynasties(),
 		prodTimer:  time.NewTimer(1 * time.Millisecond),
 		trxCh:      make(chan func()),
@@ -198,7 +198,7 @@ func (sabft *SABFT) makeDynasty(seq uint64, prods []string,
 
 func (sabft *SABFT) checkBFTRoutine() {
 	sabft.log.Debug("current dyn ", sabft.dynasties.Front().String())
-	if sabft.readyToProduce  && sabft.isValidatorName(sabft.Name) {
+	if sabft.readyToProduce && sabft.isValidatorName(sabft.Name) {
 		if atomic.LoadUint32(&sabft.bftStarted) == 0 {
 			sabft.log.Infof("[SABFT] gobft try to start.....")
 			sabft.bft.Start()
@@ -280,8 +280,27 @@ func (sabft *SABFT) Start(node *node.Node) error {
 
 	sabft.cp = NewBFTCheckPoint(cfg.ResolvePath("checkpoint"), sabft)
 
-	// reload ForkDB
 	snapshotPath := cfg.ResolvePath(constants.ForkDBSnapshot)
+	sabft.stateFixup(snapshotPath)
+
+	sabft.bft = gobft.NewCore(sabft, sabft.dynasties.Front().priv)
+	//pv := newPrivValidator(sabft, sabft.localPrivKey, sabft.Name)
+	//sabft.bft = gobft.NewCore(sabft, pv)
+	sabft.bft.SetLogger(sabft.extLog)
+	sabft.bft.SetName(sabft.Name)
+
+	sabft.log.Info("[SABFT] starting...")
+	if sabft.bootstrap && sabft.ForkDB.Empty() && sabft.blog.Empty() {
+		sabft.log.Info("[SABFT] bootstrapping...")
+	}
+	// start block generation process
+	go sabft.start()
+
+	return nil
+}
+
+func (sabft *SABFT) stateFixup(snapshotPath string) {
+	// reload ForkDB
 	// TODO: fuck!! this is fugly
 	var avatar []common.ISignedBlock
 	for i := 0; i < 2001; i++ {
@@ -304,16 +323,13 @@ func (sabft *SABFT) Start(node *node.Node) error {
 	}
 
 	sabft.restoreProducers()
-	// dynasties have to be restored before block sync
-	if sabft.dynasties.Empty() {
-		sabft.restoreDynasty()
+	// dynasties have to be restored from database first
+	sabft.restoreDynasty()
+	if err := sabft.databaseFixup(); err != nil {
+		panic(err)
 	}
 
-	err = sabft.handleBlockSync()
-	if err != nil {
-		return err
-	}
-
+	// restore gobft state
 	k := sabft.ForkDB.LastCommitted().BlockNum()
 	if k > 0 {
 		k--
@@ -327,61 +343,12 @@ func (sabft *SABFT) Start(node *node.Node) error {
 		LastHeight:       lh,
 		LastProposedData: sabft.ForkDB.LastCommitted().Data,
 	}
-
-	sabft.bft = gobft.NewCore(sabft, sabft.dynasties.Front().priv)
-	//pv := newPrivValidator(sabft, sabft.localPrivKey, sabft.Name)
-	//sabft.bft = gobft.NewCore(sabft, pv)
-	sabft.bft.SetLogger(sabft.extLog)
-	sabft.bft.SetName(sabft.Name)
-
-	sabft.log.Info("[SABFT] starting...")
-	if sabft.bootstrap && sabft.ForkDB.Empty() && sabft.blog.Empty() {
-		sabft.log.Info("[SABFT] bootstrapping...")
-	}
-	// start block generation process
-	go sabft.start()
-
-	return nil
 }
 
 func (sabft *SABFT) restoreDynasty() {
-	latestStateBlock, _ := sabft.ctrl.GetLastPushedBlockNum()
-	replaying := latestStateBlock == 0 && !sabft.ForkDB.Empty()
-
-	if sabft.ForkDB.Empty() || replaying {
-		// new chain, no blocks
-		prods, pubKeys := sabft.ctrl.GetBlockProducerTopN(constants.MaxBlockProducerCount)
-		dyn := sabft.makeDynasty(0, prods, pubKeys, sabft.localPrivKey)
-		sabft.addDynasty(dyn)
-	} else {
-		// pop all uncommitted blocks and fix first dynasty
-		lcNum := sabft.ForkDB.LastCommitted().BlockNum()
-		length := sabft.ForkDB.Head().Id().BlockNum() - lcNum
-		cache := make([]common.ISignedBlock, length)
-		b := sabft.ForkDB.Head()
-		var err error
-		for i := int(length) - 1; i >= 0; i-- {
-			cache[i] = b
-			if i == 0 {
-				break
-			}
-			prev := b.Previous()
-			b, err = sabft.ForkDB.FetchBlock(prev)
-			if err != nil {
-				panic(err)
-			}
-		}
-		sabft.popBlock(lcNum + 1)
-
-		prods, pubKeys := sabft.ctrl.GetShuffledBpList()
-		dyn := sabft.makeDynasty(lcNum, prods, pubKeys, sabft.localPrivKey)
-		sabft.addDynasty(dyn)
-		for i := range cache {
-			if err = sabft.applyBlock(cache[i]); err != nil {
-				panic(err)
-			}
-		}
-	}
+	prods, pubKeys := sabft.ctrl.GetBlockProducerTopN(constants.MaxBlockProducerCount)
+	dyn := sabft.makeDynasty(0, prods, pubKeys, sabft.localPrivKey)
+	sabft.addDynasty(dyn)
 }
 
 func (sabft *SABFT) tooManyUncommittedBlocks() bool {
@@ -437,7 +404,7 @@ func (sabft *SABFT) revertToLastCheckPoint() {
 			panic(err)
 		}
 	}
-	sabft.ForkDB = forkdb.NewDB()
+	sabft.ForkDB = forkdb.NewDB(sabft.extLog)
 	if popNum > 1 {
 		sabft.ForkDB.PushBlock(lastCommittedBlock)
 		sabft.ForkDB.Commit(lastCommittedID)
@@ -1499,73 +1466,54 @@ func (sabft *SABFT) MaybeProduceBlock() {
 	sabft.p2p.Broadcast(b)
 }
 
-func (sabft *SABFT) handleBlockSync() error {
+func (sabft *SABFT) databaseFixup() error {
 	if sabft.ForkDB.Head() == nil {
 		//Not need to sync
 		return nil
 	}
 	var err error = nil
 	lastCommit := sabft.ForkDB.LastCommitted().BlockNum()
-	//Fetch the commit block num in db
-	dbLastPushed, err := sabft.ctrl.GetLastPushedBlockNum()
-
-	sabft.log.Debugf("[sync pushed]: progress 1: dbLastPushed: %v, %v, %v",
-		dbLastPushed, lastCommit, err)
-
+	dbLastCommitted, err := sabft.ctrl.GetLastPushedBlockNum()
+	sabft.log.Debugf("[DB fixup]: progress 1: dbLastCommitted: %v, forkdb lastCommitted %v",
+		dbLastCommitted, lastCommit)
 	if err != nil {
 		return err
 	}
-	//Fetch the commit block numbers saved in block log
-	commitNum := sabft.blog.Size()
+
 	//1.sync commit blocks
-	if dbLastPushed < lastCommit && commitNum > 0 && commitNum >= int64(lastCommit) {
-		sabft.log.Debugf("[Reload commit] start sync lost commit blocks from block log,db commit num is: "+
-			"%v,end:%v,real commit num is %v", dbLastPushed, sabft.ForkDB.Head().Id().BlockNum(), lastCommit)
-		for i := int64(dbLastPushed); i < int64(lastCommit); i++ {
+	if dbLastCommitted < lastCommit {
+		sabft.log.Debugf("[DB fixup from blog] database last commit: %v, blog head: %v, forkdb head: %v",
+			dbLastCommitted, lastCommit, sabft.ForkDB.Head().Id().BlockNum())
+		for i := int64(dbLastCommitted); i < int64(lastCommit); i++ {
 			blk := &prototype.SignedBlock{}
 			if err := sabft.blog.ReadBlock(blk, i); err != nil {
 				return err
 			}
 			err = sabft.ctrl.SyncCommittedBlockToDB(blk)
-
 			if err != nil {
-				sabft.log.Debugf("[Reload commit] SyncCommittedBlockToDB Failed: "+
-					"%v", i)
+				sabft.log.Errorf("[DB fixup from blog] SyncCommittedBlockToDB Failed: %v", i)
 				return err
 			}
 			sabft.noticer.Publish(constants.NoticeLibChange, []common.ISignedBlock{blk})
 		}
 	}
 
-	dbLastPushed, err = sabft.ctrl.GetLastPushedBlockNum()
-	latestNumber := sabft.ForkDB.Head().Id().BlockNum()
+	dbLastCommitted, _ = sabft.ctrl.GetLastPushedBlockNum()
+	headNum := sabft.ForkDB.Head().Id().BlockNum()
+	sabft.log.Debugf("[DB fixup]: progress 2: dbLastCommitted: %v, %v", dbLastCommitted, headNum)
 
-	sabft.log.Debugf("[sync pushed]: progress 2: dbLastPushed: %v, %v, %v",
-		dbLastPushed, latestNumber, err)
-
-	if dbLastPushed < latestNumber {
-		pSli, err := sabft.FetchBlocks(dbLastPushed+1, latestNumber+1)
+	if dbLastCommitted < headNum {
+		blocks, err := sabft.ForkDB.FetchBlocksFromMainBranch(dbLastCommitted + 1)
 		if err != nil {
 			return err
 		}
-		if len(pSli) > 0 {
-			sabft.log.Debugf("[sync pushed]: start sync uncommitted blocks,start: %v,end:%v, count: %v",
-				dbLastPushed+1, sabft.ForkDB.Head().Id().BlockNum(), len(pSli))
-			err = sabft.ctrl.SyncPushedBlocksToDB(pSli)
-
-			if err != nil {
+		if len(blocks) > 0 {
+			sabft.log.Debugf("[DB fixup from forkdb]: start pushing uncommitted blocks, start: %v, end:%v, count: %v",
+				dbLastCommitted+1, sabft.ForkDB.Head().Id().BlockNum(), len(blocks))
+			if err = sabft.ctrl.SyncPushedBlocksToDB(blocks); err != nil {
 				return err
 			}
 		}
-		return nil
-
-	} else if dbLastPushed > latestNumber {
-
-		sabft.log.Infof("[Revert commit] start revert invalid commit to statedb: "+
-			"%v,end:%v,real commit num is %v", dbLastPushed, sabft.ForkDB.Head().Id().BlockNum(), latestNumber)
-
-		sabft.popBlock(latestNumber + 1)
-
 	}
 
 	return nil
@@ -1579,7 +1527,7 @@ func (sabft *SABFT) IsOnMainBranch(id common.BlockID) (bool, error) {
 	if sabft.mockSignal {
 		r := rand.New(rand.NewSource(time.Now().UnixNano()))
 		idx := r.Intn(6)
-		if idx & 1 == 1 {
+		if idx&1 == 1 {
 			return false, nil
 		}
 	}
