@@ -627,8 +627,8 @@ func (c *TrxPool) initGenesis() {
 	c.db.BeginTransaction()
 	defer func() {
 		if err := recover(); err != nil {
-			_ = c.blockLogWatcher.EndBlock(false, nil)
 			mustNoError(c.db.EndTransaction(false), "EndTransaction error")
+			_ = c.blockLogWatcher.EndBlock(false, nil)
 			panic(err)
 		} else {
 			dummyBlock :=&prototype.SignedBlock {
@@ -639,8 +639,8 @@ func (c *TrxPool) initGenesis() {
 					},
 				},
 			}
-			_ = c.blockLogWatcher.EndBlock(true, dummyBlock)
 			mustNoError(c.db.EndTransaction(true), "EndTransaction error")
+			_ = c.blockLogWatcher.EndBlock(true, dummyBlock)
 		}
 	}()
 	// create initminer
