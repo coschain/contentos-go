@@ -353,8 +353,8 @@ func (ev *PostEvaluator) Apply() {
 		t.CashoutBlockNum = ev.GlobalProp().GetProps().HeadBlockNumber + constants.PostCashOutDelayBlock
 		t.Depth = 0
 		t.Children = 0
-		t.ParentId = 0
-		t.RootId = 0
+		t.ParentId = constants.PostInvalidId
+		t.RootId = constants.PostInvalidId
 		t.Beneficiaries = op.Beneficiaries
 		t.WeightedVp = "0"
 		t.VoteCnt = 0
@@ -407,7 +407,7 @@ func (ev *ReplyEvaluator) Apply() {
 	opAssert(elapsedSeconds > constants.MinPostInterval, "reply frequently")
 
 	var rootId uint64
-	if pidWrap.GetRootId() == 0 {
+	if pidWrap.GetRootId() == constants.PostInvalidId {
 		rootId = pidWrap.GetPostId()
 	} else {
 		rootId = pidWrap.GetRootId()

@@ -1,6 +1,9 @@
 package prototype
 
-import "github.com/pkg/errors"
+import (
+	"github.com/coschain/contentos-go/common/constants"
+	"github.com/pkg/errors"
+)
 
 func (m *ReplyOperation) GetSigner(auths *map[string]bool) {
 	(*auths)[m.Owner.Value] = true
@@ -15,12 +18,12 @@ func (m *ReplyOperation) Validate() error {
 		return errors.WithMessage(err, "Follower error")
 	}
 
-	if m.Uuid == 0 {
+	if m.Uuid == constants.PostInvalidId {
 		return errors.New("uuid cant be 0")
 	}
 
-	if m.ParentUuid == 0 {
-		return errors.New("parent uuid cant be null")
+	if m.ParentUuid == constants.PostInvalidId {
+		return errors.New("parent uuid cant be 0")
 	}
 	if len(m.Content) == 0 {
 		return errors.New("content cant be null")

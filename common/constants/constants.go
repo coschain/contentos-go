@@ -4,6 +4,8 @@ const (
 	SingletonId      = 1
 	COSTokenDecimals = 1000000
 	COSInitSupply    = 6500000000 * COSTokenDecimals
+	// 10 billion
+	COSTotalSupply 	 = 10000000000 * COSTokenDecimals
 	COSInitMiner     = "initminer"
 	COSSysAccount    = "contentos"
 
@@ -84,20 +86,12 @@ const (
 	RewardRateDapp   = 1000
 
 	// from Creator
-	//RewardRateAuthor = 7000
 	RewardRateAuthor = 7500
 	RewardRateReply = 1500
 	RewardRateVoter = 1000
-	//RewardRateReport = 500
 
 	ConvertWeeks = 13
 
-	BaseRate               = uint64(1e6)
-
-	ReportCashout = 1000
-
-	// 10 billion
-	TotalCurrency = 100 * uint64(1e8)
 
 	BlockApplierVersion = 0x00000001
 

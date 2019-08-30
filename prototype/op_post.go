@@ -1,6 +1,9 @@
 package prototype
 
-import "github.com/pkg/errors"
+import (
+	"github.com/coschain/contentos-go/common/constants"
+	"github.com/pkg/errors"
+)
 
 
 func (m *PostOperation) GetSigner(auths *map[string]bool) {
@@ -16,7 +19,7 @@ func (m *PostOperation) Validate() error {
 		return errors.WithMessage(err, "Owner error")
 	}
 
-	if m.Uuid == 0 {
+	if m.Uuid == constants.PostInvalidId {
 		return errors.New("uuid cant be 0")
 	}
 

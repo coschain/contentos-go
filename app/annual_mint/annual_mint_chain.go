@@ -11,11 +11,10 @@ func BaseBudget(ith uint32) uint64 {
 	var remain uint64 = 0
 	// 56 == 35000 - 448 * 13 * 12 / 2
 	if ith == 12 {
-		remain = uint64(constants.TotalCurrency) * uint64(56) / 1000 / 100 * constants.BaseRate
+		remain = uint64(constants.COSTotalSupply) / 1000 / 100 * uint64(56)
 	}
-	return uint64(ith) * uint64(constants.TotalCurrency) * uint64(448) / 1000 / 100 * constants.BaseRate + remain
+	return uint64(constants.COSTotalSupply) / 1000 / 100 * uint64(448) * uint64(ith)  + remain
 }
-
 
 // InitialBonus does not be managed by chain
 func CalculateBudget(ith uint32) uint64 {

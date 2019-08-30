@@ -316,7 +316,7 @@ func (e *Economist) Do() {
 		}
 		//postItem := &PostItem{postId: post.GetPostId(), Item{beneficiary: post.GetAuthor().Value, wvp: weightedVp}}
 		postItem := &PostItem{Item{beneficiary: post.GetAuthor().Value, wvp: weightedVp}, post.GetPostId()}
-		if post.GetParentId() == 0 {
+		if post.GetParentId() == constants.PostInvalidId {
 			posts = append(posts, postItem)
 		} else {
 			replies = append(replies, postItem)
@@ -327,7 +327,7 @@ func (e *Economist) Do() {
 			name := beneficiaryRoute.Name.Value
 			weight := beneficiaryRoute.Weight
 			routeWvp := ProportionAlgorithm(new(big.Int).SetUint64(uint64(weight)), new(big.Int).SetUint64(uint64(constants.PERCENT)), weightedVp)
-			if post.GetParentId() == 0 {
+			if post.GetParentId() == constants.PostInvalidId {
 				dappRoute := &DappItem{Item{beneficiary: name, wvp: routeWvp}, post.GetPostId()}
 				dappsRoutes = append(dappsRoutes, dappRoute)
 			} else {
