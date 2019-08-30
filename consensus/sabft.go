@@ -278,10 +278,7 @@ func (sabft *SABFT) Start(node *node.Node) error {
 		return sabft.shuffle(block)
 	})
 
-	sabft.cp = NewBFTCheckPoint(cfg.ResolvePath("checkpoint"), sabft)
-
-	snapshotPath := cfg.ResolvePath(constants.ForkDBSnapshot)
-	sabft.stateFixup(snapshotPath)
+	sabft.stateFixup(&cfg)
 
 	sabft.bft = gobft.NewCore(sabft, sabft.dynasties.Front().priv)
 	//pv := newPrivValidator(sabft, sabft.localPrivKey, sabft.Name)
@@ -299,8 +296,9 @@ func (sabft *SABFT) Start(node *node.Node) error {
 	return nil
 }
 
-func (sabft *SABFT) stateFixup(snapshotPath string) {
+func (sabft *SABFT) stateFixup(cfg *node.Config) {
 	// reload ForkDB
+	snapshotPath := cfg.ResolvePath(constants.ForkDBSnapshot)
 	// TODO: fuck!! this is fugly
 	var avatar []common.ISignedBlock
 	for i := 0; i < 2001; i++ {
@@ -313,6 +311,14 @@ func (sabft *SABFT) stateFixup(snapshotPath string) {
 	sabft.ForkDB.LoadSnapshot(avatar, snapshotPath, &sabft.blog)
 	/**** at this point, blog and forkdb is consistent ****/
 
+	sabft.restoreProducers()
+	// dynasties have to be restored from database first
+	sabft.restoreDynasty()
+	if err := sabft.databaseFixup(); err != nil {
+		panic(err)
+	}
+
+	sabft.cp = NewBFTCheckPoint(cfg.ResolvePath(constants.CheckPoint), sabft)
 	if !sabft.ForkDB.Empty() && !sabft.blog.Empty() {
 		lc, err := sabft.cp.GetNext(sabft.ForkDB.LastCommitted().BlockNum() - 1)
 		if err != nil {
@@ -321,14 +327,6 @@ func (sabft *SABFT) stateFixup(snapshotPath string) {
 			sabft.lastCommitted.Store(lc)
 		}
 	}
-
-	sabft.restoreProducers()
-	// dynasties have to be restored from database first
-	sabft.restoreDynasty()
-	if err := sabft.databaseFixup(); err != nil {
-		panic(err)
-	}
-
 	// restore gobft state
 	k := sabft.ForkDB.LastCommitted().BlockNum()
 	if k > 0 {
@@ -503,7 +501,7 @@ func (sabft *SABFT) Stop() error {
 	snapshotPath := cfg.ResolvePath("forkdb_snapshot")
 	sabft.ForkDB.Snapshot(snapshotPath)
 	sabft.prodTimer.Stop()
-	sabft.cp.db.Close()
+	sabft.cp.Close()
 	close(sabft.stopCh)
 	sabft.readyToProduce = false
 	sabft.wg.Wait()

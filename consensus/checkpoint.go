@@ -49,6 +49,7 @@ type BFTCheckPoint struct {
 	sabft   *SABFT
 	dataDir string
 	db      storage.Database
+	tdb     storage.TrxDatabase
 
 	lastCommitted common.BlockID
 	nextCP        common.BlockID
@@ -62,16 +63,23 @@ func NewBFTCheckPoint(dir string, sabft *SABFT) *BFTCheckPoint {
 	if err != nil {
 		panic(err)
 	}
+	tdb := storage.NewTransactionalDatabase(db, true)
 	lc := sabft.ForkDB.LastCommitted()
 	return &BFTCheckPoint{
 		sabft:         sabft,
 		dataDir:       dir,
 		db:            db,
+		tdb:           tdb,
 		lastCommitted: lc,
 		nextCP:        common.EmptyBlockID,
 		cache:         make(map[common.BlockID]*message.Commit),
 		indexPrefix:   [8]byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
 	}
+}
+
+func (cp *BFTCheckPoint) Close() {
+	cp.tdb.Close()
+	cp.db.Close()
 }
 
 func (cp *BFTCheckPoint) getIdxKey(idx uint64) []byte {
@@ -85,17 +93,26 @@ func (cp *BFTCheckPoint) Flush(bid common.BlockID) error {
 	key := make([]byte, 8)
 	for {
 		binary.BigEndian.PutUint64(key, cp.nextCP.BlockNum())
+		cp.tdb.BeginTransaction()
 		err := cp.db.Put(key, cp.cache[cp.lastCommitted].Bytes())
 		if err != nil {
 			cp.sabft.log.Fatal(err)
+			cp.tdb.EndTransaction(false)
 			return err
 		}
 
+		if cp.cache[cp.lastCommitted] == nil {
+			errstr := fmt.Sprintf("*********** %s lc %v/ cp lc %v nextCP %v",
+				cp.sabft.Name, cp.sabft.ForkDB.LastCommitted(), cp.lastCommitted, cp.nextCP)
+			panic(errstr)
+		}
 		err = cp.db.Put(cp.getIdxKey(uint64(cp.cache[cp.lastCommitted].Height())), key)
 		if err != nil {
 			cp.sabft.log.Fatal(err)
+			cp.tdb.EndTransaction(false)
 			return err
 		}
+		cp.tdb.EndTransaction(true)
 
 		delete(cp.cache, cp.lastCommitted)
 

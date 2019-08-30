@@ -146,6 +146,7 @@ const (
 	VPMarks = 30
 
 	ForkDBSnapshot = "forkdb_snapshot"
+	CheckPoint = "checkpoint"
 )
 
 var GlobalId int32 = 1
