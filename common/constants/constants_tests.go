@@ -10,4 +10,6 @@ const (
 	MinEpochDuration 		= 60*5
 	StakeFreezeTime      	= 60*5
 	WindowSize              = 7000
+
+	ClientName              = "Cos-go-tests"
 )

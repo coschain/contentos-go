@@ -11,5 +11,7 @@ const (
 
 	StakeFreezeTime      	= 60*60*24
 	WindowSize           = 60 * 60 * 24
+
+	ClientName              = "Cos-go-testnet"
 )
 

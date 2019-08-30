@@ -7,6 +7,7 @@ import (
 	ctrl "github.com/coschain/contentos-go/app"
 	"github.com/coschain/contentos-go/app/plugins"
 	"github.com/coschain/contentos-go/common"
+	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/config"
 	"github.com/coschain/contentos-go/consensus"
 	"github.com/coschain/contentos-go/db/storage"
@@ -39,7 +40,6 @@ var StartCmd = func() *cobra.Command {
 
 var NodeName string
 const (
-	ClientName = "Cos-go"
 	ClientTag  = "v1.0"
 )
 
@@ -69,7 +69,7 @@ func makeNode() (*node.Node, node.Config) {
 		}
 		cfg.DataDir = dir
 	}
-	NodeName = config.MakeName(ClientName, ClientTag)
+	NodeName = config.MakeName(constants.ClientName, ClientTag)
 	cfg.P2P.RunningCodeVersion = NodeName
 	app, err := node.New(&cfg)
 	if err != nil {
