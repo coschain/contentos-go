@@ -144,6 +144,8 @@ const (
 
 	FullVP = 1000
 	VPMarks = 30
+
+	ForkDBSnapshot = "forkdb_snapshot"
 )
 
 var GlobalId int32 = 1

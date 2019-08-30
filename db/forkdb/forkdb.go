@@ -89,13 +89,19 @@ func (db *DB) LoadSnapshot(avatar []common.ISignedBlock, dir string, blog *block
 			everCommitted = true
 		}
 		if r := recover(); r != nil {
+			// since there's something wrong with snapshot,
 			// restore from blog by reading the last committed block
 			if everCommitted {
 				db.pushBlock(avatar[len(avatar)-1])
+				db.lastCommitted = avatar[len(avatar)-1].Id()
 			}
-		}
-		if everCommitted {
-			db.lastCommitted = avatar[len(avatar)-1].Id()
+		} else {
+			// successfully restored the forkdb branch
+			if avatar[len(avatar)-1].Id() != avatar[0].Id() {
+				errMsg := "inconsistent blog and forkdb, please remove " + dir
+				panic(errMsg)
+			}
+			db.lastCommitted = avatar[0].Id()
 		}
 		db.snapshot.Remove(dir)
 	}()
@@ -125,7 +131,6 @@ func (db *DB) LoadSnapshot(avatar []common.ISignedBlock, dir string, blog *block
 	for i = 0; i < size; i++ {
 		db.pushBlock(avatar[i])
 	}
-	//db.log.Debugf("[ForkDB][LoadSnapshot] %d blocks loaded.", size)
 }
 
 // LastCommitted...

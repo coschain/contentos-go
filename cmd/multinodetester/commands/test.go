@@ -225,6 +225,9 @@ func readyToShutDown(node *node.Node) bool {
 	}
 	css := c.(iservices.IConsensus)
 	lastCommit := css.GetLastBFTCommit()
+	if lastCommit == nil {
+		return false
+	}
 	return time.Since(lastCommit.(*message.Commit).CommitTime) < 10*time.Second
 }
 

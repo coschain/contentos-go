@@ -175,12 +175,9 @@ func (sabft *SABFT) shuffle(head common.ISignedBlock) (bool, []string) {
 		seed = head.Timestamp() << 32
 	}
 	sabft.updateProducers(seed, prods, pubKeys)
-
 	newDyn := sabft.makeDynasty(blockNum, prods, pubKeys, sabft.localPrivKey)
 	sabft.addDynasty(newDyn)
-	//if atomic.LoadUint32(&sabft.bftStarted) == 0 && sabft.bft != nil {
-	//	//	sabft.checkBFTRoutine()
-	//	//}
+
 	return true, prods
 }
 
@@ -274,13 +271,17 @@ func (sabft *SABFT) Start(node *node.Node) error {
 	sabft.noticer = node.EvBus
 	sabft.p2p = p2p.(iservices.IP2P)
 	cfg := sabft.ctx.Config()
-	sabft.blog.Open(cfg.ResolvePath("blog"))
+	if err = sabft.blog.Open(cfg.ResolvePath("blog")); err != nil {
+		panic(err)
+	}
 	sabft.ctrl.SetShuffle(func(block common.ISignedBlock) (bool, []string) {
 		return sabft.shuffle(block)
 	})
 
+	sabft.cp = NewBFTCheckPoint(cfg.ResolvePath("checkpoint"), sabft)
+
 	// reload ForkDB
-	snapshotPath := cfg.ResolvePath("forkdb_snapshot")
+	snapshotPath := cfg.ResolvePath(constants.ForkDBSnapshot)
 	// TODO: fuck!! this is fugly
 	var avatar []common.ISignedBlock
 	for i := 0; i < 2001; i++ {
@@ -291,13 +292,8 @@ func (sabft *SABFT) Start(node *node.Node) error {
 		avatar = append(avatar, &prototype.SignedBlock{})
 	}
 	sabft.ForkDB.LoadSnapshot(avatar, snapshotPath, &sabft.blog)
+	/**** at this point, blog and forkdb is consistent ****/
 
-	sabft.cp = NewBFTCheckPoint(cfg.ResolvePath("checkpoint"), sabft)
-
-	sabft.log.Info("[SABFT] starting...")
-	if sabft.bootstrap && sabft.ForkDB.Empty() && sabft.blog.Empty() {
-		sabft.log.Info("[SABFT] bootstrapping...")
-	}
 	if !sabft.ForkDB.Empty() && !sabft.blog.Empty() {
 		lc, err := sabft.cp.GetNext(sabft.ForkDB.LastCommitted().BlockNum() - 1)
 		if err != nil {
@@ -337,6 +333,11 @@ func (sabft *SABFT) Start(node *node.Node) error {
 	//sabft.bft = gobft.NewCore(sabft, pv)
 	sabft.bft.SetLogger(sabft.extLog)
 	sabft.bft.SetName(sabft.Name)
+
+	sabft.log.Info("[SABFT] starting...")
+	if sabft.bootstrap && sabft.ForkDB.Empty() && sabft.blog.Empty() {
+		sabft.log.Info("[SABFT] bootstrapping...")
+	}
 	// start block generation process
 	go sabft.start()
 
