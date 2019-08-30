@@ -743,6 +743,8 @@ func (c *TrxPool) initGenesis() {
 	bpScheduleWrap.Create(func(tInfo *table.SoBlockProducerScheduleObject) {
 		tInfo.Id = SingleId
 		tInfo.CurrentShuffledBlockProducer = append(tInfo.CurrentShuffledBlockProducer, constants.COSInitMiner)
+		tInfo.PubKey = append(tInfo.PubKey, pubKey)
+		tInfo.Seq = 0
 	})
 }
 
@@ -1009,15 +1011,16 @@ func (c *TrxPool) GetBlockProducerTopN(n uint32) ([]string, []*prototype.PublicK
 	return bpNames, keys
 }
 
-func (c *TrxPool) SetShuffledBpList(names []string, keys []*prototype.PublicKeyType) {
+func (c *TrxPool) SetShuffledBpList(names []string, keys []*prototype.PublicKeyType, seq uint64) {
 	bpScheduleWrap := table.NewSoBlockProducerScheduleObjectWrap(c.db, &SingleId)
 	bpScheduleWrap.SetCurrentShuffledBlockProducer(names)
 	bpScheduleWrap.SetPubKey(keys)
+	bpScheduleWrap.SetSeq(seq)
 }
 
-func (c *TrxPool) GetShuffledBpList() ([]string, []*prototype.PublicKeyType) {
+func (c *TrxPool) GetShuffledBpList() ([]string, []*prototype.PublicKeyType, uint64) {
 	bpScheduleWrap := table.NewSoBlockProducerScheduleObjectWrap(c.db, &SingleId)
-	return bpScheduleWrap.GetCurrentShuffledBlockProducer(), bpScheduleWrap.GetPubKey()
+	return bpScheduleWrap.GetCurrentShuffledBlockProducer(), bpScheduleWrap.GetPubKey(), bpScheduleWrap.GetSeq()
 }
 
 func (c *TrxPool) PopBlock(num uint64) error {
@@ -1198,7 +1201,7 @@ func (c *TrxPool) ShareTicketBonus() (err error) {
 	if bonus.Value == 0 {
 		return
 	}
-	bpNames, _ := c.GetShuffledBpList()
+	bpNames, _, _ := c.GetShuffledBpList()
 	bpCount := len(bpNames)
 	if bpCount == 0 {
 		err = errors.New("ShareTicketBonus: no block producer found")

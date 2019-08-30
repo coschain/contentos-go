@@ -260,6 +260,16 @@ func (s *SoBlockProducerScheduleObjectWrap) SetPubKey(p []*prototype.PublicKeyTy
 	return s
 }
 
+func (s *SoBlockProducerScheduleObjectWrap) SetSeq(p uint64, errArgs ...interface{}) *SoBlockProducerScheduleObjectWrap {
+	err := s.modify(func(r *SoBlockProducerScheduleObject) {
+		r.Seq = p
+	})
+	if err != nil {
+		panic(bindErrorInfo(fmt.Sprintf("SoBlockProducerScheduleObjectWrap.SetSeq( %v ) failed: %s", p, err.Error()), errArgs...))
+	}
+	return s
+}
+
 func (s *SoBlockProducerScheduleObjectWrap) checkSortAndUniFieldValidity(curTable *SoBlockProducerScheduleObject, fields map[string]bool) error {
 	if curTable != nil && fields != nil && len(fields) > 0 {
 
@@ -283,6 +293,11 @@ func (s *SoBlockProducerScheduleObjectWrap) getModifiedFields(oriTable *SoBlockP
 	if !reflect.DeepEqual(oriTable.PubKey, curTable.PubKey) {
 		fields["PubKey"] = true
 		hasWatcher = hasWatcher || s.watcherFlag.HasPubKeyWatcher
+	}
+
+	if !reflect.DeepEqual(oriTable.Seq, curTable.Seq) {
+		fields["Seq"] = true
+		hasWatcher = hasWatcher || s.watcherFlag.HasSeqWatcher
 	}
 
 	hasWatcher = hasWatcher || s.watcherFlag.WholeWatcher
@@ -329,6 +344,23 @@ func (s *SoBlockProducerScheduleObjectWrap) handleFieldMd(t FieldMdHandleType, s
 		} else if t == FieldMdHandleTypeInsert {
 			res = s.mdFieldPubKey(so.PubKey, false, false, true, so)
 			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "PubKey")
+		}
+		if !res {
+			return errors.New(errStr)
+		}
+	}
+
+	if fields["Seq"] {
+		res := true
+		if t == FieldMdHandleTypeCheck {
+			res = s.mdFieldSeq(so.Seq, true, false, false, so)
+			errStr = fmt.Sprintf("fail to modify exist value of %v", "Seq")
+		} else if t == FieldMdHandleTypeDel {
+			res = s.mdFieldSeq(so.Seq, false, true, false, so)
+			errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", "Seq")
+		} else if t == FieldMdHandleTypeInsert {
+			res = s.mdFieldSeq(so.Seq, false, false, true, so)
+			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "Seq")
 		}
 		if !res {
 			return errors.New(errStr)
@@ -607,6 +639,88 @@ func (s *SoBlockProducerScheduleObjectWrap) checkPubKeyIsMetMdCondition(p []*pro
 	return true
 }
 
+func (s *SoBlockProducerScheduleObjectWrap) GetSeq() uint64 {
+	res := true
+	msg := &SoBlockProducerScheduleObject{}
+	if s.dba == nil {
+		res = false
+	} else {
+		key, err := s.encodeMainKey()
+		if err != nil {
+			res = false
+		} else {
+			buf, err := s.dba.Get(key)
+			if err != nil {
+				res = false
+			}
+			err = proto.Unmarshal(buf, msg)
+			if err != nil {
+				res = false
+			} else {
+				return msg.Seq
+			}
+		}
+	}
+	if !res {
+		var tmpValue uint64
+		return tmpValue
+	}
+	return msg.Seq
+}
+
+func (s *SoBlockProducerScheduleObjectWrap) mdFieldSeq(p uint64, isCheck bool, isDel bool, isInsert bool,
+	so *SoBlockProducerScheduleObject) bool {
+	if s.dba == nil {
+		return false
+	}
+
+	if isCheck {
+		res := s.checkSeqIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
+
+	if isDel {
+		res := s.delFieldSeq(so)
+		if !res {
+			return false
+		}
+	}
+
+	if isInsert {
+		res := s.insertFieldSeq(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoBlockProducerScheduleObjectWrap) delFieldSeq(so *SoBlockProducerScheduleObject) bool {
+	if s.dba == nil {
+		return false
+	}
+
+	return true
+}
+
+func (s *SoBlockProducerScheduleObjectWrap) insertFieldSeq(so *SoBlockProducerScheduleObject) bool {
+	if s.dba == nil {
+		return false
+	}
+
+	return true
+}
+
+func (s *SoBlockProducerScheduleObjectWrap) checkSeqIsMetMdCondition(p uint64) bool {
+	if s.dba == nil {
+		return false
+	}
+
+	return true
+}
+
 /////////////// SECTION Private function ////////////////
 
 func (s *SoBlockProducerScheduleObjectWrap) update(sa *SoBlockProducerScheduleObject) bool {
@@ -837,6 +951,8 @@ type BlockProducerScheduleObjectWatcherFlag struct {
 
 	HasPubKeyWatcher bool
 
+	HasSeqWatcher bool
+
 	WholeWatcher bool
 	AnyWatcher   bool
 }
@@ -867,6 +983,9 @@ func BlockProducerScheduleObjectRecordWatcherChanged(dbSvcId uint32) {
 
 	flag.HasPubKeyWatcher = HasTableRecordWatcher(dbSvcId, BlockProducerScheduleObjectTable.Record, "PubKey")
 	flag.AnyWatcher = flag.AnyWatcher || flag.HasPubKeyWatcher
+
+	flag.HasSeqWatcher = HasTableRecordWatcher(dbSvcId, BlockProducerScheduleObjectTable.Record, "Seq")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasSeqWatcher
 
 	BlockProducerScheduleObjectWatcherFlagsLock.Lock()
 	BlockProducerScheduleObjectWatcherFlags[dbSvcId] = flag

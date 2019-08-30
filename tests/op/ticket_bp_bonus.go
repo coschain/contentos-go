@@ -71,7 +71,7 @@ func (tester *TicketBpBonusTester) beforePreShuffle() {
 	tester.expected = make(map[string]uint64)
 	bonus := tester.d.GlobalProps().GetTicketsBpBonus()
 	a.Equal(tester.hasBonus, bonus.Value > 0)
-	names, _ := tester.d.TrxPool().GetShuffledBpList()
+	names, _, _ := tester.d.TrxPool().GetShuffledBpList()
 	share, remain := prototype.NewVest(bonus.Value / uint64(len(names))), prototype.NewVest(bonus.Value % uint64(len(names)))
 	for i, name := range names {
 		vest := tester.d.Account(name).GetVest()

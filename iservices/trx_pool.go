@@ -38,8 +38,8 @@ type ITrxPool interface {
 	GenerateBlock(bpName string, pre *prototype.Sha256, timestamp uint32, priKey *prototype.PrivateKeyType, skip prototype.SkipFlag) (*prototype.SignedBlock, error)
 	GetBlockProducerTopN(n uint32) ([]string, []*prototype.PublicKeyType)
 	GetSigningPubKey(bpName string) *prototype.PublicKeyType
-	SetShuffledBpList(names []string, keys []*prototype.PublicKeyType)
-	GetShuffledBpList() ([]string, []*prototype.PublicKeyType)
+	SetShuffledBpList(names []string, keys []*prototype.PublicKeyType, seq uint64)
+	GetShuffledBpList() ([]string, []*prototype.PublicKeyType, uint64)
 	SetShuffle(s common.ShuffleFunc)
 	// PreShuffle() must be called to notify ITrxPool that block producers shuffle is about to happen
 	PreShuffle() error

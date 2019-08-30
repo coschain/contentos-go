@@ -2,3 +2,4 @@ type                            ,pName                      ,mKey   ,unique ,sor
 int32                           ,id                         ,1,0,0,0,
 []string                        ,current_shuffled_block_producer   ,0,0,0,0,
 []prototype.public_key_type     ,pub_key                    ,0,0,0,0,prototype/type.proto
+uint64                          ,seq                         ,0,0,0,0,

@@ -174,7 +174,7 @@ func (sabft *SABFT) shuffle(head common.ISignedBlock) (bool, []string) {
 	if head != nil {
 		seed = head.Timestamp() << 32
 	}
-	sabft.updateProducers(seed, prods, pubKeys)
+	sabft.updateProducers(seed, prods, pubKeys, blockNum)
 	newDyn := sabft.makeDynasty(blockNum, prods, pubKeys, sabft.localPrivKey)
 	sabft.addDynasty(newDyn)
 
@@ -215,12 +215,12 @@ func (sabft *SABFT) checkBFTRoutine() {
 }
 
 func (sabft *SABFT) restoreProducers() {
-	prods, _ := sabft.ctrl.GetShuffledBpList()
+	prods, _, _ := sabft.ctrl.GetShuffledBpList()
 	sabft.producers = sabft.makeProducers(prods)
 	sabft.log.Info("[SABFT] active producers: ", prods)
 }
 
-func (sabft *SABFT) updateProducers(seed uint64, prods []string, pubKeys []*prototype.PublicKeyType) int {
+func (sabft *SABFT) updateProducers(seed uint64, prods []string, pubKeys []*prototype.PublicKeyType, seq uint64) int {
 	prodNum := len(prods)
 	for i := 0; i < prodNum; i++ {
 		k := seed + uint64(i)*2695921657736338717
@@ -240,7 +240,7 @@ func (sabft *SABFT) updateProducers(seed uint64, prods []string, pubKeys []*prot
 		validatorNames += sabft.producers[i].accountName + " "
 	}
 	sabft.log.Debug("[SABFT shuffle] active producers: ", validatorNames)
-	sabft.ctrl.SetShuffledBpList(prods, pubKeys)
+	sabft.ctrl.SetShuffledBpList(prods, pubKeys, seq)
 
 	return prodNum
 }
@@ -344,9 +344,10 @@ func (sabft *SABFT) stateFixup(cfg *node.Config) {
 }
 
 func (sabft *SABFT) restoreDynasty() {
-	prods, pubKeys := sabft.ctrl.GetBlockProducerTopN(constants.MaxBlockProducerCount)
+	//prods, pubKeys := sabft.ctrl.GetBlockProducerTopN(constants.MaxBlockProducerCount)
+	prods, pubKeys, seq := sabft.ctrl.GetShuffledBpList()
 	//sabft.log.Warn("ssssssssss ", prods)
-	dyn := sabft.makeDynasty(0, prods, pubKeys, sabft.localPrivKey)
+	dyn := sabft.makeDynasty(seq, prods, pubKeys, sabft.localPrivKey)
 	sabft.log.Info("restoring dynasty ", dyn.String())
 	sabft.addDynasty(dyn)
 }
