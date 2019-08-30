@@ -345,7 +345,9 @@ func (sabft *SABFT) stateFixup(cfg *node.Config) {
 
 func (sabft *SABFT) restoreDynasty() {
 	prods, pubKeys := sabft.ctrl.GetBlockProducerTopN(constants.MaxBlockProducerCount)
+	//sabft.log.Warn("ssssssssss ", prods)
 	dyn := sabft.makeDynasty(0, prods, pubKeys, sabft.localPrivKey)
+	sabft.log.Info("restoring dynasty ", dyn.String())
 	sabft.addDynasty(dyn)
 }
 
@@ -504,6 +506,7 @@ func (sabft *SABFT) Stop() error {
 	sabft.cp.Close()
 	close(sabft.stopCh)
 	sabft.readyToProduce = false
+	sabft.dynasties.Clear()
 	sabft.wg.Wait()
 	return nil
 }

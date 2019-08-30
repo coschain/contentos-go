@@ -327,7 +327,7 @@ func RegisterService(app *node.Node, cfg node.Config) {
 	})
 
 	_ = app.Register(iservices.TxPoolServerName, func(ctx *node.ServiceContext) (node.Service, error) {
-		return ctrl.NewController(ctx, app.Log)
+		return ctrl.NewController(ctx, nil)
 	})
 
 	_ = app.Register(iservices.ConsensusServerName, func(ctx *node.ServiceContext) (node.Service, error) {
@@ -335,6 +335,6 @@ func RegisterService(app *node.Node, cfg node.Config) {
 	})
 
 	_ = app.Register(iservices.P2PServerName, func(ctx *node.ServiceContext) (node.Service, error) {
-		return p2p.NewServer(ctx, app.Log)
+		return p2p.NewServer(ctx, nil)
 	})
 }

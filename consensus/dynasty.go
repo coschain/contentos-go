@@ -62,6 +62,10 @@ func (ds *Dynasties) Len() int {
 	return ds.dynasties.Len()
 }
 
+func (ds *Dynasties) Clear() {
+	ds.dynasties = list.New()
+}
+
 func (ds *Dynasties) Front() *Dynasty {
 	return ds.dynasties.Front().Value.(*Dynasty)
 }
