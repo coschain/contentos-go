@@ -977,9 +977,10 @@ func (p *MsgHandler) RequestCheckpointBatchHandle(data *msgTypes.MsgPayload, p2p
 		if cp == nil {
 			return
 		}
-		bftCommitCP := &msgTypes.ConsMsg{
-			MsgData: cp.(*message.Commit),
-		}
+		bftCommitCP := msgpack.NewConsMsg(cp.(*message.Commit), true)
+		//bftCommitCP := &msgTypes.ConsMsg{
+		//	MsgData: cp.(*message.Commit),
+		//}
 		err = p2p.Send(remotePeer, bftCommitCP, false)
 		if err != nil {
 			log.Error("[p2p] send message error: ", err)
