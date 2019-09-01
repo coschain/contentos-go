@@ -244,13 +244,19 @@ func eraseNodeDataAndRestart(node *node.Node, comp *test.Components, idx int, ch
 		case <-ch:
 			return
 		case <-ticker:
-			if css.CheckSyncFinished() {
-				if err := node.Stop(); err != nil {
-					panic(err)
-				}
+			if !css.CheckSyncFinished() {
+				continue
+			}
 
-				name := fmt.Sprintf("%s_%d", TesterClientIdentifier, idx)
-				confdir := filepath.Join(config.DefaultDataDir(), name)
+			t := rand.Int()%2
+
+			if err := node.Stop(); err != nil {
+				panic(err)
+			}
+
+			name := fmt.Sprintf("%s_%d", TesterClientIdentifier, idx)
+			confdir := filepath.Join(config.DefaultDataDir(), name)
+			if t == 0 {
 				cmdLine := fmt.Sprintf("ls %s | grep -v %q", confdir, "config")
 				cmd := exec.Command("/bin/bash", "-c", cmdLine)
 				out, err := cmd.CombinedOutput()
@@ -269,12 +275,19 @@ func eraseNodeDataAndRestart(node *node.Node, comp *test.Components, idx int, ch
 						panic(err)
 					}
 				}
-
-				if err := node.Start(); err != nil {
+			} else {
+				cmdLine := fmt.Sprintf("rm -rf %s", filepath.Join(confdir, "db"))
+				_, err = exec.Command("/bin/bash", "-c", cmdLine).CombinedOutput()
+				if err != nil {
 					panic(err)
 				}
-				resetSvc(node, comp)
 			}
+
+			if err := node.Start(); err != nil {
+				panic(err)
+			}
+			resetSvc(node, comp)
+
 		}
 	}
 }
