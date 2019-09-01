@@ -23,36 +23,6 @@ var DbCmd = func() *cobra.Command {
 		Run: initAllDb,
 	}
 
-	trxCmd := &cobra.Command{
-		Use: "trxdb",
-	}
-
-	trxInitCmd := &cobra.Command{
-		Use: "init",
-		Short: "init trx db",
-		Run: initTrxDb,
-	}
-
-	dailyCmd := &cobra.Command{
-		Use: "dailydb",
-	}
-
-	dailyInitCmd := &cobra.Command{
-		Use: "init",
-		Short: "init daily db",
-		Run: initDailyDb,
-	}
-
-	stateCmd := &cobra.Command{
-		Use: "statedb",
-	}
-
-
-	trxCmd.AddCommand(trxInitCmd)
-	dailyCmd.AddCommand(dailyInitCmd)
-	cmd.AddCommand(trxCmd)
-	cmd.AddCommand(stateCmd)
-	cmd.AddCommand(dailyCmd)
 	cmd.AddCommand(initCmd)
 	return cmd
 }
@@ -112,7 +82,7 @@ func initTrxDb(cmd *cobra.Command, args []string) {
 		last_check_time int unsigned not null
 	);`
 
-	dropTables := []string{"trxinfo", "libinfo", "createaccountinfo", "transferinfo"}
+	dropTables := []string{"trxinfo", "libinfo"}
 	for _, table := range dropTables {
 		dropSql := fmt.Sprintf("DROP TABLE IF EXISTS `%s`", table)
 		if _, err = db.Exec(dropSql); err != nil {
@@ -128,60 +98,6 @@ func initTrxDb(cmd *cobra.Command, args []string) {
 	_, _ = db.Exec("INSERT INTO `libinfo` (lib, last_check_time) VALUES (?, ?)", 0, time.Now().UTC().Unix())
 }
 
-func initDailyDb(cmd *cobra.Command, args []string) {
-	cfg := readConfig()
-	dbConfig := cfg.Database
-	dsn := fmt.Sprintf("%s:%s@/%s", dbConfig.User, dbConfig.Password, dbConfig.Db)
-	db, err := sql.Open(dbConfig.Driver, dsn)
-	defer db.Close()
-	if err != nil {
-		fmt.Printf("fatal: init database failed, dsn:%s\n", dsn)
-		os.Exit(1)
-	}
-	createDailyStat := `create table dailystat (
-  date varchar(64) not null ,
-  dapp varchar(64) not null ,
-  dau int unsigned not null default 0,
-  dnu int unsigned not null default 0,
-  trxs int unsigned not null default 0,
-  amount bigint unsigned not null default 0,
-  tusr int unsigned not null  default 0,
-  INDEX dailystat_dapp (dapp),
-  constraint dailystat_date_dapp_uindex
-  unique (date, dapp)
-);`
-
-	createDailyStatInfo := `create table dailystatinfo
-(
-  lib int unsigned not null,
-  date varchar(64) not null,
-  last_check_time int unsigned not null
-);`
-
-	createDailyStatDapp := `create table dailystatdapp (
-  dapp varchar(64) not null,
-  prefix varchar(64) not null,
-  status smallint default 1
-);`
-	dropTables := []string{"dailystat", "dailystatinfo", "dailystatdapp"}
-	for _, table := range dropTables {
-		dropSql := fmt.Sprintf("DROP TABLE IF EXISTS `%s`", table)
-		if _, err = db.Exec(dropSql); err != nil {
-			fmt.Println(err)
-		}
-	}
-	createTables := []string{createDailyStat, createDailyStatInfo, createDailyStatDapp}
-	for _, table := range createTables {
-		if _, err = db.Exec(table); err != nil {
-			fmt.Println(err)
-		}
-	}
-	_, _ = db.Exec("INSERT INTO `dailystatinfo` (lib, date, last_check_time) VALUES (?, ?, ?)", 0, "", 0)
-	_, _ = db.Exec("INSERT INTO `dailystatdapp` (dapp, prefix) VALUES (?, ?), (?, ?), (?, ?), (?, ?)",
-		"photogrid", "PG", "contentos", "CT", "game 2048", "G2", "walk coin", "EC")
-}
-
 func initAllDb(cmd *cobra.Command, args []string) {
 	initTrxDb(cmd, args)
-	initDailyDb(cmd, args)
 }
