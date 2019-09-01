@@ -71,6 +71,17 @@ var sInterestedChanges = []InterestedChange{
 		},
 	},
 	{
+		Table: table.PostTable,
+		Field: "CashoutBlockNum",
+		Maker: func(id, before, after interface{}) *GenericChange {
+			return &GenericChange{
+				Id: 	id.(*uint64),
+				Before: before.(uint64),
+				After: 	after.(uint64),
+			}
+		},
+	},
+	{
 		Table: table.ContractTable,
 		Field: "Balance",
 		Maker: func(id, before, after interface{}) *GenericChange {
