@@ -1,270 +1,186 @@
 package plugins
 
 import (
-	"database/sql"
+	"errors"
 	"fmt"
-	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/iservices/itype"
 	"github.com/coschain/contentos-go/iservices/service-configs"
 	"github.com/coschain/contentos-go/node"
-	"github.com/coschain/contentos-go/prototype"
+	"github.com/jinzhu/gorm"
 	"github.com/sirupsen/logrus"
-	"strings"
+	"sync"
+	"sync/atomic"
 	"time"
 )
 
-//type Row map[string]int
+const LIMIT = 30
 
-const INTERVAL = 60 * 60
-// for test easily
-//const INTERVAL = 60 * 5
+type dateRow map[uint64]*itype.Row
 
 type DailyStatisticService struct {
-	node.Service
+	sync.Mutex
 	config *service_configs.DatabaseConfig
-	consensus iservices.IConsensus
-	outDb *sql.DB
 	log *logrus.Logger
-	ctx *node.ServiceContext
-	ticker *time.Ticker
-	quit chan bool
+	db *gorm.DB
+	jobTimer *time.Timer
+	stop int32
+	working int32
+	workStop *sync.Cond
+	dappsCache map[string]dateRow
+	dappWithCreator map[string]string
 }
 
 func NewDailyStatisticService(ctx *node.ServiceContext, config *service_configs.DatabaseConfig, log *logrus.Logger) (*DailyStatisticService, error) {
-	return &DailyStatisticService{ctx: ctx, log: log, config: config}, nil
+	s := &DailyStatisticService{log: log, config: config}
+	s.workStop = sync.NewCond(&s.Mutex)
+	return s, nil
 }
 
 func (s *DailyStatisticService) Start(node *node.Node) error {
-	s.quit = make(chan bool)
-	// dns: data source name
-	consensus, err := s.ctx.Service(iservices.ConsensusServerName)
-	if err != nil {
+	connStr := fmt.Sprintf("%s:%s@/%s?charset=utf8&parseTime=True&loc=Local", s.config.User, s.config.Password, s.config.Db)
+	if db, err := gorm.Open(s.config.Driver, connStr); err != nil {
 		return err
+	} else {
+		s.db = db
 	}
-	s.consensus = consensus.(iservices.IConsensus)
-	dsn := fmt.Sprintf("%s:%s@/%s", s.config.User, s.config.Password, s.config.Db)
-	outDb, err := sql.Open(s.config.Driver, dsn)
-
-	if err != nil {
-		return err
+	// hard code
+	if !s.db.HasTable("trxinfo") {
+		return errors.New("need init trxinfo table before start this plugin")
 	}
-	s.outDb = outDb
-
-	s.ticker = time.NewTicker(time.Second)
-	go func() {
-		for {
-			select {
-			case <- s.ticker.C:
-				if err := s.pollLIB(); err != nil {
-					s.log.Error(err)
-				}
-			case <- s.quit:
-				s.stop()
-				return
-			}
-		}
-	}()
+	s.dappWithCreator = map[string]string{"photogrid": "initminer", "contentos": "initminer", "game 2048": "G2", "walk coin":"EC"}
+	s.dappsCache = map[string]dateRow{}
+	for dapp, _ := range s.dappWithCreator {
+		s.dappsCache[dapp] = dateRow{}
+	}
+	s.scheduleNextJob()
 	return nil
 }
 
-func (s *DailyStatisticService) pollLIB() error  {
-	var lib uint64
-	_ = s.outDb.QueryRow("select lib from libinfo limit 1").Scan(&lib)
-	//lib := s.consensus.GetLIB().BlockNum()
-	//s.log.Debugf("[trx db] sync lib: %d \n", lib)
-	var lastLib uint64 = 0
-	var lastDate string
-	_ = s.outDb.QueryRow("SELECT lib, date from dailystatinfo limit 1").Scan(&lastLib, &lastDate)
-	var waitingSyncLib []uint64
-	var count = 0
-	for lastLib < lib {
-		if count > 1000 {
+func (s *DailyStatisticService) Stop() error {
+	s.waitWorkDone()
+	if s.db != nil {
+		_ = s.db.Close()
+	}
+	s.db, s.stop, s.working = nil, 0, 0
+	return nil
+}
+
+func (s *DailyStatisticService) scheduleNextJob() {
+	s.jobTimer = time.AfterFunc(24 * time.Hour, s.cron)
+}
+
+func (s *DailyStatisticService) waitWorkDone() {
+	s.Lock()
+	if s.jobTimer != nil {
+		s.jobTimer.Stop()
+	}
+	atomic.StoreInt32(&s.stop, 1)
+	for atomic.LoadInt32(&s.working) != 0 {
+		s.workStop.Wait()
+	}
+	s.Unlock()
+}
+
+func (s *DailyStatisticService) cron() {
+	atomic.StoreInt32(&s.working, 1)
+	today := time.Now().UTC()
+	yesterday := today.Add(-24 * time.Hour)
+	yesterdayStr := yesterday.Format("2006-01-02")
+	for dapp, _ := range s.dappWithCreator {
+		if atomic.LoadInt32(&s.stop) != 0 {
 			break
 		}
-		waitingSyncLib = append(waitingSyncLib, lastLib)
-		lastLib ++
-		count ++
+		if row, err := s.make(dapp, yesterdayStr); err == nil {
+			timestamp := row.Timestamp
+			s.dappsCache[dapp][timestamp] = row
+		}
 	}
-	for _, block := range waitingSyncLib {
-		blks , err := s.consensus.FetchBlocks(block, block)
-		if err != nil {
-			s.log.Error(err)
-			continue
-		}
-		if len(blks) == 0 {
-			if block != 0 {
-				s.log.Errorf("cannot fetch block %d in consensus", block)
-			}
-			continue
-		}
-		blk := blks[0].(*prototype.SignedBlock)
-		blockTime := blk.Timestamp()
-		datetime := time.Unix(int64(blockTime), 0)
-		date := fmt.Sprintf("%d-%02d-%02d", datetime.Year(), datetime.Month(), datetime.Day())
-		// trigger
-		if lastDate != date {
-			s.handleDailyStatistic(blk, lastDate)
-			//s.handleDNUStatistic(blk, lastDate)
-			s.log.Debugf("[daily stat] trigger handle, timestamp: %d, datetime: %s", blockTime, date)
-			lastDate = date
-		}
-		utcTimestamp := time.Now().UTC().Unix()
-		_, _ = s.outDb.Exec("UPDATE dailystatinfo SET lib = ?, date = ?, last_check_time = ?", block, date, utcTimestamp)
+	s.Lock()
+	atomic.StoreInt32(&s.working, 0)
+	if atomic.LoadInt32(&s.stop) == 0 {
+		s.scheduleNextJob()
 	}
-	return nil
+	s.workStop.Signal()
+	s.Unlock()
 }
 
-func (s *DailyStatisticService) handleDailyStatistic(block *prototype.SignedBlock, lastDate string) {
-	blockTime := block.Timestamp()
-	//datetime := time.Unix(int64(blockTime), 0)
-	//date := fmt.Sprintf("%d-%02d-%02d", datetime.Year(), datetime.Month(), datetime.Day())
-	end := blockTime
-	start := end - 86400
-	dauRows, _ := s.outDb.Query("SELECT distinct creator FROM trxinfo WHERE block_time >= ? and block_time < ?", start, end)
-	dapps := make(map[string]string)
-	dappRows, _ := s.outDb.Query("select dapp, prefix from dailystatdapp where status=1")
-	for dappRows.Next() {
-		var dapp, prefix string
-		_ = dappRows.Scan(&dapp, &prefix)
-		dapps[prefix] = dapp
+func (s *DailyStatisticService) make(dapp, datetime string) (*itype.Row, error) {
+	creator, ok := s.dappWithCreator[dapp]
+	if !ok {
+		return nil, errors.New(fmt.Sprintf("dapp %s is not exist", dapp))
 	}
-	// dau
-	dappsDauCounter := make(map[string]uint32)
-	for dauRows.Next() {
-		var creator string
-		if err := dauRows.Scan(&creator); err != nil {
-			s.log.Error(err)
-			continue
-		}
-		for prefix, dapp := range dapps {
-			if strings.HasPrefix(creator, prefix) {
-				dappsDauCounter[dapp] += 1
-			}
-		}
+	startDate, err := time.Parse("2006-01-02", datetime)
+	if err != nil {
+		return nil, err
 	}
-	dnuRows, _:= s.outDb.Query("SELECT account FROM createaccountinfo WHERE create_time >= ? and create_time < ?", start, end)
-	dappsDnuCounter := make(map[string]uint32)
-	// dnu
-	for dnuRows.Next() {
-		var account string
-		if err := dnuRows.Scan(&account); err != nil {
-			s.log.Error(err)
-			continue
-		}
-		for prefix, dapp := range dapps {
-			if strings.HasPrefix(account, prefix) {
-				dappsDnuCounter[dapp] += 1
-			}
-		}
-	}
+	start := startDate.Unix()
+	end := startDate.Add(24 * time.Hour).Unix()
 
-	//total user count
-	prevDay := time.Unix(int64(start-86400), 0)
-	prevDayStr := fmt.Sprintf("%d-%02d-%02d", prevDay.Year(), prevDay.Month(), prevDay.Day())
-	unRows, _:= s.outDb.Query("SELECT dapp, tusr from dailystat where date = ?",prevDayStr)
+	var dau uint32
+	s.db.Table("create_user_records").Where("create_user_records.creator = ?", creator).
+		Joins("JOIN trxinfo on trxinfo.creator = create_user_records.new_account").
+		Where("trxinfo.block_time > ? AND trxinfo.block_time < ?", start, end).
+		Select("count(distinct(create_user_records.new_account))").
+		Count(&dau)
 
-	dappsTusrCounter := make(map[string]uint32)
-	for unRows.Next() {
-		var count uint32
-		var dApp string
-		if err := unRows.Scan(&dApp, &count); err != nil {
-			s.log.Error(err)
-			continue
-		}
+	var dnu uint32
+	s.db.Model(&CreateUserRecord{}).Where("block_time > ? AND block_time < ? AND creator = ?", time.Unix(start, 0), time.Unix(end, 0), creator).Count(&dnu)
 
-		for _, dapp := range dapps {
-			if dapp == dApp {
-				dappsTusrCounter[dapp] = count
-			}
-		}
+	var count uint32
+	s.db.Table("create_user_records").Where("create_user_records.creator = ?", creator).
+		Joins("JOIN trxinfo on trxinfo.creator = create_user_records.new_account").
+		Where("trxinfo.block_time > ? AND trxinfo.block_time < ?", start, end).
+		Count(&count)
 
+	type AmountWrap struct {
+		Amount uint64
 	}
+	var amount AmountWrap
+	s.db.Table("transfer_records").Select("sum(transfer_records.amount) as amount").
+		Where("transfer_records.block_time > ? AND transfer_records.block_time < ?", time.Unix(start, 0), time.Unix(end, 0)).
+		Joins("JOIN create_user_records on transfer_records.from = create_user_records.new_account").
+		Where("create_user_records.creator = ?", creator).Scan(&amount)
 
+	var total uint32
+	s.db.Model(&CreateUserRecord{}).Where("creator = ? and block_time < ?", creator, end).Count(&total)
 
-	// trx count
-	trxCountRows, _ := s.outDb.Query("select creator, count(creator) as count from trxinfo where block_time >= ? and block_time < ? group by creator", start, end)
-	trxCountCounter := make(map[string]uint32)
-	for trxCountRows.Next() {
-		var creator string
-		var count uint32
-		if err := trxCountRows.Scan(&creator, &count); err != nil {
-			s.log.Error(err)
-			continue
-		}
-		for prefix, dapp := range dapps {
-			if strings.HasPrefix(creator, prefix) {
-				trxCountCounter[dapp] += count
-			}
-		}
-	}
-	// amount
-	transferAmountRows, _ := s.outDb.Query("select sender, amount from transferinfo where create_time >= ? and create_time < ?", start, end)
-	transferAmountCounter := make(map[string]uint64)
-	for transferAmountRows.Next() {
-		var sender string
-		var amount uint64
-		if err := transferAmountRows.Scan(&sender, &amount); err != nil {
-			s.log.Error(err)
-			continue
-		}
-		for prefix, dapp := range dapps {
-			if strings.HasPrefix(sender, prefix) {
-				transferAmountCounter[dapp] += amount
-			}
-		}
-	}
-	for _, dapp := range dapps {
-		dau, _ := dappsDauCounter[dapp]
-		dnu, _ := dappsDnuCounter[dapp]
-		trxCount, _ := trxCountCounter[dapp]
-		amount, _ := transferAmountCounter[dapp]
-		curUsr, _ := dappsTusrCounter[dapp]
-		tUsr := curUsr + dnu
-		if len(lastDate) > 0 {
-			_, _ = s.outDb.Exec("insert ignore into dailystat (date, dapp, dau, dnu, trxs, amount, tusr) values (?, ?, ?, ?, ?, ?, ?)", lastDate, dapp, dau, dnu, trxCount, amount, tUsr)
-		}
-	}
+	row := &itype.Row{Timestamp: uint64(start), Dapp: dapp, Dau: dau, Dnu: dnu, TrxCount: count, Amount:amount.Amount, TotalUserCount:total}
+	return row, nil
 }
 
-
-func (s *DailyStatisticService) DailyStatsOn(date string, dapp string) *itype.Row {
-	var dau, dnu, trxs, tusr uint32
-	var amount uint64
-	_ = s.outDb.QueryRow("select dau, dnu, trxs, amount, tusr from dailystat where date=? and dapp=?", date, dapp).Scan(&dau, &dnu, &trxs, &amount, &tusr)
-	return &itype.Row{Date: date, Dapp: dapp, Dau: dau, Dnu: dnu, TrxCount: trxs, Amount: amount, TotalUserCount: tusr}
+func (s *DailyStatisticService) checkLimit(days int) int {
+	if days > LIMIT {
+		return LIMIT
+	} else {
+		return days
+	}
 }
 
 func (s *DailyStatisticService) DailyStatsSince(days int, dapp string) []*itype.Row {
+	var rows []*itype.Row
+	days = s.checkLimit(days)
+	if _, ok := s.dappWithCreator[dapp]; !ok {
+		return rows
+	}
+	dappRows, _ := s.dappsCache[dapp]
 	now := time.Now().UTC()
+	today := time.Date(now.Year(), now.Month(), now.Day(), 0, 0, 0, 0, time.UTC)
 	d, _ := time.ParseDuration("-24h")
-	then := now.Add(d * time.Duration(days))
-	start := fmt.Sprintf("%d-%02d-%02d", then.Year(), then.Month(), then.Day())
-	var dauRows []*itype.Row
-	rows, err := s.outDb.Query("select dau, dnu, trxs, amount, tusr, date from dailystat where date >= ? and dapp = ?  order by date", start, dapp)
-	if err != nil {
-		return dauRows
+	start := today.Add(d * time.Duration(days))
+	for start.Unix() < today.Unix() {
+		timestamp := uint64(start.Unix())
+		if row, ok := dappRows[timestamp]; ok {
+			rows = append(rows, row)
+		} else {
+			tm := time.Unix(int64(timestamp), 0)
+			date := tm.Format("2006-01-02")
+			row, err := s.make(dapp, date)
+			if err == nil {
+				dappRows[timestamp] = row
+				rows = append(rows, row)
+			}
+		}
+		start = start.Add(24 * time.Hour)
 	}
-	for rows.Next() {
-		var dau, dnu, trxs, tusr uint32
-		var amount uint64
-		var date string
-		_ = rows.Scan(&dau, &dnu, &trxs, &amount,  &tusr, &date)
-		r := &itype.Row{Date: date, Dapp: dapp, Dau: dau, Dnu: dnu, TrxCount: trxs, Amount: amount, TotalUserCount: tusr}
-		dauRows = append(dauRows, r)
-	}
-	return dauRows
+	return rows
 }
-
-
-func (s *DailyStatisticService) stop() {
-	_ = s.outDb.Close()
-	s.ticker.Stop()
-}
-
-
-func (t *DailyStatisticService) Stop() error {
-	t.quit <- true
-	close(t.quit)
-	return nil
-}
-

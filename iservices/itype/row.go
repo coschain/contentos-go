@@ -1,7 +1,7 @@
 package itype
 
 type Row struct {
-	Date string
+	Timestamp uint64
 	Dapp string
 	Dau  uint32
 	Dnu  uint32
