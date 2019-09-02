@@ -321,6 +321,7 @@ func (ev *PostEvaluator) checkBeneficiaries(beneficiaries []*prototype.Beneficia
 		beneficiaryRouteWrap := table.NewSoAccountWrap(ev.Database(), name)
 		beneficiaryRouteWrap.MustExist(fmt.Sprintf("beneficiary route %s does not exist in chaindb", name.Value))
 		weight := beneficiary.Weight
+		opAssert(weight <= constants.PERCENT, "each weight should lower than 10000")
 		weightAccumulator += weight
 	}
 	opAssert(weightAccumulator <= constants.PERCENT, "the total weight from all beneficiary routes at most 10000")
@@ -382,6 +383,7 @@ func (ev *ReplyEvaluator) checkBeneficiaries(beneficiaries []*prototype.Benefici
 		beneficiaryRouteWrap := table.NewSoAccountWrap(ev.Database(), name)
 		beneficiaryRouteWrap.MustExist(fmt.Sprintf("beneficiary route %s does not exist in chaindb", name.Value))
 		weight := beneficiary.Weight
+		opAssert(weight <= constants.PERCENT, "each weight should lower than 10000")
 		weightAccumulator += weight
 	}
 	opAssert(weightAccumulator <= constants.PERCENT, "the total weight from all beneficiary routes at most 10000")
