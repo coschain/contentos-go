@@ -12,7 +12,7 @@ import (
 )
 
 func (p *SignedTransaction) ExportPubKeys(cid ChainId) (*PublicKeyType, error) {
-	buf, err := p.GetTrxHash(cid)
+	buf, err := p.getTrxHash(cid)
 
 	if err != nil {
 		return nil, errors.New("sha256 error")
@@ -58,7 +58,7 @@ func (p *SignedTransaction) Validate() error {
 
 func (p *SignedTransaction) VerifySig(pubKey *PublicKeyType, cid ChainId) bool {
 
-	buf, err := p.GetTrxHash(cid)
+	buf, err := p.getTrxHash(cid)
 
 	if err != nil {
 		return false
@@ -75,7 +75,7 @@ func (p *SignedTransaction) VerifySig(pubKey *PublicKeyType, cid ChainId) bool {
 	return false
 }
 
-func (p *SignedTransaction) GetTrxHash(cid ChainId) ([]byte, error) {
+func (p *SignedTransaction) getTrxHash(cid ChainId) ([]byte, error) {
 	buf, err := proto.Marshal(p.Trx)
 
 	if err != nil {
@@ -99,7 +99,7 @@ func (p *SignedTransaction) GetTrxHash(cid ChainId) ([]byte, error) {
 
 func (p *SignedTransaction) Sign(secKey *PrivateKeyType, cid ChainId) []byte {
 
-	buf, err := p.GetTrxHash(cid)
+	buf, err := p.getTrxHash(cid)
 
 	if err != nil {
 		return nil
