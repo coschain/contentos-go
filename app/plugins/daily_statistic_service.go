@@ -105,6 +105,8 @@ func (s *DailyStatisticService) cron() {
 }
 
 func (s *DailyStatisticService) make(dapp, datetime string) (*itype.Row, error) {
+	s.Lock()
+	defer s.Unlock()
 	creator, ok := s.dappWithCreator[dapp]
 	if !ok {
 		return nil, errors.New(fmt.Sprintf("dapp %s is not exist", dapp))
