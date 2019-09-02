@@ -416,7 +416,18 @@ func (sabft *SABFT) revertToLastCheckPoint() {
 	sabft.log.Infof("[SABFT][checkpoint] revert to last committed block %d.", popNum-1)
 }
 
+func (sabft *SABFT) resetResource() {
+	//sabft.dynasties = NewDynasties()
+	sabft.trxCh = make(chan func())
+	sabft.pendingCh = make(chan func())
+	sabft.blkCh = make(chan common.ISignedBlock, 100)
+	sabft.stopCh = make(chan struct{})
+	//sabft.commitCh = make(chan message.Commit)
+}
+
 func (sabft *SABFT) start() {
+	sabft.resetResource()
+
 	sabft.wg.Add(1)
 	defer sabft.wg.Done()
 
@@ -427,6 +438,7 @@ func (sabft *SABFT) start() {
 			sabft.log.Debug("[SABFT] routine stopped.")
 			return
 		case b := <-sabft.blkCh:
+			sabft.log.Debug("handling block ", b.Id().BlockNum())
 			if sabft.readyToProduce && sabft.tooManyUncommittedBlocks() &&
 				b.Id().BlockNum() > sabft.ForkDB.Head().Id().BlockNum() {
 				sabft.log.Debugf("dropping new block %v cause we had too many uncommitted blocks", b.Id())
@@ -492,13 +504,14 @@ func (sabft *SABFT) tryCommit(b common.ISignedBlock) {
 }
 
 func (sabft *SABFT) Stop() error {
-	sabft.log.Info("SABFT consensus stopped.")
-
+	sabft.log.Info("[SABFT] Stopping SABFT consensus")
 	// stop bft process
 	if atomic.LoadUint32(&sabft.bftStarted) == 1 {
+		sabft.log.Info("[SABFT] Stopping gobft")
 		sabft.bft.Stop()
 		atomic.StoreUint32(&sabft.bftStarted, 0)
 		sabft.log.Info("[SABFT] gobft stopped...")
+		time.Sleep(2 * time.Second)
 	}
 
 	// restore uncommitted forkdb
@@ -511,6 +524,7 @@ func (sabft *SABFT) Stop() error {
 	sabft.readyToProduce = false
 	sabft.dynasties.Clear()
 	sabft.wg.Wait()
+	sabft.log.Info("[SABFT] SABFT consensus stopped")
 	return nil
 }
 
