@@ -314,9 +314,6 @@ func (sabft *SABFT) stateFixup(cfg *node.Config) {
 	sabft.restoreProducers()
 	// dynasties have to be restored from database first
 	sabft.restoreDynasty()
-	if err := sabft.databaseFixup(); err != nil {
-		panic(err)
-	}
 
 	sabft.cp = NewBFTCheckPoint(cfg.ResolvePath(constants.CheckPoint), sabft)
 	if !sabft.ForkDB.Empty() && !sabft.blog.Empty() {
@@ -340,6 +337,11 @@ func (sabft *SABFT) stateFixup(cfg *node.Config) {
 	sabft.appState = &message.AppState{
 		LastHeight:       lh,
 		LastProposedData: sabft.ForkDB.LastCommitted().Data,
+	}
+	sabft.log.Warn("last bft height ", lh)
+
+	if err := sabft.databaseFixup(); err != nil {
+		panic(err)
 	}
 }
 
@@ -1498,11 +1500,24 @@ func (sabft *SABFT) databaseFixup() error {
 			if err := sabft.blog.ReadBlock(blk, i); err != nil {
 				return err
 			}
-			err = sabft.ctrl.SyncCommittedBlockToDB(blk)
-			if err != nil {
-				sabft.log.Errorf("[DB fixup from blog] SyncCommittedBlockToDB Failed: %v", i)
+			if err = sabft.ctrl.PushBlock(blk, prototype.Skip_block_check&
+				prototype.Skip_block_signatures&
+				prototype.Skip_transaction_signatures); err != nil {
+				sabft.log.Errorf("[DB fixup from blog] PushBlock #%d Failed", i)
 				return err
 			}
+			if cr, err := sabft.cp.GetNext(uint64(i)); err != nil {
+				panic(err)
+			} else {
+				//sabft.log.Warnf("%d got record %v", i, cr)
+				blockID := ConvertToBlockID(cr.ProposedData)
+				blockNum := blockID.BlockNum()
+				if blockID == blk.Id() {
+					sabft.ctrl.Commit(blockNum)
+					sabft.dynasties.Purge(blockNum)
+				}
+			}
+
 			sabft.noticer.Publish(constants.NoticeLibChange, []common.ISignedBlock{blk})
 		}
 	}
