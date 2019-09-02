@@ -203,7 +203,6 @@ func resetSvc(node *node.Node, comp *test.Components) {
 	}
 	p2p := p.(iservices.IP2P)
 	p2p.SetMockLatency(latency)
-	css.EnableMockSignal()
 	comp.ConsensusSvc = css
 	comp.P2pSvc = p2p
 	comp.State = test.Syncing
@@ -212,7 +211,7 @@ func resetSvc(node *node.Node, comp *test.Components) {
 			time.Sleep(time.Second)
 			if css.CheckSyncFinished() {
 				comp.State = test.OnLine
-				break
+				return
 			}
 		}
 	}()
@@ -232,18 +231,17 @@ func readyToShutDown(node *node.Node) bool {
 }
 
 func eraseNodeDataAndRestart(node *node.Node, comp *test.Components, idx int, ch chan struct{}) {
-	c, err := node.Service(iservices.ConsensusServerName)
-	if err != nil {
-		panic(err)
-	}
-	css := c.(iservices.IConsensus)
-
 	ticker := time.NewTicker(10 * time.Second).C
 	for {
 		select {
 		case <-ch:
 			return
 		case <-ticker:
+			c, err := node.Service(iservices.ConsensusServerName)
+			if err != nil {
+				panic(err)
+			}
+			css := c.(iservices.IConsensus)
 			if !css.CheckSyncFinished() {
 				continue
 			}
@@ -252,7 +250,6 @@ func eraseNodeDataAndRestart(node *node.Node, comp *test.Components, idx int, ch
 			if err := node.Stop(); err != nil {
 				panic(err)
 			}
-			fmt.Printf("node %s stopped\n", css.GetName())
 			comp.State = test.OffLine
 
 			name := fmt.Sprintf("%s_%d", TesterClientIdentifier, idx)

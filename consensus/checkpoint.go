@@ -94,7 +94,7 @@ func (cp *BFTCheckPoint) Flush(bid common.BlockID) error {
 	for {
 		binary.BigEndian.PutUint64(key, cp.nextCP.BlockNum())
 		cp.tdb.BeginTransaction()
-		err := cp.db.Put(key, cp.cache[cp.lastCommitted].Bytes())
+		err := cp.tdb.Put(key, cp.cache[cp.lastCommitted].Bytes())
 		if err != nil {
 			cp.sabft.log.Fatal(err)
 			cp.tdb.EndTransaction(false)
@@ -106,7 +106,7 @@ func (cp *BFTCheckPoint) Flush(bid common.BlockID) error {
 				cp.sabft.Name, cp.sabft.ForkDB.LastCommitted(), cp.lastCommitted, cp.nextCP)
 			panic(errstr)
 		}
-		err = cp.db.Put(cp.getIdxKey(uint64(cp.cache[cp.lastCommitted].Height())), key)
+		err = cp.tdb.Put(cp.getIdxKey(uint64(cp.cache[cp.lastCommitted].Height())), key)
 		if err != nil {
 			cp.sabft.log.Fatal(err)
 			cp.tdb.EndTransaction(false)
@@ -221,7 +221,7 @@ func (cp *BFTCheckPoint) GetNext(blockNum uint64) (*message.Commit, error) {
 	key := make([]byte, 8)
 	binary.BigEndian.PutUint64(key, blockNum+1)
 	var val []byte
-	cp.db.Iterate(key, nil, false, func(key, value []byte) bool {
+	cp.tdb.Iterate(key, nil, false, func(key, value []byte) bool {
 		val = common.CopyBytes(value)
 		return false
 	})
@@ -241,12 +241,12 @@ func (cp *BFTCheckPoint) GetNext(blockNum uint64) (*message.Commit, error) {
 
 func (cp *BFTCheckPoint) GetIth(i uint64) (*message.Commit, error) {
 	idxKey := cp.getIdxKey(i)
-	blockNum, err := cp.db.Get(idxKey)
+	blockNum, err := cp.tdb.Get(idxKey)
 	if err != nil {
 		cp.sabft.log.Error(err)
 		return nil, err
 	}
-	c, err := cp.db.Get(blockNum)
+	c, err := cp.tdb.Get(blockNum)
 	if err != nil {
 		cp.sabft.log.Error(err)
 		return nil, err
