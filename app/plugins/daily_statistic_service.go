@@ -142,7 +142,7 @@ func (s *DailyStatisticService) make(dapp, datetime string) (*itype.Row, error) 
 		Where("create_user_records.creator = ?", creator).Scan(&amount)
 
 	var total uint32
-	s.db.Model(&CreateUserRecord{}).Where("creator = ? and block_time < ?", creator, end).Count(&total)
+	s.db.Model(&CreateUserRecord{}).Where("creator = ? and block_time < ?", creator, time.Unix(end, 0)).Count(&total)
 
 	row := &itype.Row{Timestamp: uint64(start), Dapp: dapp, Dau: dau, Dnu: dnu, TrxCount: count, Amount:amount.Amount, TotalUserCount:total}
 	return row, nil
