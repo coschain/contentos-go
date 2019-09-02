@@ -249,10 +249,11 @@ func eraseNodeDataAndRestart(node *node.Node, comp *test.Components, idx int, ch
 			}
 
 			t := rand.Int()%2
-
 			if err := node.Stop(); err != nil {
 				panic(err)
 			}
+			fmt.Printf("node %s stopped\n", css.GetName())
+			comp.State = test.OffLine
 
 			name := fmt.Sprintf("%s_%d", TesterClientIdentifier, idx)
 			confdir := filepath.Join(config.DefaultDataDir(), name)

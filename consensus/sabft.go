@@ -1050,6 +1050,11 @@ func (sabft *SABFT) GetValidator(key message.PubKey) custom.IPubValidator {
 }
 
 func (sabft *SABFT) getValidator(key message.PubKey) custom.IPubValidator {
+	if sabft.dynasties.Empty() {
+		sabft.log.Error("empty dynasty")
+		return nil
+	}
+
 	valset := sabft.dynasties.Front().validators
 	for i := range valset {
 		if valset[i].bftPubKey == key {
