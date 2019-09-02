@@ -84,7 +84,7 @@ func NewSABFT(ctx *node.ServiceContext, lg *logrus.Logger) *SABFT {
 		prodTimer:  time.NewTimer(1 * time.Millisecond),
 		trxCh:      make(chan func()),
 		pendingCh:  make(chan func()),
-		blkCh:      make(chan common.ISignedBlock),
+		blkCh:      make(chan common.ISignedBlock, 1000),
 		ctx:        ctx,
 		stopCh:     make(chan struct{}),
 		extLog:     lg,
@@ -1261,6 +1261,8 @@ func (sabft *SABFT) popBlock(num uint64) error {
 	sabft.ctrl.PopBlock(num)
 	// producers fixup
 	sabft.restoreProducers()
+
+	sabft.dynasties.PopAfter(num)
 	return nil
 }
 
