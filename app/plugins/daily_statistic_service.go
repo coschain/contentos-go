@@ -47,7 +47,7 @@ func (s *DailyStatisticService) Start(node *node.Node) error {
 	if !s.db.HasTable("trxinfo") {
 		return errors.New("need init trxinfo table before start this plugin")
 	}
-	s.dappWithCreator = map[string]string{"photogrid": "LocalTycoon", "contentos": "ContentoTycoon", "game 2048": "Game2048Tycoon", "walk coin":"EnergyCoin"}
+	s.dappWithCreator = map[string]string{"photogrid": "localtycoon", "contentos": "contentotycoon", "game 2048": "game2048tycoon", "walk coin":"energycoin"}
 	s.dappsCache = map[string]dateRow{}
 	for dapp, _ := range s.dappWithCreator {
 		s.dappsCache[dapp] = dateRow{}
