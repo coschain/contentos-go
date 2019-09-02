@@ -38,14 +38,14 @@ func (s *BlockLogService) Start(node *node.Node) error  {
 }
 
 func (s *BlockLogService) Stop() error {
-	_ = s.bus.Unsubscribe(constants.NoticeState, s.onBlockLog)
+	_ = s.bus.Unsubscribe(constants.NoticeBlockLog, s.onBlockLog)
 	_ = s.bus.Unsubscribe(constants.NoticeLibChange, s.onLibChange)
 	_ = s.db.Close()
 	return nil
 }
 
 func (s *BlockLogService) initDatabase() error {
-	connStr := fmt.Sprintf("%s:%s@/%s?charset=utf8&parseTime=True&loc=Local", s.config.User, s.config.Password, s.config.Db)
+	connStr := fmt.Sprintf("%s:%s@/%s?charset=utf8mb4&parseTime=True&loc=Local", s.config.User, s.config.Password, s.config.Db)
 	if db, err := gorm.Open(s.config.Driver, connStr); err != nil {
 		return err
 	} else {

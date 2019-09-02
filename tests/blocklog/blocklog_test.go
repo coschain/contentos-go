@@ -46,7 +46,7 @@ func (tester *BlockLogTester) doSomething() {
 	tester.a.NoError(tester.d.Account("actor0").SendTrx(Transfer("actor0", "actor1", 1, "xxx")))
 	tester.a.NoError(tester.d.Account("actor2").SendTrx(Transfer("actor2", "actor3", 2, "hehe**")))
 	tester.a.NoError(tester.d.Account("actor4").SendTrx(Transfer("actor4", "actor5", 3, "abc")))
-	tester.a.NoError(tester.d.Account("actor3").SendTrx(Post(postId, "actor3", "title", "content", []string{"test"}, []map[string]int{
+	tester.a.NoError(tester.d.Account("actor3").SendTrx(Post(postId, "actor3", "title", "با روانمون بازی نکن😐😹با روانمون بازی ن\",14", []string{"test"}, []map[string]int{
 		{"actor7": 5000},
 		{"actor8": 5000},
 	})))
