@@ -61,6 +61,9 @@ func (p *EcosysProcessor) Prepare(db *gorm.DB, blockLog *blocklog.BlockLog) (err
 }
 
 func (p *EcosysProcessor) ProcessChange(db *gorm.DB, change *blocklog.StateChange, blockLog *blocklog.BlockLog, changeIdx, opIdx, trxIdx int) error {
+	if change.What != "Account.Vest" {
+		return nil
+	}
 	if change.Cause == "esys.reward.voter" ||
 		change.Cause == "esys.reward.post_author" ||
 		change.Cause == "esys.reward.reply_author" ||
