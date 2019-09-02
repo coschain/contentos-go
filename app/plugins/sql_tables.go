@@ -8,7 +8,7 @@ import (
 )
 
 func RemoveSQLTables(dbConfig *service_configs.DatabaseConfig) error {
-	connStr := fmt.Sprintf("%s:%s@/%s?charset=utf8&parseTime=True&loc=Local", dbConfig.User, dbConfig.Password, dbConfig.Db)
+	connStr := fmt.Sprintf("%s:%s@/%s?charset=utf8mb4&parseTime=True&loc=Local", dbConfig.User, dbConfig.Password, dbConfig.Db)
 	db, err := gorm.Open(dbConfig.Driver, connStr)
 	if err != nil {
 		return err
