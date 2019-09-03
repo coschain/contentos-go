@@ -1001,7 +1001,7 @@ func (sabft *SABFT) updateAppState(commit *message.Commit) {
 func (sabft *SABFT) commit(commitRecords *message.Commit) error {
 	defer func() {
 		sabft.updateAppState(commitRecords)
-		sabft.checkBFTRoutine()
+		//sabft.checkBFTRoutine()
 
 		// TODO: check if checkpoint has been skipped
 	}()

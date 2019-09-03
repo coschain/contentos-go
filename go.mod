@@ -12,7 +12,7 @@ require (
 	github.com/cmars/basen v0.0.0-20150613233007-fe3947df716e // indirect
 	github.com/coocood/freecache v1.1.0
 	github.com/coschain/cobra v0.0.0-20181106130408-77bf516f51a1
-	github.com/coschain/gobft v0.0.0-20190828125026-be256f51ab5c
+	github.com/coschain/gobft v0.0.0-20190903064827-35fadf01533a
 	github.com/deckarep/golang-set v1.7.1
 	github.com/ethereum/go-ethereum v1.9.2
 	github.com/fastly/go-utils v0.0.0-20180712184237-d95a45783239 // indirect
