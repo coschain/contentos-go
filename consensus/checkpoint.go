@@ -203,8 +203,10 @@ func (cp *BFTCheckPoint) IsNextCheckPoint(commit *message.Commit) bool {
 		cp.sabft.log.Fatal("checkpoint on an empty block")
 		return false
 	}
+	cp.sabft.log.Warn("cp.nextCP: ", cp.nextCP.BlockNum(), " commit number: ", id.BlockNum())
 	_, ok := cp.cache[cp.lastCommitted]
 	if !ok {
+		cp.sabft.log.Warn("cp not in cache, cp.lastCommitted: ", cp.lastCommitted.BlockNum(), " commit: ", commit)
 		return false
 	}
 	return cp.nextCP == id // && ConvertToBlockID(v.Prev) == cp.lastCommitted

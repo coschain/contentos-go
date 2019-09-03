@@ -709,6 +709,7 @@ func (sabft *SABFT) loopCommit(commit *message.Commit) {
 	for checkPoint != nil {
 		newID := ExtractBlockID(checkPoint)
 		if !sabft.cp.IsNextCheckPoint(checkPoint) {
+			sabft.log.Warn("cp check IsNextCheckPoint failed")
 			return
 		}
 		sabft.log.Debug("reach checkpoint at ", checkPoint.ProposedData)
@@ -728,9 +729,15 @@ func (sabft *SABFT) loopCommit(commit *message.Commit) {
 				checkPoint = sabft.cp.NextUncommitted()
 				if checkPoint != nil {
 					sabft.log.Debug("loop checkpoint at ", checkPoint.ProposedData)
+				} else {
+					sabft.log.Warn("NextUncommitted is nil")
 				}
 				continue
+			} else {
+				sabft.log.Warn("commit cp error ", err)
 			}
+		} else {
+			sabft.log.Warn("forkdb can't fetch newID: ", newID.BlockNum(), " ", err)
 		}
 		break
 	}
