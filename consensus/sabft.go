@@ -71,6 +71,8 @@ type SABFT struct {
 	hook map[string]func(args ...interface{})
 
 	mockSignal bool
+	mockMalicious  bool
+	maliciousBlock map[common.BlockID]common.ISignedBlock
 }
 
 func NewSABFT(ctx *node.ServiceContext, lg *logrus.Logger) *SABFT {
@@ -93,6 +95,7 @@ func NewSABFT(ctx *node.ServiceContext, lg *logrus.Logger) *SABFT {
 		commitCh:   make(chan message.Commit),
 		Ticker:     &Timer{},
 		hook:       make(map[string]func(args ...interface{})),
+		maliciousBlock: make(map[common.BlockID]common.ISignedBlock),
 	}
 
 	ret.SetBootstrap(ctx.Config().Consensus.BootStrap)
@@ -207,8 +210,9 @@ func (sabft *SABFT) checkBFTRoutine() {
 		}
 	} else {
 		if atomic.LoadUint32(&sabft.bftStarted) == 1 {
+			sabft.log.Info("[SABFT] Stopping gobft")
 			sabft.bft.Stop()
-			sabft.log.Info("[SABFT] gobft stopped...")
+			sabft.log.Info("[SABFT] gobft stopped")
 			atomic.StoreUint32(&sabft.bftStarted, 0)
 		}
 	}
@@ -438,7 +442,7 @@ func (sabft *SABFT) start() {
 			sabft.log.Debug("[SABFT] routine stopped.")
 			return
 		case b := <-sabft.blkCh:
-			sabft.log.Debug("handling block ", b.Id().BlockNum())
+			//sabft.log.Debug("handling block ", b.Id().BlockNum())
 			if sabft.readyToProduce && sabft.tooManyUncommittedBlocks() &&
 				b.Id().BlockNum() > sabft.ForkDB.Head().Id().BlockNum() {
 				sabft.log.Debugf("dropping new block %v cause we had too many uncommitted blocks", b.Id())
@@ -797,6 +801,13 @@ func (sabft *SABFT) PushTransactionToPending(trx common.ISignedTransaction) erro
 	return <-chanError
 }
 
+func (sabft *SABFT) pushMaliciousBlock(b common.ISignedBlock) {
+	if !sabft.mockMalicious {
+		return
+	}
+	sabft.maliciousBlock[b.Id()] = b
+}
+
 func (sabft *SABFT) pushBlock(b common.ISignedBlock, applyStateDB bool) error {
 	sabft.log.Debug("[SABFT] start pushBlock #", b.Id().BlockNum())
 	// TODO: check signee & merkle
@@ -852,7 +863,7 @@ func (sabft *SABFT) pushBlock(b common.ISignedBlock, applyStateDB bool) error {
 	newHead := sabft.ForkDB.Head()
 	switch rc {
 	case forkdb.RTDetached:
-		sabft.log.Debugf("[SABFT][pushBlock]possibly detached block. prev: got %v, want %v", b.Id(), head.Id())
+		sabft.log.Debugf("[SABFT][pushBlock]possibly detached block. prev: got %v, want %v", b.Previous(), head.Id())
 		tailId, errTail := sabft.ForkDB.FetchUnlinkBlockTail()
 		if sabft.HasBlock(*tailId) {
 			panic("GOT unlinked but exist")
@@ -899,6 +910,9 @@ func (sabft *SABFT) pushBlock(b common.ISignedBlock, applyStateDB bool) error {
 			}
 		}
 		sabft.log.Debug("[SABFT] pushBlock FINISHED #", b.Id().BlockNum(), " id ", b.Id())
+		if sabft.mockMalicious && !applyStateDB {
+			return nil
+		}
 		sabft.p2p.Broadcast(b)
 	default:
 		return ErrInternal
@@ -1329,6 +1343,10 @@ func (sabft *SABFT) FetchBlock(id common.BlockID) (common.ISignedBlock, error) {
 		}
 	}
 
+	if v, exist := sabft.maliciousBlock[id]; exist {
+		return v, nil
+	}
+
 	sabft.log.Errorf("[SABFT FetchBlock] block with id %v doesn't exist", id)
 	return nil, ErrBlockNotExist
 }
@@ -1478,8 +1496,8 @@ func (sabft *SABFT) MaybeProduceBlock() {
 		sabft.Unlock()
 		return
 	}
+	sabft.log.Debugf("[SABFT] generated block: <num %d> <ts %d> <%d>", b.Id().BlockNum(), b.Timestamp(), b.Id())
 
-	sabft.log.Debugf("[SABFT] generated block: <num %d> <ts %d>", b.Id().BlockNum(), b.Timestamp())
 	if err := sabft.pushBlock(b, false); err != nil {
 		sabft.log.Error("[SABFT] pushBlock push generated block failed: ", err)
 	}
@@ -1487,6 +1505,19 @@ func (sabft *SABFT) MaybeProduceBlock() {
 
 	if f, exist := sabft.hook["generate_block"]; exist {
 		f()
+	}
+	if sabft.mockMalicious {
+		dup := &prototype.SignedBlock{}
+		s, _ := b.Marshall()
+		dup.Unmarshall(s)
+		sig := dup.SignedHeader.BlockProducerSignature.Sig
+		sig[0] = 0x01
+		sig[2] = 0x01
+		sig[7] = 0x01
+		sabft.log.Warnf("signature of block #%d manipulated %v", dup.Id().BlockNum(), dup.Id())
+		sabft.pushMaliciousBlock(dup)
+		sabft.p2p.Broadcast(dup)
+		return
 	}
 	sabft.p2p.Broadcast(b)
 }
@@ -1603,4 +1634,8 @@ func (sabft *SABFT) SetHook(key string, f func(args ...interface{})) {
 
 func (sabft *SABFT) EnableMockSignal() {
 	sabft.mockSignal = true
+}
+
+func (sabft *SABFT) MockMaliciousBehaviour(b bool) {
+	sabft.mockMalicious = true
 }

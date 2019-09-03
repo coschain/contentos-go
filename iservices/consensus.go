@@ -84,4 +84,5 @@ type IConsensus interface {
 
 	// for test only
 	EnableMockSignal()
+	MockMaliciousBehaviour(b bool)
 }
