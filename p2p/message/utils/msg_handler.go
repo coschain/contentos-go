@@ -900,7 +900,7 @@ func (p *MsgHandler) ConsMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args 
 		}
 		//log.Info("receive a consensus hash: ", hash)
 		remotePeer.RecordConsensusMsg(hash)
-		log.Info("receive a consensus message from ", data.Addr, " msg hash ", hash)
+		//log.Info("receive a consensus message from ", data.Addr, " msg hash ", hash)
 	}
 
 	s, err := p2p.GetService(iservices.ConsensusServerName)
@@ -910,7 +910,7 @@ func (p *MsgHandler) ConsMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args 
 	}
 	ctrl := s.(iservices.IConsensus)
 
-	//log.Info("receive a consensus message, message data: ", msgdata)
+	log.Info("receive a consensus message, message data: ", msgdata)
 
 	ctrl.Push(msgdata.MsgData, remotePeer)
 
