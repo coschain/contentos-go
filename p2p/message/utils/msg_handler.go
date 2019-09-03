@@ -609,9 +609,6 @@ func (p *MsgHandler) IdMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ..
 		var blkId common.BlockID
 		copy(blkId.Data[:], msgdata.Value[0])
 
-		log.Info("[p2p] receive a broadcast_sigblk_id msg block number ", blkId.BlockNum())
-		start := common.EasyTimer()
-
 		if !ctrl.HasBlock(blkId) {
 			var reqmsg msgTypes.TransferMsg
 			reqdata := new(msgTypes.IdMsg)
@@ -622,7 +619,6 @@ func (p *MsgHandler) IdMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ..
 
 			reqmsg.Msg = &msgTypes.TransferMsg_Msg2{Msg2: reqdata}
 
-			log.Infof("[p2p] send a request_sigblk_by_id msg block number %d cost time %v", blkId.BlockNum(), start)
 			err := p2p.Send(remotePeer, &reqmsg, false)
 			if err != nil {
 				log.Error("[p2p] send message error: ", err)
@@ -650,9 +646,6 @@ func (p *MsgHandler) IdMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ..
 				continue
 			}
 
-			log.Info("[p2p] receive a request_sigblk_by_id msg block number ", blkId.BlockNum())
-			start := common.EasyTimer()
-
 			IsigBlk, err := ctrl.FetchBlock(blkId)
 			if err != nil {
 				log.Error("[p2p] can't get IsigBlk from consensus, block number: ", blkId.BlockNum(), " error: ", err)
@@ -661,7 +654,6 @@ func (p *MsgHandler) IdMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ..
 			sigBlk := IsigBlk.(*prototype.SignedBlock)
 
 			msg := msgpack.NewSigBlk(sigBlk, false)
-			log.Infof("[p2p] send a sigblk block number %d cost time %v", blkId.BlockNum(), start)
 			err = p2p.Send(remotePeer, msg, false)
 			if err != nil {
 				log.Error("[p2p] send message error: ", err)
@@ -837,18 +829,15 @@ func (p *MsgHandler) ReqIdHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ..
 			batchEnd = end
 		}
 
-		beginTime := time.Now()
 		blockList, err := ctrl.FetchBlocks(batchStart, batchEnd)
 		if err != nil {
 			log.Error("[p2p] can't fetch blocks from consessus, start number: ", start, " end number: ", end, " error: ", err)
 			return
 		}
-		endTime := time.Now()
 		if len(blockList) == 0 {
 			log.Errorf("[p2p] consensus can't fetch blocks from %d to %d", batchStart, batchEnd)
 			return
 		}
-		log.Debugf("[p2p] consensus fetch block batch from %d to %d, cost time %v", batchStart, batchEnd, endTime.Sub(beginTime))
 
 		for i := 0; i < len(blockList); i++ {
 			sigBlk := blockList[i].(*prototype.SignedBlock)
@@ -951,8 +940,6 @@ func (p *MsgHandler) RequestCheckpointBatchHandle(data *msgTypes.MsgPayload, p2p
 		defer remotePeer.UnlockBusyFetchingCP()
 	}
 
-	log.Info("start checkpoint number: ", msgdata.Start, " end checkpoint number: ", msgdata.End)
-
 	s, err := p2p.GetService(iservices.ConsensusServerName)
 	if err != nil {
 		log.Error("[p2p] can't get other service, service name: ", iservices.ConsensusServerName)
@@ -1019,7 +1006,7 @@ func (p *MsgHandler) FetchOutOfRangeHandle(data *msgTypes.MsgPayload, p2p p2p.P2
 		p2p.Send(remotePeer, clearMsg, false)
 		return
 	}
-	log.Info("request out-of-range ids, start number: ", startID.BlockNum(), " end number: ", targetID.BlockNum())
+	//log.Info("request out-of-range ids, start number: ", startID.BlockNum(), " end number: ", targetID.BlockNum())
 
 	s, err := p2p.GetService(iservices.ConsensusServerName)
 	if err != nil {
@@ -1043,7 +1030,7 @@ func (p *MsgHandler) FetchOutOfRangeHandle(data *msgTypes.MsgPayload, p2p p2p.P2
 	}
 
 	if ret1 && ret2 {
-		log.Info("fetch out of range blocks from main branch")
+		//log.Info("fetch out of range blocks from main branch")
 		startNum := startID.BlockNum()
 		endNum := targetID.BlockNum()
 
@@ -1117,7 +1104,7 @@ func (p *MsgHandler) FetchOutOfRangeHandle(data *msgTypes.MsgPayload, p2p p2p.P2
 			}
 		}
 	} else {
-		log.Info("fetch out of range blocks from lateral branch")
+		//log.Info("fetch out of range blocks from lateral branch")
 		count := 0
 		blkId := targetID
 		var IDList [][]byte

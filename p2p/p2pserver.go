@@ -527,7 +527,6 @@ func (this *P2PServer) FetchOutOfRange(localHeadID, targetID coomn.BlockID) {
 }
 
 func (this *P2PServer) SendToPeer(p *peer.Peer, message interface{}) {
-	this.log.Info("send message to a specific peer")
 	if p == nil {
 		this.log.Error("send message to a nil peer")
 		return
