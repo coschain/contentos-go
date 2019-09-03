@@ -1,6 +1,7 @@
 package consensus
 
 import (
+	"fmt"
 	"github.com/asaskevich/EventBus"
 	"io/ioutil"
 	"math/rand"
@@ -65,12 +66,13 @@ type SABFT struct {
 	Ticker TimerDriver
 
 	stopCh chan struct{}
+	inStop uint32
 	wg     sync.WaitGroup
 	deadlock.RWMutex
 
 	hook map[string]func(args ...interface{})
 
-	mockSignal bool
+	mockSignal     bool
 	mockMalicious  bool
 	maliciousBlock map[common.BlockID]common.ISignedBlock
 }
@@ -81,20 +83,20 @@ func NewSABFT(ctx *node.ServiceContext, lg *logrus.Logger) *SABFT {
 		lg.SetOutput(ioutil.Discard)
 	}
 	ret := &SABFT{
-		ForkDB:     forkdb.NewDB(lg),
-		dynasties:  NewDynasties(),
-		prodTimer:  time.NewTimer(1 * time.Millisecond),
-		trxCh:      make(chan func()),
-		pendingCh:  make(chan func()),
-		blkCh:      make(chan common.ISignedBlock, 1000),
-		ctx:        ctx,
-		stopCh:     make(chan struct{}),
-		extLog:     lg,
-		log:        lg.WithField("sabft", "on"),
-		bftStarted: 0,
-		commitCh:   make(chan message.Commit),
-		Ticker:     &Timer{},
-		hook:       make(map[string]func(args ...interface{})),
+		ForkDB:         forkdb.NewDB(lg),
+		dynasties:      NewDynasties(),
+		prodTimer:      time.NewTimer(1 * time.Millisecond),
+		trxCh:          make(chan func()),
+		pendingCh:      make(chan func()),
+		blkCh:          make(chan common.ISignedBlock, 1000),
+		ctx:            ctx,
+		stopCh:         make(chan struct{}),
+		extLog:         lg,
+		log:            lg.WithField("sabft", "on"),
+		bftStarted:     0,
+		commitCh:       make(chan message.Commit),
+		Ticker:         &Timer{},
+		hook:           make(map[string]func(args ...interface{})),
 		maliciousBlock: make(map[common.BlockID]common.ISignedBlock),
 	}
 
@@ -200,10 +202,19 @@ func (sabft *SABFT) makeDynasty(seq uint64, prods []string,
 }
 
 func (sabft *SABFT) checkBFTRoutine() {
-	sabft.log.Debug("current dyn ", sabft.dynasties.Front().String())
+	if !sabft.dynasties.Empty() {
+		sabft.log.Debug("current dyn ", sabft.dynasties.Front().String())
+	} else {
+		return
+	}
+
 	if sabft.readyToProduce && sabft.isValidatorName(sabft.Name) {
 		if atomic.LoadUint32(&sabft.bftStarted) == 0 {
 			sabft.log.Infof("[SABFT] gobft try to start.....")
+			if atomic.LoadUint32(&sabft.inStop) == 1 {
+				sabft.log.Warn("consensus is in stop, quit starting gobft")
+				return
+			}
 			sabft.bft.Start()
 			sabft.log.Infof("[SABFT] gobft started at height %d", sabft.appState.LastHeight)
 			atomic.StoreUint32(&sabft.bftStarted, 1)
@@ -211,6 +222,10 @@ func (sabft *SABFT) checkBFTRoutine() {
 	} else {
 		if atomic.LoadUint32(&sabft.bftStarted) == 1 {
 			sabft.log.Info("[SABFT] Stopping gobft")
+			if atomic.LoadUint32(&sabft.inStop) == 1 {
+				sabft.log.Warn("consensus is in stop, quit stopping gobft")
+				return
+			}
 			sabft.bft.Stop()
 			sabft.log.Info("[SABFT] gobft stopped")
 			atomic.StoreUint32(&sabft.bftStarted, 0)
@@ -258,6 +273,10 @@ func (sabft *SABFT) ActiveProducers() []string {
 }
 
 func (sabft *SABFT) ActiveValidators() []string {
+	if sabft.dynasties.Empty() {
+		e := fmt.Sprintf("empty dynasty in %s", sabft.Name)
+		panic(e)
+	}
 	valset := sabft.dynasties.Front().validators
 	v := make([]string, len(valset))
 	for i := range v {
@@ -508,6 +527,13 @@ func (sabft *SABFT) tryCommit(b common.ISignedBlock) {
 }
 
 func (sabft *SABFT) Stop() error {
+	if !atomic.CompareAndSwapUint32(&sabft.inStop, 0, 1) {
+		sabft.log.Error("[SABFT] consensus in stop")
+		return fmt.Errorf("duplicated consensus Stop")
+	}
+	defer atomic.StoreUint32(&sabft.inStop, 0)
+
+
 	sabft.log.Info("[SABFT] Stopping SABFT consensus")
 	// stop bft process
 	if atomic.LoadUint32(&sabft.bftStarted) == 1 {
@@ -659,6 +685,10 @@ func (sabft *SABFT) Push(msg interface{}, p common.IPeer) {
 }
 
 func (sabft *SABFT) verifyCommitSig(records *message.Commit) bool {
+	if sabft.dynasties.Empty() {
+		e := fmt.Sprintf("empty dynasty in %s", sabft.Name)
+		panic(e)
+	}
 	for i := range records.Precommits {
 		//val := sabft.getValidator(records.Precommits[i].Address)
 		val := sabft.dynasties.Front().GetValidatorByPubKey(records.Precommits[i].Address)
@@ -1088,8 +1118,8 @@ func (sabft *SABFT) GetValidator(key message.PubKey) custom.IPubValidator {
 
 func (sabft *SABFT) getValidator(key message.PubKey) custom.IPubValidator {
 	if sabft.dynasties.Empty() {
-		sabft.log.Error("empty dynasty")
-		return nil
+		e := fmt.Sprintf("empty dynasty in %s", sabft.Name)
+		panic(e)
 	}
 
 	valset := sabft.dynasties.Front().validators
@@ -1111,6 +1141,11 @@ func (sabft *SABFT) IsValidator(key message.PubKey) bool {
 }
 
 func (sabft *SABFT) isValidator(key message.PubKey) bool {
+	if sabft.dynasties.Empty() {
+		e := fmt.Sprintf("empty dynasty in %s", sabft.Name)
+		panic(e)
+	}
+
 	valset := sabft.dynasties.Front().validators
 	for i := range valset {
 		if valset[i].bftPubKey == key {
@@ -1121,6 +1156,11 @@ func (sabft *SABFT) isValidator(key message.PubKey) bool {
 }
 
 func (sabft *SABFT) isValidatorName(name string) bool {
+	if sabft.dynasties.Empty() {
+		e := fmt.Sprintf("empty dynasty in %s", sabft.Name)
+		panic(e)
+	}
+
 	valset := sabft.dynasties.Front().validators
 	for i := range valset {
 		if valset[i].accountName == name {
@@ -1134,6 +1174,10 @@ func (sabft *SABFT) TotalVotingPower() int64 {
 	sabft.RLock()
 	defer sabft.RUnlock()
 
+	if sabft.dynasties.Empty() {
+		e := fmt.Sprintf("empty dynasty in %s", sabft.Name)
+		panic(e)
+	}
 	return int64(sabft.dynasties.Front().GetValidatorNum())
 }
 
@@ -1141,6 +1185,10 @@ func (sabft *SABFT) GetCurrentProposer(round int) message.PubKey {
 	sabft.RLock()
 	defer sabft.RUnlock()
 
+	if sabft.dynasties.Empty() {
+		e := fmt.Sprintf("empty dynasty in %s", sabft.Name)
+		panic(e)
+	}
 	dyn := sabft.dynasties.Front()
 	cnt := dyn.GetValidatorNum()
 	return message.PubKey(dyn.validators[round%cnt].bftPubKey)
@@ -1194,24 +1242,14 @@ func (sabft *SABFT) GetAppState() *message.AppState {
 	return sabft.appState
 }
 
-func (sabft *SABFT) BroadCast(msg message.ConsensusMessage) error {
-	sabft.p2p.Broadcast(msg)
-	return nil
-}
-
-func (sabft *SABFT) Send(msg message.ConsensusMessage, p custom.IPeer) error {
-	if p == nil {
-		sabft.p2p.RandomSend(msg)
-	} else {
-		sabft.p2p.SendToPeer(p.(*peer.Peer), msg)
-	}
-	return nil
-}
-
 func (sabft *SABFT) GetValidatorNum() int {
 	sabft.RLock()
 	defer sabft.RUnlock()
 
+	if sabft.dynasties.Empty() {
+		e := fmt.Sprintf("empty dynasty in %s", sabft.Name)
+		panic(e)
+	}
 	return sabft.dynasties.Front().GetValidatorNum()
 }
 
@@ -1225,6 +1263,20 @@ func (sabft *SABFT) GetCommitHistory(height int64) *message.Commit {
 }
 
 /********* end gobft ICommittee ***********/
+
+func (sabft *SABFT) BroadCast(msg message.ConsensusMessage) error {
+	sabft.p2p.Broadcast(msg)
+	return nil
+}
+
+func (sabft *SABFT) Send(msg message.ConsensusMessage, p custom.IPeer) error {
+	if p == nil {
+		sabft.p2p.RandomSend(msg)
+	} else {
+		sabft.p2p.SendToPeer(p.(*peer.Peer), msg)
+	}
+	return nil
+}
 
 func (sabft *SABFT) switchFork(old, new common.BlockID) bool {
 	// TODO: validate block producer

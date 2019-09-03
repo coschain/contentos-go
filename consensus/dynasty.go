@@ -67,6 +67,7 @@ func (ds *Dynasties) Clear() {
 }
 
 func (ds *Dynasties) Front() *Dynasty {
+
 	return ds.dynasties.Front().Value.(*Dynasty)
 }
 
