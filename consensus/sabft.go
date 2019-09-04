@@ -42,7 +42,6 @@ type SABFT struct {
 	bft           *gobft.Core
 	lastCommitted atomic.Value
 	appState      *message.AppState
-	bftStarted    uint32
 	commitCh      chan message.Commit
 	cp            *BFTCheckPoint
 	noticer       EventBus.Bus
@@ -93,7 +92,6 @@ func NewSABFT(ctx *node.ServiceContext, lg *logrus.Logger) *SABFT {
 		stopCh:         make(chan struct{}),
 		extLog:         lg,
 		log:            lg.WithField("sabft", "on"),
-		bftStarted:     0,
 		commitCh:       make(chan message.Commit),
 		Ticker:         &Timer{},
 		hook:           make(map[string]func(args ...interface{})),
@@ -199,38 +197,6 @@ func (sabft *SABFT) makeDynasty(seq uint64, prods []string,
 	}
 	pV := newPrivValidator(sabft, sabft.localPrivKey, sabft.Name)
 	return NewDynasty(seq, pubVS, pV)
-}
-
-func (sabft *SABFT) checkBFTRoutine() {
-	if !sabft.dynasties.Empty() {
-		sabft.log.Debug("current dyn ", sabft.dynasties.Front().String())
-	} else {
-		return
-	}
-
-	if sabft.readyToProduce && sabft.isValidatorName(sabft.Name) {
-		if atomic.LoadUint32(&sabft.bftStarted) == 0 {
-			sabft.log.Infof("[SABFT] gobft try to start.....")
-			if atomic.LoadUint32(&sabft.inStop) == 1 {
-				sabft.log.Warn("consensus is in stop, quit starting gobft")
-				return
-			}
-			sabft.bft.Start()
-			sabft.log.Infof("[SABFT] gobft started at height %d", sabft.appState.LastHeight)
-			atomic.StoreUint32(&sabft.bftStarted, 1)
-		}
-	} else {
-		if atomic.LoadUint32(&sabft.bftStarted) == 1 {
-			sabft.log.Info("[SABFT] Stopping gobft")
-			if atomic.LoadUint32(&sabft.inStop) == 1 {
-				sabft.log.Warn("consensus is in stop, quit stopping gobft")
-				return
-			}
-			sabft.bft.Stop()
-			sabft.log.Info("[SABFT] gobft stopped")
-			atomic.StoreUint32(&sabft.bftStarted, 0)
-		}
-	}
 }
 
 func (sabft *SABFT) restoreProducers() {
@@ -445,7 +411,6 @@ func (sabft *SABFT) resetResource() {
 	sabft.pendingCh = make(chan func())
 	sabft.blkCh = make(chan common.ISignedBlock, 100)
 	sabft.stopCh = make(chan struct{})
-	//sabft.commitCh = make(chan message.Commit)
 }
 
 func (sabft *SABFT) start() {
@@ -526,6 +491,28 @@ func (sabft *SABFT) tryCommit(b common.ISignedBlock) {
 	}
 }
 
+func (sabft *SABFT) checkBFTRoutine() {
+	if atomic.LoadUint32(&sabft.inStop) == 1 || sabft.dynasties.Empty() {
+		return
+	}
+
+	if sabft.readyToProduce && sabft.isValidatorName(sabft.Name) {
+		sabft.log.Infof("[SABFT] Starting gobft")
+		if err := sabft.bft.Start(); err == nil {
+			sabft.log.Infof("[SABFT] gobft started at height %d", sabft.appState.LastHeight)
+		} else {
+			sabft.log.Info(err)
+		}
+	} else {
+		sabft.log.Info("[SABFT] Stopping gobft")
+		if err := sabft.bft.Stop(); err == nil {
+			sabft.log.Info("[SABFT] gobft stopped")
+		} else {
+			sabft.log.Info(err)
+		}
+	}
+}
+
 func (sabft *SABFT) Stop() error {
 	if !atomic.CompareAndSwapUint32(&sabft.inStop, 0, 1) {
 		sabft.log.Error("[SABFT] consensus in stop")
@@ -533,15 +520,12 @@ func (sabft *SABFT) Stop() error {
 	}
 	defer atomic.StoreUint32(&sabft.inStop, 0)
 
-
 	sabft.log.Info("[SABFT] Stopping SABFT consensus")
 	// stop bft process
-	if atomic.LoadUint32(&sabft.bftStarted) == 1 {
-		sabft.log.Info("[SABFT] Stopping gobft")
-		sabft.bft.Stop()
-		atomic.StoreUint32(&sabft.bftStarted, 0)
+	if err := sabft.bft.Stop(); err != nil {
 		sabft.log.Info("[SABFT] gobft stopped...")
-		time.Sleep(2 * time.Second)
+	} else {
+		sabft.log.Info(err)
 	}
 
 	// restore uncommitted forkdb
@@ -665,17 +649,11 @@ func (sabft *SABFT) PushBlock(b common.ISignedBlock) {
 func (sabft *SABFT) Push(msg interface{}, p common.IPeer) {
 	switch m := msg.(type) {
 	case *message.Vote:
-		if atomic.LoadUint32(&sabft.bftStarted) == 1 {
 			sabft.bft.RecvMsg(m, p.(*peer.Peer))
-		}
 	case *message.FetchVotesReq:
-		if atomic.LoadUint32(&sabft.bftStarted) == 1 {
 			sabft.bft.RecvMsg(m, p.(*peer.Peer))
-		}
 	case *message.FetchVotesRsp:
-		if atomic.LoadUint32(&sabft.bftStarted) == 1 {
 			sabft.bft.RecvMsg(m, p.(*peer.Peer))
-		}
 	case *message.Commit:
 		go func() {
 			sabft.commitCh <- *m
@@ -760,7 +738,7 @@ func (sabft *SABFT) loopCommit(commit *message.Commit) {
 			sabft.log.Warn("cp check IsNextCheckPoint failed")
 			return
 		}
-		sabft.log.Debug("reach checkpoint at ", checkPoint.ProposedData)
+		sabft.log.Debug("reach checkpoint at ", checkPoint)
 
 		// if we're a validator, pass it to gobft so that it can catch up
 		if sabft.gobftCatchUp(checkPoint) {
@@ -792,7 +770,9 @@ func (sabft *SABFT) loopCommit(commit *message.Commit) {
 }
 
 func (sabft *SABFT) gobftCatchUp(commit *message.Commit) bool {
-	if sabft.isValidatorName(sabft.Name) && atomic.LoadUint32(&sabft.bftStarted) == 1 &&
+	if atomic.LoadUint32(&sabft.inStop) == 0 &&
+		!sabft.dynasties.Empty() &&
+		sabft.isValidatorName(sabft.Name) &&
 		sabft.appState.LastProposedData == commit.Prev {
 		sabft.log.Warn("pass commits to gobft ", commit.ProposedData)
 		sabft.bft.RecvMsg(commit, nil)
@@ -1038,7 +1018,8 @@ func (sabft *SABFT) updateAppState(commit *message.Commit) {
 func (sabft *SABFT) commit(commitRecords *message.Commit) error {
 	defer func() {
 		sabft.updateAppState(commitRecords)
-		//sabft.checkBFTRoutine()
+		go sabft.checkBFTRoutine()
+		sabft.log.Debug("current dyn ", sabft.dynasties.Front().String())
 
 		// TODO: check if checkpoint has been skipped
 	}()
