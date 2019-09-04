@@ -92,7 +92,7 @@ func NewSABFT(ctx *node.ServiceContext, lg *logrus.Logger) *SABFT {
 		stopCh:         make(chan struct{}),
 		extLog:         lg,
 		log:            lg.WithField("sabft", "on"),
-		commitCh:       make(chan message.Commit),
+		commitCh:       make(chan message.Commit, 100),
 		Ticker:         &Timer{},
 		hook:           make(map[string]func(args ...interface{})),
 		maliciousBlock: make(map[common.BlockID]common.ISignedBlock),
@@ -406,12 +406,11 @@ func (sabft *SABFT) revertToLastCheckPoint() {
 }
 
 func (sabft *SABFT) resetResource() {
-	//sabft.dynasties = NewDynasties()
 	sabft.trxCh = make(chan func())
 	sabft.pendingCh = make(chan func())
 	sabft.blkCh = make(chan common.ISignedBlock, 100)
 	sabft.stopCh = make(chan struct{})
-//	sabft.commitCh = make(chan message.Commit)
+	sabft.commitCh = make(chan message.Commit, 100)
 }
 
 func (sabft *SABFT) start() {
@@ -658,9 +657,7 @@ func (sabft *SABFT) Push(msg interface{}, p common.IPeer) {
 	case *message.FetchVotesRsp:
 			sabft.bft.RecvMsg(m, p.(*peer.Peer))
 	case *message.Commit:
-		go func() {
-			sabft.commitCh <- *m
-		}()
+		sabft.commitCh <- *m
 	default:
 	}
 }
