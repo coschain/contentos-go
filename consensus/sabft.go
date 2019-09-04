@@ -529,16 +529,17 @@ func (sabft *SABFT) Stop() error {
 		sabft.log.Info(err)
 	}
 
+	close(sabft.stopCh)
+	sabft.readyToProduce = false
+	sabft.wg.Wait()
+
 	// restore uncommitted forkdb
 	cfg := sabft.ctx.Config()
 	snapshotPath := cfg.ResolvePath("forkdb_snapshot")
 	sabft.ForkDB.Snapshot(snapshotPath)
+
 	sabft.prodTimer.Stop()
 	sabft.cp.Close()
-	//close(sabft.commitCh)
-	close(sabft.stopCh)
-	sabft.readyToProduce = false
-	sabft.wg.Wait()
 	sabft.dynasties.Clear()
 	sabft.log.Info("[SABFT] SABFT consensus stopped")
 	return nil
