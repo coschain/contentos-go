@@ -411,6 +411,7 @@ func (sabft *SABFT) resetResource() {
 	sabft.pendingCh = make(chan func())
 	sabft.blkCh = make(chan common.ISignedBlock, 100)
 	sabft.stopCh = make(chan struct{})
+	sabft.commitCh = make(chan message.Commit)
 }
 
 func (sabft *SABFT) start() {
@@ -534,10 +535,11 @@ func (sabft *SABFT) Stop() error {
 	sabft.ForkDB.Snapshot(snapshotPath)
 	sabft.prodTimer.Stop()
 	sabft.cp.Close()
+	close(sabft.commitCh)
 	close(sabft.stopCh)
 	sabft.readyToProduce = false
-	sabft.dynasties.Clear()
 	sabft.wg.Wait()
+	sabft.dynasties.Clear()
 	sabft.log.Info("[SABFT] SABFT consensus stopped")
 	return nil
 }
