@@ -96,7 +96,7 @@ func (cp *BFTCheckPoint) Flush(bid common.BlockID) error {
 		cp.tdb.BeginTransaction()
 		err := cp.tdb.Put(key, cp.cache[cp.lastCommitted].Bytes())
 		if err != nil {
-			cp.sabft.log.Fatal(err)
+			cp.sabft.log.Fatalf("BFT-Flush: %v",err)
 			cp.tdb.EndTransaction(false)
 			return err
 		}
@@ -108,11 +108,14 @@ func (cp *BFTCheckPoint) Flush(bid common.BlockID) error {
 		}
 		err = cp.tdb.Put(cp.getIdxKey(uint64(cp.cache[cp.lastCommitted].Height())), key)
 		if err != nil {
-			cp.sabft.log.Fatal(err)
+			cp.sabft.log.Fatalf("BFT-Flush: %v",err)
 			cp.tdb.EndTransaction(false)
 			return err
 		}
-		cp.tdb.EndTransaction(true)
+		err = cp.tdb.EndTransaction(true)
+		if err != nil {
+			panic(fmt.Sprintf("BFT-Flush error: %v", err) )
+		}
 
 		delete(cp.cache, cp.lastCommitted)
 
