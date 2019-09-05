@@ -158,9 +158,11 @@ func (b *BlockIceberg) RevertBlock(blockNum uint64) error {
 		// we're reverting a block in reversible db.
 
 		// all in-memory blocks should be erased since they are offspring of our target.
-		err := b.db.RollbackTag(blockNumberToString(b.seaLevel))
-		if err != nil {
-			b.log.Errorf("ICEBERG: RevertBlock %d RollbackTag(%d) error: %s", blockNum, b.seaLevel, err.Error())
+		if b.seaLevel < b.next {
+			err := b.db.RollbackTag(blockNumberToString(b.seaLevel))
+			if err != nil {
+				b.log.Errorf("ICEBERG: RevertBlock %d RollbackTag(%d) error: %s", blockNum, b.seaLevel, err.Error())
+			}
 		}
 
 		// now we rollback the db
