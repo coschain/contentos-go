@@ -1581,6 +1581,7 @@ func (sabft *SABFT) databaseFixup(cfg *node.Config) error {
 	} else if dbHead < lastCommit {
 		sabft.log.Debugf("[DB fixup from blog] database last commit: %v, blog head: %v, forkdb head: %v",
 			dbHead, lastCommit, sabft.ForkDB.Head().Id().BlockNum())
+		sabft.restoreProducers()
 		for i := int64(dbHead); i < int64(lastCommit); i++ {
 			blk := &prototype.SignedBlock{}
 			if err := sabft.blog.ReadBlock(blk, i); err != nil {
