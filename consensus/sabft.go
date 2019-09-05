@@ -305,10 +305,6 @@ func (sabft *SABFT) stateFixup(cfg *node.Config) {
 	sabft.ForkDB.LoadSnapshot(avatar, snapshotPath, &sabft.blog)
 	/**** at this point, blog and forkdb is consistent ****/
 
-	sabft.restoreProducers()
-	// dynasties have to be restored from database first
-	sabft.restoreDynasty()
-
 	sabft.cp = NewBFTCheckPoint(cfg.ResolvePath(constants.CheckPoint), sabft)
 	if !sabft.ForkDB.Empty() && !sabft.blog.Empty() {
 		lc, err := sabft.cp.GetNext(sabft.ForkDB.LastCommitted().BlockNum() - 1)
@@ -1562,23 +1558,23 @@ func (sabft *SABFT) MaybeProduceBlock() {
 
 func (sabft *SABFT) databaseFixup(cfg *node.Config) error {
 	lastCommit := sabft.ForkDB.LastCommitted().BlockNum()
-	dbLastCommitted, err := sabft.ctrl.GetLastPushedBlockNum()
+	dbHead, err := sabft.ctrl.GetLastPushedBlockNum()
 	if err != nil {
 		return err
 	}
-	sabft.log.Debugf("[DB fixup]: progress 1: dbLastCommitted: %v, forkdb lastCommitted %v",
-		dbLastCommitted, lastCommit)
+	sabft.log.Debugf("[DB fixup]: progress 1: dbHead: %v, forkdb lastCommitted %v",
+		dbHead, lastCommit)
 
-	if dbLastCommitted > lastCommit {
+	if dbHead > lastCommit {
 		sabft.log.Debugf("[DB fixup]: popping state db: current head %d, to %v",
-			dbLastCommitted, lastCommit)
-		sabft.popBlock(lastCommit+1)
-	}
-
-	if dbLastCommitted < lastCommit {
+			dbHead, lastCommit)
+		if err = sabft.popBlock(lastCommit+1); err != nil {
+			panic(err)
+		}
+	} else if dbHead < lastCommit {
 		sabft.log.Debugf("[DB fixup from blog] database last commit: %v, blog head: %v, forkdb head: %v",
-			dbLastCommitted, lastCommit, sabft.ForkDB.Head().Id().BlockNum())
-		for i := int64(dbLastCommitted); i < int64(lastCommit); i++ {
+			dbHead, lastCommit, sabft.ForkDB.Head().Id().BlockNum())
+		for i := int64(dbHead); i < int64(lastCommit); i++ {
 			blk := &prototype.SignedBlock{}
 			if err := sabft.blog.ReadBlock(blk, i); err != nil {
 				return err
@@ -1605,21 +1601,23 @@ func (sabft *SABFT) databaseFixup(cfg *node.Config) error {
 			sabft.noticer.Publish(constants.NoticeLibChange, []common.ISignedBlock{blk})
 		}
 	}
+	sabft.restoreProducers()
+	sabft.restoreDynasty()
 
 	if sabft.ForkDB.Empty() {
 		return nil
 	}
-	dbLastCommitted, _ = sabft.ctrl.GetLastPushedBlockNum()
+	dbHead, _ = sabft.ctrl.GetLastPushedBlockNum()
 	headNum := sabft.ForkDB.Head().Id().BlockNum()
-	sabft.log.Debugf("[DB fixup]: progress 2: dbLastCommitted: %v, %v", dbLastCommitted, headNum)
+	sabft.log.Debugf("[DB fixup]: progress 2: dbHead: %v, %v", dbHead, headNum)
 
-	if dbLastCommitted < headNum {
-		blocks, err := sabft.ForkDB.FetchBlocksFromMainBranch(dbLastCommitted + 1)
+	if dbHead < headNum {
+		blocks, err := sabft.ForkDB.FetchBlocksFromMainBranch(dbHead + 1)
 		if err != nil {
 			return err
 		}
 		sabft.log.Debugf("[DB fixup from forkdb]: start pushing uncommitted blocks, start: %v, end:%v, count: %v",
-			dbLastCommitted+1, sabft.ForkDB.Head().Id().BlockNum(), len(blocks))
+			dbHead+1, sabft.ForkDB.Head().Id().BlockNum(), len(blocks))
 		for i := range blocks {
 			if err = sabft.ctrl.PushBlock(blocks[i].(*prototype.SignedBlock),
 				prototype.Skip_block_check&
