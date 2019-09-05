@@ -2,7 +2,6 @@ package consensus
 
 import (
 	"fmt"
-	"github.com/asaskevich/EventBus"
 	"io/ioutil"
 	"math/rand"
 	"strings"
@@ -10,6 +9,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/asaskevich/EventBus"
 	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/db/blocklog"
@@ -334,7 +334,7 @@ func (sabft *SABFT) stateFixup(cfg *node.Config) {
 	}
 	sabft.log.Warn("last bft height ", lh)
 
-	if err := sabft.databaseFixup(); err != nil {
+	if err := sabft.databaseFixup(cfg); err != nil {
 		panic(err)
 	}
 }
@@ -1560,21 +1560,19 @@ func (sabft *SABFT) MaybeProduceBlock() {
 	sabft.p2p.Broadcast(b)
 }
 
-func (sabft *SABFT) databaseFixup() error {
-	if sabft.ForkDB.Head() == nil {
-		//Not need to sync
-		return nil
-	}
-	var err error = nil
+func (sabft *SABFT) databaseFixup(cfg *node.Config) error {
 	lastCommit := sabft.ForkDB.LastCommitted().BlockNum()
 	dbLastCommitted, err := sabft.ctrl.GetLastPushedBlockNum()
-	sabft.log.Debugf("[DB fixup]: progress 1: dbLastCommitted: %v, forkdb lastCommitted %v",
-		dbLastCommitted, lastCommit)
 	if err != nil {
 		return err
 	}
+	sabft.log.Debugf("[DB fixup]: progress 1: dbLastCommitted: %v, forkdb lastCommitted %v",
+		dbLastCommitted, lastCommit)
 
-	//1.sync commit blocks
+	if dbLastCommitted > lastCommit {
+		return fmt.Errorf("state DB is ahead of blog, please remove %s and restart", cfg.ResolvePath("db"))
+	}
+
 	if dbLastCommitted < lastCommit {
 		sabft.log.Debugf("[DB fixup from blog] database last commit: %v, blog head: %v, forkdb head: %v",
 			dbLastCommitted, lastCommit, sabft.ForkDB.Head().Id().BlockNum())
@@ -1585,8 +1583,8 @@ func (sabft *SABFT) databaseFixup() error {
 			}
 			if err = sabft.ctrl.PushBlock(blk,
 				prototype.Skip_block_check&
-				prototype.Skip_block_signatures&
-				prototype.Skip_transaction_signatures); err != nil {
+					prototype.Skip_block_signatures&
+					prototype.Skip_transaction_signatures); err != nil {
 				sabft.log.Errorf("[DB fixup from blog] PushBlock #%d Failed", i)
 				return err
 			}
@@ -1606,6 +1604,9 @@ func (sabft *SABFT) databaseFixup() error {
 		}
 	}
 
+	if sabft.ForkDB.Empty() {
+		return nil
+	}
 	dbLastCommitted, _ = sabft.ctrl.GetLastPushedBlockNum()
 	headNum := sabft.ForkDB.Head().Id().BlockNum()
 	sabft.log.Debugf("[DB fixup]: progress 2: dbLastCommitted: %v, %v", dbLastCommitted, headNum)
@@ -1620,8 +1621,8 @@ func (sabft *SABFT) databaseFixup() error {
 		for i := range blocks {
 			if err = sabft.ctrl.PushBlock(blocks[i].(*prototype.SignedBlock),
 				prototype.Skip_block_check&
-				prototype.Skip_block_signatures&
-				prototype.Skip_transaction_signatures); err != nil {
+					prototype.Skip_block_signatures&
+					prototype.Skip_transaction_signatures); err != nil {
 				sabft.log.Errorf("[DB fixup from forkdb] PushBlock #%d Failed", i)
 				return err
 			}
