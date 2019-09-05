@@ -291,6 +291,9 @@ func eraseNodeDataAndRestart(node *node.Node, comp *test.Components, idx int, ch
 					if files[i] == "" {
 						continue
 					}
+					if files[i] == "logs" {
+						continue
+					}
 					cmdLine = fmt.Sprintf("rm -rf %s", filepath.Join(confdir, files[i]))
 					_, err = exec.Command("/bin/bash", "-c", cmdLine).CombinedOutput()
 					if err != nil {
