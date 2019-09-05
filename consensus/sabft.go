@@ -65,7 +65,7 @@ type SABFT struct {
 	Ticker TimerDriver
 
 	stopCh chan struct{}
-	inStop uint32
+	inStartOrStop uint32
 	wg     sync.WaitGroup
 	deadlock.RWMutex
 
@@ -252,6 +252,11 @@ func (sabft *SABFT) ActiveValidators() []string {
 }
 
 func (sabft *SABFT) Start(node *node.Node) error {
+	if !atomic.CompareAndSwapUint32(&sabft.inStartOrStop, 0, 1) {
+		return fmt.Errorf("consensus in the process of start or stop")
+	}
+	defer atomic.StoreUint32(&sabft.inStartOrStop, 0)
+
 	sabft.ctrl = sabft.getController()
 	p2p, err := sabft.ctx.Service(iservices.P2PServerName)
 	if err != nil {
@@ -492,33 +497,34 @@ func (sabft *SABFT) tryCommit(b common.ISignedBlock) {
 }
 
 func (sabft *SABFT) checkBFTRoutine() {
-	if atomic.LoadUint32(&sabft.inStop) == 1 || sabft.dynasties.Empty() {
+	if !atomic.CompareAndSwapUint32(&sabft.inStartOrStop, 0, 1) {
+		//sabft.log.Error("[SABFT] consensus in the process of start or stop")
+		return
+	}
+	defer atomic.StoreUint32(&sabft.inStartOrStop, 0)
+
+	if sabft.dynasties.Empty() {
 		return
 	}
 
 	if sabft.readyToProduce && sabft.isValidatorName(sabft.Name) {
-		sabft.log.Infof("[SABFT] Starting gobft")
+		//sabft.log.Infof("[SABFT] Starting gobft")
 		if err := sabft.bft.Start(); err == nil {
 			sabft.log.Infof("[SABFT] gobft started at height %d", sabft.appState.LastHeight)
-		} else {
-			sabft.log.Info(err)
 		}
 	} else {
-		sabft.log.Info("[SABFT] Stopping gobft")
+		//sabft.log.Info("[SABFT] Stopping gobft")
 		if err := sabft.bft.Stop(); err == nil {
 			sabft.log.Info("[SABFT] gobft stopped")
-		} else {
-			sabft.log.Info(err)
 		}
 	}
 }
 
 func (sabft *SABFT) Stop() error {
-	if !atomic.CompareAndSwapUint32(&sabft.inStop, 0, 1) {
-		sabft.log.Error("[SABFT] consensus in stop")
-		return fmt.Errorf("duplicated consensus Stop")
+	if !atomic.CompareAndSwapUint32(&sabft.inStartOrStop, 0, 1) {
+		return fmt.Errorf("consensus in the process of start or stop")
 	}
-	defer atomic.StoreUint32(&sabft.inStop, 0)
+	defer atomic.StoreUint32(&sabft.inStartOrStop, 0)
 
 	sabft.log.Info("[SABFT] Stopping SABFT consensus")
 	// stop bft process
@@ -770,7 +776,7 @@ func (sabft *SABFT) loopCommit(commit *message.Commit) {
 }
 
 func (sabft *SABFT) gobftCatchUp(commit *message.Commit) bool {
-	if atomic.LoadUint32(&sabft.inStop) == 0 &&
+	if atomic.LoadUint32(&sabft.inStartOrStop) == 0 &&
 		!sabft.dynasties.Empty() &&
 		sabft.isValidatorName(sabft.Name) &&
 		sabft.appState.LastProposedData == commit.Prev {

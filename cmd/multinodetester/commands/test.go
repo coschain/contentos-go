@@ -272,7 +272,7 @@ func eraseNodeDataAndRestart(node *node.Node, comp *test.Components, idx int, ch
 
 			t := rand.Int()%2
 			if err := node.Stop(); err != nil {
-				panic(err)
+				continue
 			}
 			comp.State = test.OffLine
 
@@ -345,7 +345,7 @@ func randomlyShutdownNodes(nodes []*node.Node, c []*test.Components, ch chan str
 				continue
 			}
 			if err := nodes[idx].Stop(); err != nil {
-				panic(err)
+				continue
 			}
 			c[idx].State = test.OffLine
 			go func() {
