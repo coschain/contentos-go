@@ -1057,9 +1057,13 @@ func (c *TrxPool) Commit(num uint64) {
 	}
 }
 
-func (c *TrxPool) GetLastPushedBlockNum() (uint64, error) {
+func (c *TrxPool) GetHeadBlockNum() (uint64, error) {
 	num, _, err := c.iceberg.LatestBlock()
 	return num, err
+}
+
+func (c *TrxPool) GetFinalizedNum() (uint64, error) {
+	return c.iceberg.LastFinalizedBlock()
 }
 
 func (c *TrxPool) calculateUserMaxStamina(db iservices.IDatabaseRW,name string) uint64 {

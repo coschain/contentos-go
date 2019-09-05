@@ -55,9 +55,10 @@ type ITrxPool interface {
 	ValidateAddress(name string, pubKey *prototype.PublicKeyType) bool
 	Sign(priv *prototype.PrivateKeyType, digest []byte) []byte
 	//Fetch the latest pushed block number
-	GetLastPushedBlockNum() (uint64,error)
+	GetHeadBlockNum() (uint64, error)
+	GetFinalizedNum() (uint64, error)
 
-	CalculateUserMaxStamina(db IDatabaseRW,name string) uint64
-	CheckNetForRPC(name string, db IDatabaseRW, sizeInBytes uint64) (bool,uint64,uint64)
+	CalculateUserMaxStamina(db IDatabaseRW, name string) uint64
+	CheckNetForRPC(name string, db IDatabaseRW, sizeInBytes uint64) (bool, uint64, uint64)
 	EstimateStamina(trx *prototype.SignedTransaction) *prototype.TransactionReceiptWithInfo
 }
