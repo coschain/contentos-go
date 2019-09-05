@@ -56,7 +56,7 @@ func (this *ConsMsg) Deserialization(source *common.ZeroCopySource) error {
 	return nil
 }
 
-func (this *ConsMsg) Hash() [common.HASH_SIZE]byte {
+func (this *ConsMsg) Hash() [common.HashSize]byte {
 	buf := &bytes.Buffer{}
 	binary.Write(buf, binary.BigEndian, this.MsgData.Bytes())
 	binary.Write(buf, binary.BigEndian, this.Extra.Bcast)

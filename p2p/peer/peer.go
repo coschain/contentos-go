@@ -11,7 +11,6 @@ import (
 	"github.com/coschain/contentos-go/p2p/common"
 	conn "github.com/coschain/contentos-go/p2p/link"
 	"github.com/coschain/contentos-go/p2p/message/types"
-	mapset "github.com/deckarep/golang-set"
 	"github.com/sirupsen/logrus"
 	"github.com/willf/bloom"
 )
@@ -110,14 +109,6 @@ type FetchOutOfRangeState struct {
 	sync.Mutex
 }
 
-type consensusCache struct {
-	messageCount     int
-	filter1          mapset.Set
-	filter2          mapset.Set
-	useFilter2       bool
-	sync.Mutex
-}
-
 //Peer represent the node in p2p
 type Peer struct {
 	base               PeerCom
@@ -132,7 +123,7 @@ type Peer struct {
 
 	OutOfRangeState    FetchOutOfRangeState
 
-	ConsensusCache     consensusCache
+	ConsensusCache     *common.HashCache
 
 	lastSeenBlkNum     uint64
 
@@ -155,10 +146,7 @@ func NewPeer() *Peer {
 	p.TrxCache.trxCount = 0
 	p.TrxCache.useFilter2 = false
 
-	p.ConsensusCache.filter1 = mapset.NewSet()
-	p.ConsensusCache.filter2 = mapset.NewSet()
-	p.ConsensusCache.messageCount = 0
-	p.ConsensusCache.useFilter2 = false
+	p.ConsensusCache = common.NewHashCache()
 
 	p.SyncLink = conn.NewLink()
 	p.ConsLink = conn.NewLink()
@@ -227,40 +215,12 @@ func (this *Peer) RecordTrxCache(hash []byte) {
 	}
 }
 
-func (this *Peer) HasConsensusMsg(hash [common.HASH_SIZE]byte) bool {
-	this.ConsensusCache.Lock()
-	defer this.ConsensusCache.Unlock()
-
-	if this.ConsensusCache.useFilter2 == true {
-		return this.ConsensusCache.filter2.Contains(hash)
-	}
-
-	return this.ConsensusCache.filter1.Contains(hash)
+func (this *Peer) HasConsensusMsg(hash [common.HashSize]byte) bool {
+	return this.ConsensusCache.Has(hash)
 }
 
-func (this *Peer) RecordConsensusMsg(hash [common.HASH_SIZE]byte) {
-	this.ConsensusCache.Lock()
-	defer this.ConsensusCache.Unlock()
-
-	this.ConsensusCache.messageCount++
-
-	if this.ConsensusCache.messageCount <= common.MaxConsensusMsgCount / 2 {
-		this.ConsensusCache.filter1.Add(hash)
-	} else {
-		this.ConsensusCache.filter1.Add(hash)
-		this.ConsensusCache.filter2.Add(hash)
-
-		if this.ConsensusCache.messageCount == common.MaxConsensusMsgCount {
-			if this.ConsensusCache.useFilter2 == true {
-				this.ConsensusCache.useFilter2 = false
-				this.ConsensusCache.filter2 = mapset.NewSet()
-			} else {
-				this.ConsensusCache.useFilter2 = true
-				this.ConsensusCache.filter1 = mapset.NewSet()
-			}
-			this.ConsensusCache.messageCount = common.MaxConsensusMsgCount / 2
-		}
-	}
+func (this *Peer) RecordConsensusMsg(hash [common.HashSize]byte) {
+	this.ConsensusCache.Put(hash)
 }
 
 //DumpInfo print all information of peer
