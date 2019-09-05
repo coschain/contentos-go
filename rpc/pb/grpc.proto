@@ -211,6 +211,7 @@ message AccountInfo {
     uint32                                  freeze = 26;
     string                                  freeze_memo = 27;
     prototype.vest                          stake_vest_from_me = 28;
+    prototype.account_name                  voted_block_producer = 29;
 }
 
 message AccountResponse {

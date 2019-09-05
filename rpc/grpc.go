@@ -950,8 +950,19 @@ func (as *APIService) getAccountResponseByName(name *prototype.AccountName, isNe
 		acctInfo.Freeze = accWrap.GetFreeze()
 		acctInfo.FreezeMemo = accWrap.GetFreezeMemo()
 
+		uniqueVoterQueryWrap := table.NewUniBlockProducerVoteVoterNameWrap(as.db)
+		bpVoterWrapper := uniqueVoterQueryWrap.UniQueryVoterName(name)
+		if bpVoterWrapper != nil {
+			bp := bpVoterWrapper.GetBlockProducerId().BlockProducer
+			acctInfo.VotedBlockProducer = bp
+		} else {
+			acctInfo.VotedBlockProducer = &prototype.AccountName{Value: ""}
+		}
+
 		acct.Info = acctInfo
 		acct.State = as.getState()
+
+
 
 	}else {
 		return nil
