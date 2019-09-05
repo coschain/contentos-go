@@ -496,6 +496,7 @@ func (sabft *SABFT) tryCommit(b common.ISignedBlock) {
 }
 
 func (sabft *SABFT) checkBFTRoutine() {
+	return
 	if sabft.readyToProduce && sabft.isValidatorName(sabft.Name) {
 		//sabft.log.Infof("[SABFT] Starting gobft")
 		if err := sabft.bft.Start(); err == nil {
@@ -1570,7 +1571,9 @@ func (sabft *SABFT) databaseFixup(cfg *node.Config) error {
 		dbLastCommitted, lastCommit)
 
 	if dbLastCommitted > lastCommit {
-		return fmt.Errorf("state DB is ahead of blog, please remove %s and restart", cfg.ResolvePath("db"))
+		sabft.log.Debugf("[DB fixup]: popping state db: current head %d, to %v",
+			dbLastCommitted, lastCommit)
+		sabft.popBlock(lastCommit+1)
 	}
 
 	if dbLastCommitted < lastCommit {
