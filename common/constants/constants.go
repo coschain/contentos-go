@@ -35,7 +35,7 @@ const (
 
 	MaxBlockSize           = 1024 * 1024 * 2
 	MaxBlockSizeTolerance  = MaxBlockSize
-	MaxUncommittedBlockNum = 500
+	MaxUncommittedBlockNum = 600
 	MinBlockSize           = 115
 	MaxMarginStep = 10
 

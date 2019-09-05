@@ -894,7 +894,7 @@ func (p *MsgHandler) ConsMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args 
 
 	hash := msgdata.Hash()
 	if !p2p.RememberMsg(hash) {
-		log.Infof("[p2p] ignored duplicate ConsMsg hash=%x", hash)
+		//log.Infof("[p2p] ignored duplicate ConsMsg hash=%x", hash)
 		return
 	}
 	if msgdata.Extra.Bcast == 1 {
