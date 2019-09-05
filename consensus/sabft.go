@@ -1557,17 +1557,24 @@ func (sabft *SABFT) MaybeProduceBlock() {
 }
 
 func (sabft *SABFT) databaseFixup(cfg *node.Config) error {
-	lastCommit := sabft.ForkDB.LastCommitted().BlockNum()
-	dbHead, err := sabft.ctrl.GetLastPushedBlockNum()
+	dbFinal, err := sabft.ctrl.GetFinalizedNum()
+	if err != nil {
+		panic(err)
+	}
+	dbHead, err := sabft.ctrl.GetHeadBlockNum()
 	if err != nil {
 		return err
 	}
-	sabft.log.Debugf("[DB fixup]: progress 1: dbHead: %v, forkdb lastCommitted %v",
-		dbHead, lastCommit)
+
+	lastCommit := sabft.ForkDB.LastCommitted().BlockNum()
+	sabft.log.Debugf("[DB fixup]: progress 1: dbHead: %v, forkdb lastCommitted %v", dbHead, lastCommit)
+
+	if dbFinal > lastCommit {
+		return fmt.Errorf("state db finalized block is ahead of blog, please remove %s and restart", cfg.ResolvePath("db"))
+	}
 
 	if dbHead > lastCommit {
-		sabft.log.Debugf("[DB fixup]: popping state db: current head %d, to %v",
-			dbHead, lastCommit)
+		sabft.log.Debugf("[DB fixup]: popping state db: current head %d, to %v", dbHead, lastCommit)
 		if err = sabft.popBlock(lastCommit+1); err != nil {
 			panic(err)
 		}
@@ -1607,7 +1614,7 @@ func (sabft *SABFT) databaseFixup(cfg *node.Config) error {
 	if sabft.ForkDB.Empty() {
 		return nil
 	}
-	dbHead, _ = sabft.ctrl.GetLastPushedBlockNum()
+	dbHead, _ = sabft.ctrl.GetHeadBlockNum()
 	headNum := sabft.ForkDB.Head().Id().BlockNum()
 	sabft.log.Debugf("[DB fixup]: progress 2: dbHead: %v, %v", dbHead, headNum)
 
