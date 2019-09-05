@@ -1,7 +1,7 @@
 package consensus
 
 import (
-	"github.com/asaskevich/EventBus"
+	"fmt"
 	"io/ioutil"
 	"math/rand"
 	"strings"
@@ -9,6 +9,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/asaskevich/EventBus"
 	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/db/blocklog"
@@ -41,7 +42,6 @@ type SABFT struct {
 	bft           *gobft.Core
 	lastCommitted atomic.Value
 	appState      *message.AppState
-	bftStarted    uint32
 	commitCh      chan message.Commit
 	cp            *BFTCheckPoint
 	noticer       EventBus.Bus
@@ -64,13 +64,16 @@ type SABFT struct {
 
 	Ticker TimerDriver
 
-	stopCh chan struct{}
-	wg     sync.WaitGroup
+	stopCh        chan struct{}
+	inStartOrStop uint32
+	wg            sync.WaitGroup
 	deadlock.RWMutex
 
 	hook map[string]func(args ...interface{})
 
-	mockSignal bool
+	mockSignal     bool
+	mockMalicious  bool
+	maliciousBlock map[common.BlockID]common.ISignedBlock
 }
 
 func NewSABFT(ctx *node.ServiceContext, lg *logrus.Logger) *SABFT {
@@ -79,20 +82,20 @@ func NewSABFT(ctx *node.ServiceContext, lg *logrus.Logger) *SABFT {
 		lg.SetOutput(ioutil.Discard)
 	}
 	ret := &SABFT{
-		ForkDB:     forkdb.NewDB(lg),
-		dynasties:  NewDynasties(),
-		prodTimer:  time.NewTimer(1 * time.Millisecond),
-		trxCh:      make(chan func()),
-		pendingCh:  make(chan func()),
-		blkCh:      make(chan common.ISignedBlock),
-		ctx:        ctx,
-		stopCh:     make(chan struct{}),
-		extLog:     lg,
-		log:        lg.WithField("sabft", "on"),
-		bftStarted: 0,
-		commitCh:   make(chan message.Commit),
-		Ticker:     &Timer{},
-		hook:       make(map[string]func(args ...interface{})),
+		ForkDB:         forkdb.NewDB(lg),
+		dynasties:      NewDynasties(),
+		prodTimer:      time.NewTimer(1 * time.Millisecond),
+		trxCh:          make(chan func()),
+		pendingCh:      make(chan func()),
+		blkCh:          make(chan common.ISignedBlock, 1000),
+		ctx:            ctx,
+		stopCh:         make(chan struct{}),
+		extLog:         lg,
+		log:            lg.WithField("sabft", "on"),
+		commitCh:       make(chan message.Commit, 100),
+		Ticker:         &Timer{},
+		hook:           make(map[string]func(args ...interface{})),
+		maliciousBlock: make(map[common.BlockID]common.ISignedBlock),
 	}
 
 	ret.SetBootstrap(ctx.Config().Consensus.BootStrap)
@@ -196,24 +199,6 @@ func (sabft *SABFT) makeDynasty(seq uint64, prods []string,
 	return NewDynasty(seq, pubVS, pV)
 }
 
-func (sabft *SABFT) checkBFTRoutine() {
-	sabft.log.Debug("current dyn ", sabft.dynasties.Front().String())
-	if sabft.readyToProduce && sabft.isValidatorName(sabft.Name) {
-		if atomic.LoadUint32(&sabft.bftStarted) == 0 {
-			sabft.log.Infof("[SABFT] gobft try to start.....")
-			sabft.bft.Start()
-			sabft.log.Infof("[SABFT] gobft started at height %d", sabft.appState.LastHeight)
-			atomic.StoreUint32(&sabft.bftStarted, 1)
-		}
-	} else {
-		if atomic.LoadUint32(&sabft.bftStarted) == 1 {
-			sabft.bft.Stop()
-			sabft.log.Info("[SABFT] gobft stopped...")
-			atomic.StoreUint32(&sabft.bftStarted, 0)
-		}
-	}
-}
-
 func (sabft *SABFT) restoreProducers() {
 	prods, _, _ := sabft.ctrl.GetShuffledBpList()
 	sabft.producers = sabft.makeProducers(prods)
@@ -254,6 +239,10 @@ func (sabft *SABFT) ActiveProducers() []string {
 }
 
 func (sabft *SABFT) ActiveValidators() []string {
+	if sabft.dynasties.Empty() {
+		e := fmt.Sprintf("empty dynasty in %s", sabft.Name)
+		panic(e)
+	}
 	valset := sabft.dynasties.Front().validators
 	v := make([]string, len(valset))
 	for i := range v {
@@ -263,6 +252,11 @@ func (sabft *SABFT) ActiveValidators() []string {
 }
 
 func (sabft *SABFT) Start(node *node.Node) error {
+	if !atomic.CompareAndSwapUint32(&sabft.inStartOrStop, 0, 1) {
+		return fmt.Errorf("consensus in the process of start or stop")
+	}
+	defer atomic.StoreUint32(&sabft.inStartOrStop, 0)
+
 	sabft.ctrl = sabft.getController()
 	p2p, err := sabft.ctx.Service(iservices.P2PServerName)
 	if err != nil {
@@ -340,7 +334,7 @@ func (sabft *SABFT) stateFixup(cfg *node.Config) {
 	}
 	sabft.log.Warn("last bft height ", lh)
 
-	if err := sabft.databaseFixup(); err != nil {
+	if err := sabft.databaseFixup(cfg); err != nil {
 		panic(err)
 	}
 }
@@ -416,7 +410,17 @@ func (sabft *SABFT) revertToLastCheckPoint() {
 	sabft.log.Infof("[SABFT][checkpoint] revert to last committed block %d.", popNum-1)
 }
 
+func (sabft *SABFT) resetResource() {
+	sabft.trxCh = make(chan func())
+	sabft.pendingCh = make(chan func())
+	sabft.blkCh = make(chan common.ISignedBlock, 100)
+	sabft.stopCh = make(chan struct{})
+	sabft.commitCh = make(chan message.Commit, 100)
+}
+
 func (sabft *SABFT) start() {
+	sabft.resetResource()
+
 	sabft.wg.Add(1)
 	defer sabft.wg.Done()
 
@@ -427,6 +431,7 @@ func (sabft *SABFT) start() {
 			sabft.log.Debug("[SABFT] routine stopped.")
 			return
 		case b := <-sabft.blkCh:
+			//sabft.log.Debug("handling block ", b.Id().BlockNum())
 			if sabft.readyToProduce && sabft.tooManyUncommittedBlocks() &&
 				b.Id().BlockNum() > sabft.ForkDB.Head().Id().BlockNum() {
 				sabft.log.Debugf("dropping new block %v cause we had too many uncommitted blocks", b.Id())
@@ -440,7 +445,6 @@ func (sabft *SABFT) start() {
 				sabft.log.Error("[SABFT] pushBlock failed: ", err)
 				continue
 			}
-			sabft.checkBFTRoutine()
 
 			sabft.Lock()
 			sabft.tryCommit(b)
@@ -491,26 +495,48 @@ func (sabft *SABFT) tryCommit(b common.ISignedBlock) {
 	}
 }
 
+func (sabft *SABFT) checkBFTRoutine() {
+	if sabft.readyToProduce && sabft.isValidatorName(sabft.Name) {
+		//sabft.log.Infof("[SABFT] Starting gobft")
+		if err := sabft.bft.Start(); err == nil {
+			sabft.log.Infof("[SABFT] gobft started at height %d", sabft.appState.LastHeight)
+		}
+	} else {
+		//sabft.log.Info("[SABFT] Stopping gobft")
+		if err := sabft.bft.Stop(); err == nil {
+			sabft.log.Info("[SABFT] gobft stopped")
+		}
+	}
+}
+
 func (sabft *SABFT) Stop() error {
-	sabft.log.Info("SABFT consensus stopped.")
+	if !atomic.CompareAndSwapUint32(&sabft.inStartOrStop, 0, 1) {
+		return fmt.Errorf("consensus in the process of start or stop")
+	}
+	defer atomic.StoreUint32(&sabft.inStartOrStop, 0)
+
+	sabft.log.Info("[SABFT] Stopping SABFT consensus")
+
+	close(sabft.stopCh)
+	sabft.readyToProduce = false
+	sabft.wg.Wait()
 
 	// stop bft process
-	if atomic.LoadUint32(&sabft.bftStarted) == 1 {
-		sabft.bft.Stop()
-		atomic.StoreUint32(&sabft.bftStarted, 0)
+	if err := sabft.bft.Stop(); err != nil {
 		sabft.log.Info("[SABFT] gobft stopped...")
+	} else {
+		sabft.log.Info(err)
 	}
 
 	// restore uncommitted forkdb
 	cfg := sabft.ctx.Config()
 	snapshotPath := cfg.ResolvePath("forkdb_snapshot")
 	sabft.ForkDB.Snapshot(snapshotPath)
+
 	sabft.prodTimer.Stop()
 	sabft.cp.Close()
-	close(sabft.stopCh)
-	sabft.readyToProduce = false
 	sabft.dynasties.Clear()
-	sabft.wg.Wait()
+	sabft.log.Info("[SABFT] SABFT consensus stopped")
 	return nil
 }
 
@@ -621,26 +647,22 @@ func (sabft *SABFT) PushBlock(b common.ISignedBlock) {
 func (sabft *SABFT) Push(msg interface{}, p common.IPeer) {
 	switch m := msg.(type) {
 	case *message.Vote:
-		if atomic.LoadUint32(&sabft.bftStarted) == 1 {
-			sabft.bft.RecvMsg(m, p.(*peer.Peer))
-		}
+		sabft.bft.RecvMsg(m, p.(*peer.Peer))
 	case *message.FetchVotesReq:
-		if atomic.LoadUint32(&sabft.bftStarted) == 1 {
-			sabft.bft.RecvMsg(m, p.(*peer.Peer))
-		}
+		sabft.bft.RecvMsg(m, p.(*peer.Peer))
 	case *message.FetchVotesRsp:
-		if atomic.LoadUint32(&sabft.bftStarted) == 1 {
-			sabft.bft.RecvMsg(m, p.(*peer.Peer))
-		}
+		sabft.bft.RecvMsg(m, p.(*peer.Peer))
 	case *message.Commit:
-		go func() {
-			sabft.commitCh <- *m
-		}()
+		sabft.commitCh <- *m
 	default:
 	}
 }
 
 func (sabft *SABFT) verifyCommitSig(records *message.Commit) bool {
+	if sabft.dynasties.Empty() {
+		e := fmt.Sprintf("empty dynasty in %s", sabft.Name)
+		panic(e)
+	}
 	for i := range records.Precommits {
 		//val := sabft.getValidator(records.Precommits[i].Address)
 		val := sabft.dynasties.Front().GetValidatorByPubKey(records.Precommits[i].Address)
@@ -712,7 +734,7 @@ func (sabft *SABFT) loopCommit(commit *message.Commit) {
 			sabft.log.Warn("cp check IsNextCheckPoint failed")
 			return
 		}
-		sabft.log.Debug("reach checkpoint at ", checkPoint.ProposedData)
+		sabft.log.Debug("reach checkpoint at ", checkPoint)
 
 		// if we're a validator, pass it to gobft so that it can catch up
 		if sabft.gobftCatchUp(checkPoint) {
@@ -744,7 +766,9 @@ func (sabft *SABFT) loopCommit(commit *message.Commit) {
 }
 
 func (sabft *SABFT) gobftCatchUp(commit *message.Commit) bool {
-	if sabft.isValidatorName(sabft.Name) && atomic.LoadUint32(&sabft.bftStarted) == 1 &&
+	if atomic.LoadUint32(&sabft.inStartOrStop) == 0 &&
+		!sabft.dynasties.Empty() &&
+		sabft.isValidatorName(sabft.Name) &&
 		sabft.appState.LastProposedData == commit.Prev {
 		sabft.log.Warn("pass commits to gobft ", commit.ProposedData)
 		sabft.bft.RecvMsg(commit, nil)
@@ -788,6 +812,13 @@ func (sabft *SABFT) PushTransactionToPending(trx common.ISignedTransaction) erro
 	}()
 
 	return <-chanError
+}
+
+func (sabft *SABFT) pushMaliciousBlock(b common.ISignedBlock) {
+	if !sabft.mockMalicious {
+		return
+	}
+	sabft.maliciousBlock[b.Id()] = b
 }
 
 func (sabft *SABFT) pushBlock(b common.ISignedBlock, applyStateDB bool) error {
@@ -845,7 +876,7 @@ func (sabft *SABFT) pushBlock(b common.ISignedBlock, applyStateDB bool) error {
 	newHead := sabft.ForkDB.Head()
 	switch rc {
 	case forkdb.RTDetached:
-		sabft.log.Debugf("[SABFT][pushBlock]possibly detached block. prev: got %v, want %v", b.Id(), head.Id())
+		sabft.log.Debugf("[SABFT][pushBlock]possibly detached block. prev: got %v, want %v", b.Previous(), head.Id())
 		tailId, errTail := sabft.ForkDB.FetchUnlinkBlockTail()
 		if sabft.HasBlock(*tailId) {
 			panic("GOT unlinked but exist")
@@ -892,6 +923,9 @@ func (sabft *SABFT) pushBlock(b common.ISignedBlock, applyStateDB bool) error {
 			}
 		}
 		sabft.log.Debug("[SABFT] pushBlock FINISHED #", b.Id().BlockNum(), " id ", b.Id())
+		if sabft.mockMalicious && !applyStateDB {
+			return nil
+		}
 		sabft.p2p.Broadcast(b)
 	default:
 		return ErrInternal
@@ -980,7 +1014,7 @@ func (sabft *SABFT) updateAppState(commit *message.Commit) {
 func (sabft *SABFT) commit(commitRecords *message.Commit) error {
 	defer func() {
 		sabft.updateAppState(commitRecords)
-		sabft.checkBFTRoutine()
+		sabft.log.Debug("current dyn ", sabft.dynasties.Front().String())
 
 		// TODO: check if checkpoint has been skipped
 	}()
@@ -1060,8 +1094,8 @@ func (sabft *SABFT) GetValidator(key message.PubKey) custom.IPubValidator {
 
 func (sabft *SABFT) getValidator(key message.PubKey) custom.IPubValidator {
 	if sabft.dynasties.Empty() {
-		sabft.log.Error("empty dynasty")
-		return nil
+		e := fmt.Sprintf("empty dynasty in %s", sabft.Name)
+		panic(e)
 	}
 
 	valset := sabft.dynasties.Front().validators
@@ -1083,6 +1117,11 @@ func (sabft *SABFT) IsValidator(key message.PubKey) bool {
 }
 
 func (sabft *SABFT) isValidator(key message.PubKey) bool {
+	if sabft.dynasties.Empty() {
+		e := fmt.Sprintf("empty dynasty in %s", sabft.Name)
+		panic(e)
+	}
+
 	valset := sabft.dynasties.Front().validators
 	for i := range valset {
 		if valset[i].bftPubKey == key {
@@ -1093,6 +1132,11 @@ func (sabft *SABFT) isValidator(key message.PubKey) bool {
 }
 
 func (sabft *SABFT) isValidatorName(name string) bool {
+	if sabft.dynasties.Empty() {
+		e := fmt.Sprintf("empty dynasty in %s", sabft.Name)
+		panic(e)
+	}
+
 	valset := sabft.dynasties.Front().validators
 	for i := range valset {
 		if valset[i].accountName == name {
@@ -1106,6 +1150,10 @@ func (sabft *SABFT) TotalVotingPower() int64 {
 	sabft.RLock()
 	defer sabft.RUnlock()
 
+	if sabft.dynasties.Empty() {
+		e := fmt.Sprintf("empty dynasty in %s", sabft.Name)
+		panic(e)
+	}
 	return int64(sabft.dynasties.Front().GetValidatorNum())
 }
 
@@ -1113,6 +1161,10 @@ func (sabft *SABFT) GetCurrentProposer(round int) message.PubKey {
 	sabft.RLock()
 	defer sabft.RUnlock()
 
+	if sabft.dynasties.Empty() {
+		e := fmt.Sprintf("empty dynasty in %s", sabft.Name)
+		panic(e)
+	}
 	dyn := sabft.dynasties.Front()
 	cnt := dyn.GetValidatorNum()
 	return message.PubKey(dyn.validators[round%cnt].bftPubKey)
@@ -1166,24 +1218,14 @@ func (sabft *SABFT) GetAppState() *message.AppState {
 	return sabft.appState
 }
 
-func (sabft *SABFT) BroadCast(msg message.ConsensusMessage) error {
-	sabft.p2p.Broadcast(msg)
-	return nil
-}
-
-func (sabft *SABFT) Send(msg message.ConsensusMessage, p custom.IPeer) error {
-	if p == nil {
-		sabft.p2p.RandomSend(msg)
-	} else {
-		sabft.p2p.SendToPeer(p.(*peer.Peer), msg)
-	}
-	return nil
-}
-
 func (sabft *SABFT) GetValidatorNum() int {
 	sabft.RLock()
 	defer sabft.RUnlock()
 
+	if sabft.dynasties.Empty() {
+		e := fmt.Sprintf("empty dynasty in %s", sabft.Name)
+		panic(e)
+	}
 	return sabft.dynasties.Front().GetValidatorNum()
 }
 
@@ -1197,6 +1239,20 @@ func (sabft *SABFT) GetCommitHistory(height int64) *message.Commit {
 }
 
 /********* end gobft ICommittee ***********/
+
+func (sabft *SABFT) BroadCast(msg message.ConsensusMessage) error {
+	sabft.p2p.Broadcast(msg)
+	return nil
+}
+
+func (sabft *SABFT) Send(msg message.ConsensusMessage, p custom.IPeer) error {
+	if p == nil {
+		sabft.p2p.RandomSend(msg)
+	} else {
+		sabft.p2p.SendToPeer(p.(*peer.Peer), msg)
+	}
+	return nil
+}
 
 func (sabft *SABFT) switchFork(old, new common.BlockID) bool {
 	// TODO: validate block producer
@@ -1270,6 +1326,8 @@ func (sabft *SABFT) popBlock(num uint64) error {
 	sabft.ctrl.PopBlock(num)
 	// producers fixup
 	sabft.restoreProducers()
+
+	sabft.dynasties.PopAfter(num)
 	return nil
 }
 
@@ -1318,6 +1376,10 @@ func (sabft *SABFT) FetchBlock(id common.BlockID) (common.ISignedBlock, error) {
 		if b.Id() == id {
 			return &b, nil
 		}
+	}
+
+	if v, exist := sabft.maliciousBlock[id]; exist {
+		return v, nil
 	}
 
 	sabft.log.Errorf("[SABFT FetchBlock] block with id %v doesn't exist", id)
@@ -1414,39 +1476,42 @@ func (sabft *SABFT) ResetTicker(ts time.Time) {
 	sabft.Ticker = &FakeTimer{t: ts}
 }
 
-func (sabft *SABFT) MaybeProduceBlock() {
-	defer sabft.prodTimer.Reset(sabft.timeToNextSec())
-	defer func() {
+func (sabft *SABFT) fetchCheckPoint() {
+	var from, to uint64
+	sabft.RLock()
+	if sabft.cp.HasDanglingCheckPoint() {
+		// fetch missing checkpoints
+		from, to = sabft.cp.MissingRange()
+	}
+	sabft.RUnlock()
 
-		var from, to uint64
-		sabft.RLock()
-		if sabft.cp.HasDanglingCheckPoint() {
-			// fetch missing checkpoints
-			from, to = sabft.cp.MissingRange()
-		}
-		sabft.RUnlock()
-
-		if to == 0 {
-			if !sabft.ForkDB.Empty() {
-				headNum := sabft.ForkDB.Head().Id().BlockNum()
-				lcNum := sabft.ForkDB.LastCommitted().BlockNum()
-				if headNum-lcNum > constants.MaxUncommittedBlockNum/10 {
-					from, to = lcNum, headNum
-				}
-			}
-		}
-		if to != 0 {
-			go sabft.p2p.RequestCheckpoint(from, to)
-		}
-
-		if !sabft.readyToProduce && !sabft.ForkDB.Empty() {
+	if to == 0 {
+		if !sabft.ForkDB.Empty() {
 			headNum := sabft.ForkDB.Head().Id().BlockNum()
 			lcNum := sabft.ForkDB.LastCommitted().BlockNum()
-			if headNum > lcNum {
-				go sabft.p2p.RequestCheckpoint(lcNum, headNum)
+			if headNum-lcNum > constants.MaxUncommittedBlockNum/10 {
+				from, to = lcNum, headNum
 			}
 		}
+	}
+	if to != 0 {
+		go sabft.p2p.RequestCheckpoint(from, to)
+	}
 
+	if !sabft.readyToProduce && !sabft.ForkDB.Empty() {
+		headNum := sabft.ForkDB.Head().Id().BlockNum()
+		lcNum := sabft.ForkDB.LastCommitted().BlockNum()
+		if headNum > lcNum {
+			go sabft.p2p.RequestCheckpoint(lcNum, headNum)
+		}
+	}
+}
+
+func (sabft *SABFT) MaybeProduceBlock() {
+	defer func() {
+		sabft.prodTimer.Reset(sabft.timeToNextSec())
+		sabft.fetchCheckPoint()
+		sabft.checkBFTRoutine()
 	}()
 
 	sabft.RLock()
@@ -1469,8 +1534,8 @@ func (sabft *SABFT) MaybeProduceBlock() {
 		sabft.Unlock()
 		return
 	}
+	sabft.log.Debugf("[SABFT] generated block: <num %d> <ts %d> <%d>", b.Id().BlockNum(), b.Timestamp(), b.Id())
 
-	sabft.log.Debugf("[SABFT] generated block: <num %d> <ts %d>", b.Id().BlockNum(), b.Timestamp())
 	if err := sabft.pushBlock(b, false); err != nil {
 		sabft.log.Error("[SABFT] pushBlock push generated block failed: ", err)
 	}
@@ -1479,24 +1544,35 @@ func (sabft *SABFT) MaybeProduceBlock() {
 	if f, exist := sabft.hook["generate_block"]; exist {
 		f()
 	}
+	if sabft.mockMalicious {
+		dup := &prototype.SignedBlock{}
+		s, _ := b.Marshall()
+		dup.Unmarshall(s)
+		sig := dup.SignedHeader.BlockProducerSignature.Sig
+		sig[0] = 0x01
+		sig[2] = 0x01
+		sig[7] = 0x01
+		sabft.log.Warnf("signature of block #%d manipulated %v", dup.Id().BlockNum(), dup.Id())
+		sabft.pushMaliciousBlock(dup)
+		sabft.p2p.Broadcast(dup)
+		return
+	}
 	sabft.p2p.Broadcast(b)
 }
 
-func (sabft *SABFT) databaseFixup() error {
-	if sabft.ForkDB.Head() == nil {
-		//Not need to sync
-		return nil
-	}
-	var err error = nil
+func (sabft *SABFT) databaseFixup(cfg *node.Config) error {
 	lastCommit := sabft.ForkDB.LastCommitted().BlockNum()
 	dbLastCommitted, err := sabft.ctrl.GetLastPushedBlockNum()
-	sabft.log.Debugf("[DB fixup]: progress 1: dbLastCommitted: %v, forkdb lastCommitted %v",
-		dbLastCommitted, lastCommit)
 	if err != nil {
 		return err
 	}
+	sabft.log.Debugf("[DB fixup]: progress 1: dbLastCommitted: %v, forkdb lastCommitted %v",
+		dbLastCommitted, lastCommit)
 
-	//1.sync commit blocks
+	if dbLastCommitted > lastCommit {
+		return fmt.Errorf("state DB is ahead of blog, please remove %s and restart", cfg.ResolvePath("db"))
+	}
+
 	if dbLastCommitted < lastCommit {
 		sabft.log.Debugf("[DB fixup from blog] database last commit: %v, blog head: %v, forkdb head: %v",
 			dbLastCommitted, lastCommit, sabft.ForkDB.Head().Id().BlockNum())
@@ -1505,9 +1581,10 @@ func (sabft *SABFT) databaseFixup() error {
 			if err := sabft.blog.ReadBlock(blk, i); err != nil {
 				return err
 			}
-			if err = sabft.ctrl.PushBlock(blk, prototype.Skip_block_check&
-				prototype.Skip_block_signatures&
-				prototype.Skip_transaction_signatures); err != nil {
+			if err = sabft.ctrl.PushBlock(blk,
+				prototype.Skip_block_check&
+					prototype.Skip_block_signatures&
+					prototype.Skip_transaction_signatures); err != nil {
 				sabft.log.Errorf("[DB fixup from blog] PushBlock #%d Failed", i)
 				return err
 			}
@@ -1527,6 +1604,9 @@ func (sabft *SABFT) databaseFixup() error {
 		}
 	}
 
+	if sabft.ForkDB.Empty() {
+		return nil
+	}
 	dbLastCommitted, _ = sabft.ctrl.GetLastPushedBlockNum()
 	headNum := sabft.ForkDB.Head().Id().BlockNum()
 	sabft.log.Debugf("[DB fixup]: progress 2: dbLastCommitted: %v, %v", dbLastCommitted, headNum)
@@ -1536,10 +1616,14 @@ func (sabft *SABFT) databaseFixup() error {
 		if err != nil {
 			return err
 		}
-		if len(blocks) > 0 {
-			sabft.log.Debugf("[DB fixup from forkdb]: start pushing uncommitted blocks, start: %v, end:%v, count: %v",
-				dbLastCommitted+1, sabft.ForkDB.Head().Id().BlockNum(), len(blocks))
-			if err = sabft.ctrl.SyncPushedBlocksToDB(blocks); err != nil {
+		sabft.log.Debugf("[DB fixup from forkdb]: start pushing uncommitted blocks, start: %v, end:%v, count: %v",
+			dbLastCommitted+1, sabft.ForkDB.Head().Id().BlockNum(), len(blocks))
+		for i := range blocks {
+			if err = sabft.ctrl.PushBlock(blocks[i].(*prototype.SignedBlock),
+				prototype.Skip_block_check&
+					prototype.Skip_block_signatures&
+					prototype.Skip_transaction_signatures); err != nil {
+				sabft.log.Errorf("[DB fixup from forkdb] PushBlock #%d Failed", i)
 				return err
 			}
 		}
@@ -1594,4 +1678,8 @@ func (sabft *SABFT) SetHook(key string, f func(args ...interface{})) {
 
 func (sabft *SABFT) EnableMockSignal() {
 	sabft.mockSignal = true
+}
+
+func (sabft *SABFT) MockMaliciousBehaviour(b bool) {
+	sabft.mockMalicious = true
 }

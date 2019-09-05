@@ -921,7 +921,13 @@ func (as *APIService) getAccountResponseByName(name *prototype.AccountName, isNe
 			withdrawTime = &prototype.TimePointSec{UtcSeconds: uint32(nextWithdrawBlock - currentBlockNum) + currentTime.UtcSeconds}
 		}
 		acctInfo.NextWithdrawTime = withdrawTime
-
+		acctInfo.HasWithdrawn = accWrap.GetHasPowerdown()
+		startWithdrawTime := &prototype.TimePointSec{UtcSeconds: 0}
+		startWithdrawBlock := accWrap.GetStartPowerdownBlockNum()
+		if	currentBlockNum >= startWithdrawBlock && startWithdrawBlock > 0 {
+			startWithdrawTime = &prototype.TimePointSec{UtcSeconds:currentTime.UtcSeconds - uint32(currentBlockNum - startWithdrawBlock)}
+		}
+		acctInfo.StartWithdrawTime = startWithdrawTime
 		acctInfo.BlockProducer = as.getBlockProducerResponseByName(accWrap.GetName(), false)
 
 		followWrap := table.NewSoExtFollowCountWrap(as.db, name)
@@ -944,8 +950,19 @@ func (as *APIService) getAccountResponseByName(name *prototype.AccountName, isNe
 		acctInfo.Freeze = accWrap.GetFreeze()
 		acctInfo.FreezeMemo = accWrap.GetFreezeMemo()
 
+		uniqueVoterQueryWrap := table.NewUniBlockProducerVoteVoterNameWrap(as.db)
+		bpVoterWrapper := uniqueVoterQueryWrap.UniQueryVoterName(name)
+		if bpVoterWrapper != nil {
+			bp := bpVoterWrapper.GetBlockProducerId().BlockProducer
+			acctInfo.VotedBlockProducer = bp
+		} else {
+			acctInfo.VotedBlockProducer = &prototype.AccountName{Value: ""}
+		}
+
 		acct.Info = acctInfo
 		acct.State = as.getState()
+
+
 
 	}else {
 		return nil

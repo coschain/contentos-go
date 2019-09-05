@@ -31,6 +31,7 @@ var VERSION = "defaultVersion"
 var latency int
 var shut bool
 var testSync bool
+var malicious bool
 
 var TestCmd = func() *cobra.Command {
 	cmd := &cobra.Command{
@@ -41,6 +42,7 @@ var TestCmd = func() *cobra.Command {
 	cmd.Flags().IntVarP(&latency, "latency", "l", 1500, "test count -l 1500 (in ms)")
 	cmd.Flags().BoolVarP(&shut, "random_shutdown", "s", false, "")
 	cmd.Flags().BoolVarP(&testSync, "test_sync", "e", false, "")
+	cmd.Flags().BoolVarP(&malicious, "malicious_node", "m", false, "")
 	return cmd
 }
 
@@ -90,6 +92,13 @@ func startNodes(cmd *cobra.Command, args []string) {
 	startNodes2(cnt, 0)
 }
 func startNodes2(cnt int, runSecond int32) {
+	if malicious {
+		shut = false
+		testSync = false
+		if cnt < 6 {
+			cnt = 6
+		}
+	}
 
 	clear(nil, nil)
 	initConfByCount(cnt)
@@ -173,7 +182,13 @@ func startNodes2(cnt int, runSecond int32) {
 	go monitor.Run()
 
 	time.Sleep(2 * time.Second)
-	go monitor.Shuffle(names[1:cnt-1], sks[1:cnt-1], css, stopCh)
+	if !malicious {
+		go monitor.Shuffle(names[1:cnt-1], sks[1:cnt-1], css, stopCh)
+	}
+
+	if malicious {
+		maliciousNode(nodes[cnt-2])
+	}
 	if shut {
 		go randomlyShutdownNodes(nodes, comp, stopCh)
 	}
@@ -230,6 +245,15 @@ func readyToShutDown(node *node.Node) bool {
 	return time.Since(lastCommit.(*message.Commit).CommitTime) < 10*time.Second
 }
 
+func maliciousNode(node *node.Node) {
+	c, err := node.Service(iservices.ConsensusServerName)
+	if err != nil {
+		panic(err)
+	}
+	css := c.(iservices.IConsensus)
+	css.MockMaliciousBehaviour(true)
+}
+
 func eraseNodeDataAndRestart(node *node.Node, comp *test.Components, idx int, ch chan struct{}) {
 	ticker := time.NewTicker(10 * time.Second).C
 	for {
@@ -248,7 +272,7 @@ func eraseNodeDataAndRestart(node *node.Node, comp *test.Components, idx int, ch
 
 			t := rand.Int()%2
 			if err := node.Stop(); err != nil {
-				panic(err)
+				continue
 			}
 			comp.State = test.OffLine
 
@@ -265,6 +289,9 @@ func eraseNodeDataAndRestart(node *node.Node, comp *test.Components, idx int, ch
 				files := strings.Split(string(out), "\n")
 				for i := range files {
 					if files[i] == "" {
+						continue
+					}
+					if files[i] == "logs" {
 						continue
 					}
 					cmdLine = fmt.Sprintf("rm -rf %s", filepath.Join(confdir, files[i]))
@@ -318,7 +345,7 @@ func randomlyShutdownNodes(nodes []*node.Node, c []*test.Components, ch chan str
 				continue
 			}
 			if err := nodes[idx].Stop(); err != nil {
-				panic(err)
+				continue
 			}
 			c[idx].State = test.OffLine
 			go func() {

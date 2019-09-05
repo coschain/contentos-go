@@ -199,16 +199,19 @@ message AccountInfo {
     uint64                                  stamina_max     = 14;
     prototype.vest                          stake_vest_for_me = 15;
     prototype.vest                          withdraw_remains = 16;
-    prototype.vest                          withdraw_each_time = 17;
-    prototype.time_point_sec                next_withdraw_time =      18;
-    uint32                                  bp_vote_count = 19;
-    uint32                                  reputation = 20;
-    string                                  reputation_memo = 21;
-    uint32                                  charged_ticket = 22;
-    uint32                                  free_ticket = 23;
-    uint32                                  freeze = 24;
-    string                                  freeze_memo = 25;
-    prototype.vest                          stake_vest_from_me = 26;
+    prototype.vest                          has_withdrawn = 17;
+    prototype.vest                          withdraw_each_time = 18;
+    prototype.time_point_sec                next_withdraw_time = 19;
+    prototype.time_point_sec                start_withdraw_time = 20;
+    uint32                                  bp_vote_count = 21;
+    uint32                                  reputation = 22;
+    string                                  reputation_memo = 23;
+    uint32                                  charged_ticket = 24;
+    uint32                                  free_ticket = 25;
+    uint32                                  freeze = 26;
+    string                                  freeze_memo = 27;
+    prototype.vest                          stake_vest_from_me = 28;
+    prototype.account_name                  voted_block_producer = 29;
 }
 
 message AccountResponse {

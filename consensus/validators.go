@@ -91,6 +91,13 @@ func (pv *privateValidator) Sign(digest []byte) []byte {
 		pv.sab.log.Error(err)
 		return nil
 	}
+
+	if pv.sab.mockMalicious {
+		res[0] = 0x01
+		res[3] = 0x01
+		res[7] = 0x01
+	}
+
 	return res
 }
 

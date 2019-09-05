@@ -56,10 +56,6 @@ type ITrxPool interface {
 	Sign(priv *prototype.PrivateKeyType, digest []byte) []byte
 	//Fetch the latest pushed block number
 	GetLastPushedBlockNum() (uint64,error)
-	//Sync commit blocks to db
-	SyncCommittedBlockToDB(blk common.ISignedBlock) error
-	//Sync pushed blocks to DB
-	SyncPushedBlocksToDB(blkList []common.ISignedBlock) error
 
 	CalculateUserMaxStamina(db IDatabaseRW,name string) uint64
 	CheckNetForRPC(name string, db IDatabaseRW, sizeInBytes uint64) (bool,uint64,uint64)

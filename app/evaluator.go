@@ -323,8 +323,8 @@ func (ev *PostEvaluator) checkBeneficiaries(beneficiaries []*prototype.Beneficia
 		weight := beneficiary.Weight
 		opAssert(weight <= constants.PERCENT, "each weight should lower than 10000")
 		weightAccumulator += weight
+		opAssert(weightAccumulator <= constants.PERCENT, "the total weight from all beneficiary routes at most 10000")
 	}
-	opAssert(weightAccumulator <= constants.PERCENT, "the total weight from all beneficiary routes at most 10000")
 }
 
 func (ev *PostEvaluator) Apply() {
@@ -385,8 +385,8 @@ func (ev *ReplyEvaluator) checkBeneficiaries(beneficiaries []*prototype.Benefici
 		weight := beneficiary.Weight
 		opAssert(weight <= constants.PERCENT, "each weight should lower than 10000")
 		weightAccumulator += weight
+		opAssert(weightAccumulator <= constants.PERCENT, "the total weight from all beneficiary routes at most 10000")
 	}
-	opAssert(weightAccumulator <= constants.PERCENT, "the total weight from all beneficiary routes at most 10000")
 }
 
 func (ev *ReplyEvaluator) Apply() {
