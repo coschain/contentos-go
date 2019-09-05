@@ -49,7 +49,6 @@ type BFTCheckPoint struct {
 	sabft   *SABFT
 	dataDir string
 	db      storage.Database
-	tdb     storage.TrxDatabase
 
 	lastCommitted common.BlockID
 	nextCP        common.BlockID
@@ -63,13 +62,11 @@ func NewBFTCheckPoint(dir string, sabft *SABFT) *BFTCheckPoint {
 	if err != nil {
 		panic(err)
 	}
-	tdb := storage.NewTransactionalDatabase(db, true)
 	lc := sabft.ForkDB.LastCommitted()
 	return &BFTCheckPoint{
 		sabft:         sabft,
 		dataDir:       dir,
 		db:            db,
-		tdb:           tdb,
 		lastCommitted: lc,
 		nextCP:        common.EmptyBlockID,
 		cache:         make(map[common.BlockID]*message.Commit),
@@ -78,7 +75,6 @@ func NewBFTCheckPoint(dir string, sabft *SABFT) *BFTCheckPoint {
 }
 
 func (cp *BFTCheckPoint) Close() {
-	cp.tdb.Close()
 	cp.db.Close()
 }
 
@@ -93,11 +89,10 @@ func (cp *BFTCheckPoint) Flush(bid common.BlockID) error {
 	key := make([]byte, 8)
 	for {
 		binary.BigEndian.PutUint64(key, cp.nextCP.BlockNum())
-		cp.tdb.BeginTransaction()
-		err := cp.tdb.Put(key, cp.cache[cp.lastCommitted].Bytes())
+		batch := cp.db.NewBatch()
+		err := batch.Put(key, cp.cache[cp.lastCommitted].Bytes())
 		if err != nil {
 			cp.sabft.log.Fatalf("BFT-Flush: %v",err)
-			cp.tdb.EndTransaction(false)
 			return err
 		}
 
@@ -106,14 +101,12 @@ func (cp *BFTCheckPoint) Flush(bid common.BlockID) error {
 				cp.sabft.Name, cp.sabft.ForkDB.LastCommitted(), cp.lastCommitted, cp.nextCP)
 			panic(errstr)
 		}
-		err = cp.tdb.Put(cp.getIdxKey(uint64(cp.cache[cp.lastCommitted].Height())), key)
+		err = batch.Put(cp.getIdxKey(uint64(cp.cache[cp.lastCommitted].Height())), key)
 		if err != nil {
 			cp.sabft.log.Fatalf("BFT-Flush: %v",err)
-			cp.tdb.EndTransaction(false)
 			return err
 		}
-		err = cp.tdb.EndTransaction(true)
-		if err != nil {
+		if err = batch.Write(); err != nil {
 			panic(fmt.Sprintf("BFT-Flush error: %v", err) )
 		}
 
@@ -226,7 +219,7 @@ func (cp *BFTCheckPoint) GetNext(blockNum uint64) (*message.Commit, error) {
 	key := make([]byte, 8)
 	binary.BigEndian.PutUint64(key, blockNum+1)
 	var val []byte
-	cp.tdb.Iterate(key, cp.indexPrefix[:], false, func(key, value []byte) bool {
+	cp.db.Iterate(key, cp.indexPrefix[:], false, func(key, value []byte) bool {
 		val = common.CopyBytes(value)
 		return false
 	})
@@ -246,12 +239,12 @@ func (cp *BFTCheckPoint) GetNext(blockNum uint64) (*message.Commit, error) {
 
 func (cp *BFTCheckPoint) GetIth(i uint64) (*message.Commit, error) {
 	idxKey := cp.getIdxKey(i)
-	blockNum, err := cp.tdb.Get(idxKey)
+	blockNum, err := cp.db.Get(idxKey)
 	if err != nil {
 		cp.sabft.log.Error(err)
 		return nil, err
 	}
-	c, err := cp.tdb.Get(blockNum)
+	c, err := cp.db.Get(blockNum)
 	if err != nil {
 		cp.sabft.log.Error(err)
 		return nil, err
