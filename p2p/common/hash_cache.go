@@ -25,20 +25,14 @@ func NewHashCache() *HashCache {
 	}
 }
 
-func (c *HashCache) Has(hash [HashSize]byte) bool {
-	c.RLock()
-	defer c.RUnlock()
-
+func (c *HashCache) has(hash [HashSize]byte) bool {
 	if c.useFilter2 {
 		return c.filter2.Contains(hash)
 	}
 	return c.filter1.Contains(hash)
 }
 
-func (c *HashCache) Put(hash [HashSize]byte) {
-	c.Lock()
-	defer c.Unlock()
-
+func (c *HashCache) put(hash [HashSize]byte) {
 	c.messageCount++
 	if c.messageCount <= HashCacheMaxCount / 2 {
 		c.filter1.Add(hash)
@@ -56,4 +50,29 @@ func (c *HashCache) Put(hash [HashSize]byte) {
 			c.messageCount = HashCacheMaxCount / 2
 		}
 	}
+}
+
+func (c *HashCache) Has(hash [HashSize]byte) bool {
+	c.RLock()
+	defer c.RUnlock()
+
+	return c.has(hash)
+}
+
+func (c *HashCache) Put(hash [HashSize]byte) {
+	c.Lock()
+	defer c.Unlock()
+
+	c.put(hash)
+}
+
+func (c *HashCache) PutIfNotFound(hash [HashSize]byte) (changed bool) {
+	c.Lock()
+	defer c.Unlock()
+
+	changed = !c.has(hash)
+	if changed {
+		c.put(hash)
+	}
+	return
 }
