@@ -26,6 +26,7 @@ func NewNetServer(ctx *node.ServiceContext, lg *logrus.Logger) p2p.P2P {
 		SyncChan: make(chan *types.MsgPayload, common.CHAN_CAPABILITY),
 		ConsChan: make(chan *types.MsgPayload, common.CHAN_CAPABILITY),
 		NetworkMagic: common2.GetChainIdByName(ctx.Config().ChainId),
+		msgCache: common.NewHashCache(),
 	}
 
 	n.PeerAddrMap.PeerSyncAddress = make(map[string]*peer.Peer)
@@ -53,6 +54,8 @@ type NetServer struct {
 	outConnRecord OutConnectionRecord
 	OwnAddress    string //network`s own address(ip : sync port),which get from version check
 	NetworkMagic  uint32
+
+	msgCache	 *common.HashCache
 }
 
 //InConnectionRecord include all addr connected
@@ -821,4 +824,8 @@ func (this *NetServer) GetLog() *logrus.Logger{
 
 func (this *NetServer) GetMagic() uint32 {
 	return this.NetworkMagic
+}
+
+func (this *NetServer) RememberMsg(hash [common.HashSize]byte) bool {
+	return this.msgCache.PutIfNotFound(hash)
 }

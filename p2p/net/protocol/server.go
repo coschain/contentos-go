@@ -2,6 +2,7 @@ package p2p
 
 import (
 	"github.com/coschain/contentos-go/node"
+	"github.com/coschain/contentos-go/p2p/common"
 	"github.com/coschain/contentos-go/p2p/message/types"
 	"github.com/coschain/contentos-go/p2p/peer"
 	"github.com/sirupsen/logrus"
@@ -51,4 +52,6 @@ type P2P interface {
 	GetContex() *node.ServiceContext
 	GetLog() *logrus.Logger
 	GetMagic() uint32
+
+	RememberMsg(hash [common.HashSize]byte) (isNew bool)
 }
