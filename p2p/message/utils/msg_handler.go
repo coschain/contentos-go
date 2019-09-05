@@ -968,7 +968,7 @@ func (p *MsgHandler) RequestCheckpointBatchHandle(data *msgTypes.MsgPayload, p2p
 		if cp == nil {
 			return
 		}
-		bftCommitCP := msgpack.NewConsMsg(cp.(*message.Commit), true)
+		bftCommitCP := msgpack.NewConsMsg(cp.(*message.Commit), false)
 		//bftCommitCP := &msgTypes.ConsMsg{
 		//	MsgData: cp.(*message.Commit),
 		//}
