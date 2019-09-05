@@ -64,9 +64,9 @@ type SABFT struct {
 
 	Ticker TimerDriver
 
-	stopCh chan struct{}
+	stopCh        chan struct{}
 	inStartOrStop uint32
-	wg     sync.WaitGroup
+	wg            sync.WaitGroup
 	deadlock.RWMutex
 
 	hook map[string]func(args ...interface{})
@@ -647,11 +647,11 @@ func (sabft *SABFT) PushBlock(b common.ISignedBlock) {
 func (sabft *SABFT) Push(msg interface{}, p common.IPeer) {
 	switch m := msg.(type) {
 	case *message.Vote:
-			sabft.bft.RecvMsg(m, p.(*peer.Peer))
+		sabft.bft.RecvMsg(m, p.(*peer.Peer))
 	case *message.FetchVotesReq:
-			sabft.bft.RecvMsg(m, p.(*peer.Peer))
+		sabft.bft.RecvMsg(m, p.(*peer.Peer))
 	case *message.FetchVotesRsp:
-			sabft.bft.RecvMsg(m, p.(*peer.Peer))
+		sabft.bft.RecvMsg(m, p.(*peer.Peer))
 	case *message.Commit:
 		sabft.commitCh <- *m
 	default:
@@ -1583,7 +1583,8 @@ func (sabft *SABFT) databaseFixup() error {
 			if err := sabft.blog.ReadBlock(blk, i); err != nil {
 				return err
 			}
-			if err = sabft.ctrl.PushBlock(blk, prototype.Skip_block_check&
+			if err = sabft.ctrl.PushBlock(blk,
+				prototype.Skip_block_check&
 				prototype.Skip_block_signatures&
 				prototype.Skip_transaction_signatures); err != nil {
 				sabft.log.Errorf("[DB fixup from blog] PushBlock #%d Failed", i)
@@ -1614,10 +1615,14 @@ func (sabft *SABFT) databaseFixup() error {
 		if err != nil {
 			return err
 		}
-		if len(blocks) > 0 {
-			sabft.log.Debugf("[DB fixup from forkdb]: start pushing uncommitted blocks, start: %v, end:%v, count: %v",
-				dbLastCommitted+1, sabft.ForkDB.Head().Id().BlockNum(), len(blocks))
-			if err = sabft.ctrl.SyncPushedBlocksToDB(blocks); err != nil {
+		sabft.log.Debugf("[DB fixup from forkdb]: start pushing uncommitted blocks, start: %v, end:%v, count: %v",
+			dbLastCommitted+1, sabft.ForkDB.Head().Id().BlockNum(), len(blocks))
+		for i := range blocks {
+			if err = sabft.ctrl.PushBlock(blocks[i].(*prototype.SignedBlock),
+				prototype.Skip_block_check&
+				prototype.Skip_block_signatures&
+				prototype.Skip_transaction_signatures); err != nil {
+				sabft.log.Errorf("[DB fixup from forkdb] PushBlock #%d Failed", i)
 				return err
 			}
 		}
