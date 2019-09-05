@@ -226,7 +226,7 @@ func (cp *BFTCheckPoint) GetNext(blockNum uint64) (*message.Commit, error) {
 	key := make([]byte, 8)
 	binary.BigEndian.PutUint64(key, blockNum+1)
 	var val []byte
-	cp.tdb.Iterate(key, nil, false, func(key, value []byte) bool {
+	cp.tdb.Iterate(key, cp.indexPrefix[:], false, func(key, value []byte) bool {
 		val = common.CopyBytes(value)
 		return false
 	})
