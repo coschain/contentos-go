@@ -445,7 +445,6 @@ func (sabft *SABFT) start() {
 				sabft.log.Error("[SABFT] pushBlock failed: ", err)
 				continue
 			}
-			sabft.checkBFTRoutine()
 
 			sabft.Lock()
 			sabft.tryCommit(b)
@@ -497,16 +496,6 @@ func (sabft *SABFT) tryCommit(b common.ISignedBlock) {
 }
 
 func (sabft *SABFT) checkBFTRoutine() {
-	if !atomic.CompareAndSwapUint32(&sabft.inStartOrStop, 0, 1) {
-		//sabft.log.Error("[SABFT] consensus in the process of start or stop")
-		return
-	}
-	defer atomic.StoreUint32(&sabft.inStartOrStop, 0)
-
-	if sabft.dynasties.Empty() {
-		return
-	}
-
 	if sabft.readyToProduce && sabft.isValidatorName(sabft.Name) {
 		//sabft.log.Infof("[SABFT] Starting gobft")
 		if err := sabft.bft.Start(); err == nil {
@@ -527,16 +516,17 @@ func (sabft *SABFT) Stop() error {
 	defer atomic.StoreUint32(&sabft.inStartOrStop, 0)
 
 	sabft.log.Info("[SABFT] Stopping SABFT consensus")
+
+	close(sabft.stopCh)
+	sabft.readyToProduce = false
+	sabft.wg.Wait()
+
 	// stop bft process
 	if err := sabft.bft.Stop(); err != nil {
 		sabft.log.Info("[SABFT] gobft stopped...")
 	} else {
 		sabft.log.Info(err)
 	}
-
-	close(sabft.stopCh)
-	sabft.readyToProduce = false
-	sabft.wg.Wait()
 
 	// restore uncommitted forkdb
 	cfg := sabft.ctx.Config()
@@ -1024,7 +1014,6 @@ func (sabft *SABFT) updateAppState(commit *message.Commit) {
 func (sabft *SABFT) commit(commitRecords *message.Commit) error {
 	defer func() {
 		sabft.updateAppState(commitRecords)
-		go sabft.checkBFTRoutine()
 		sabft.log.Debug("current dyn ", sabft.dynasties.Front().String())
 
 		// TODO: check if checkpoint has been skipped
@@ -1487,39 +1476,42 @@ func (sabft *SABFT) ResetTicker(ts time.Time) {
 	sabft.Ticker = &FakeTimer{t: ts}
 }
 
-func (sabft *SABFT) MaybeProduceBlock() {
-	defer sabft.prodTimer.Reset(sabft.timeToNextSec())
-	defer func() {
+func (sabft *SABFT) fetchCheckPoint() {
+	var from, to uint64
+	sabft.RLock()
+	if sabft.cp.HasDanglingCheckPoint() {
+		// fetch missing checkpoints
+		from, to = sabft.cp.MissingRange()
+	}
+	sabft.RUnlock()
 
-		var from, to uint64
-		sabft.RLock()
-		if sabft.cp.HasDanglingCheckPoint() {
-			// fetch missing checkpoints
-			from, to = sabft.cp.MissingRange()
-		}
-		sabft.RUnlock()
-
-		if to == 0 {
-			if !sabft.ForkDB.Empty() {
-				headNum := sabft.ForkDB.Head().Id().BlockNum()
-				lcNum := sabft.ForkDB.LastCommitted().BlockNum()
-				if headNum-lcNum > constants.MaxUncommittedBlockNum/10 {
-					from, to = lcNum, headNum
-				}
-			}
-		}
-		if to != 0 {
-			go sabft.p2p.RequestCheckpoint(from, to)
-		}
-
-		if !sabft.readyToProduce && !sabft.ForkDB.Empty() {
+	if to == 0 {
+		if !sabft.ForkDB.Empty() {
 			headNum := sabft.ForkDB.Head().Id().BlockNum()
 			lcNum := sabft.ForkDB.LastCommitted().BlockNum()
-			if headNum > lcNum {
-				go sabft.p2p.RequestCheckpoint(lcNum, headNum)
+			if headNum-lcNum > constants.MaxUncommittedBlockNum/10 {
+				from, to = lcNum, headNum
 			}
 		}
+	}
+	if to != 0 {
+		go sabft.p2p.RequestCheckpoint(from, to)
+	}
 
+	if !sabft.readyToProduce && !sabft.ForkDB.Empty() {
+		headNum := sabft.ForkDB.Head().Id().BlockNum()
+		lcNum := sabft.ForkDB.LastCommitted().BlockNum()
+		if headNum > lcNum {
+			go sabft.p2p.RequestCheckpoint(lcNum, headNum)
+		}
+	}
+}
+
+func (sabft *SABFT) MaybeProduceBlock() {
+	defer func() {
+		sabft.prodTimer.Reset(sabft.timeToNextSec())
+		sabft.fetchCheckPoint()
+		sabft.checkBFTRoutine()
 	}()
 
 	sabft.RLock()
