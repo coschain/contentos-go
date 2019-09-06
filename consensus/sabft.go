@@ -767,8 +767,9 @@ func (sabft *SABFT) gobftCatchUp(commit *message.Commit) bool {
 		sabft.isValidatorName(sabft.Name) &&
 		sabft.appState.LastProposedData == commit.Prev {
 		sabft.log.Warn("pass commits to gobft ", commit.ProposedData)
-		sabft.bft.RecvMsg(commit, nil)
-		return true
+		if err := sabft.bft.RecvMsg(commit, nil); err == nil {
+			return true
+		}
 	}
 	return false
 }
