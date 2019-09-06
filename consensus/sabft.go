@@ -934,6 +934,21 @@ func (sabft *SABFT) GetLastBFTCommit() interface{} {
 	return lastCommitted.(*message.Commit)
 }
 
+func (sabft *SABFT) GetBFTCommitInfo(num uint64) interface{} {
+	if sabft.cp == nil {
+		return nil
+	}
+	if num < 1 {
+		num = 1
+	}
+
+	c, err := sabft.cp.GetNext(num-1)
+	if err != nil {
+		return nil
+	}
+	return c
+}
+
 func (sabft *SABFT) GetNextBFTCheckPoint(blockNum uint64) interface{} {
 	//sabft.RLock()
 	//defer sabft.RUnlock()

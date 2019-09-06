@@ -39,6 +39,7 @@ type IConsensus interface {
 	// e.g. if user uses bft to achieve fast ack, @evidence can simply be the collection
 	// of the vote message
 	GetLastBFTCommit() (evidence interface{})
+	GetBFTCommitInfo(num uint64) interface{}
 
 	GetNextBFTCheckPoint(blockNum uint64) (evidence interface{})
 
