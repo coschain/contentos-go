@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"math/rand"
+	"reflect"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -293,16 +294,7 @@ func (sabft *SABFT) Start(node *node.Node) error {
 func (sabft *SABFT) stateFixup(cfg *node.Config) {
 	// reload ForkDB
 	snapshotPath := cfg.ResolvePath(constants.ForkDBSnapshot)
-	// TODO: fuck!! this is fugly
-	var avatar []common.ISignedBlock
-	for i := 0; i < 2001; i++ {
-		// TODO: if the bft process falls behind too much, the number
-		// TODO: of the avatar might not be sufficient
-
-		// deep copy hell
-		avatar = append(avatar, &prototype.SignedBlock{})
-	}
-	sabft.ForkDB.LoadSnapshot(avatar, snapshotPath, &sabft.blog)
+	sabft.ForkDB.LoadSnapshot(reflect.TypeOf(prototype.SignedBlock{}), snapshotPath, &sabft.blog)
 	/**** at this point, blog and forkdb is consistent ****/
 
 	sabft.cp = NewBFTCheckPoint(cfg.ResolvePath(constants.CheckPoint), sabft)
@@ -492,6 +484,7 @@ func (sabft *SABFT) tryCommit(b common.ISignedBlock) {
 }
 
 func (sabft *SABFT) checkBFTRoutine() {
+	return
 	if sabft.readyToProduce && sabft.isValidatorName(sabft.Name) {
 		//sabft.log.Infof("[SABFT] Starting gobft")
 		if err := sabft.bft.Start(); err == nil {

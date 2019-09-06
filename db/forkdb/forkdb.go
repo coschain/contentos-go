@@ -3,11 +3,12 @@ package forkdb
 import (
 	"errors"
 	"fmt"
+	"reflect"
+
 	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/db/blocklog"
 	"github.com/sasha-s/go-deadlock"
 	"github.com/sirupsen/logrus"
-	"os"
 )
 
 const defaultSize = 1024 * 2
@@ -88,70 +89,71 @@ func (db *DB) Snapshot(dir string) {
 }
 
 // LoadSnapshot...
-func (db *DB) LoadSnapshot(avatar []common.ISignedBlock, dir string, blog *blocklog.BLog) {
+func (db *DB) LoadSnapshot(avatar reflect.Type, dir string, blog *blocklog.BLog) {
 	db.Lock()
 	defer db.Unlock()
 
-	defer func() {
-		everCommitted := false
-		if !blog.Empty() {
-			if err := blog.ReadBlock(avatar[len(avatar)-1], blog.Size()-1); err != nil {
-				panic(err)
-			}
-			everCommitted = true
-		}
-		// Note: if blog is empty, it's possible that it is deliberately removed
+	defer db.snapshot.Remove(dir)
 
-		if r := recover(); r != nil {
-			// since there's something wrong with snapshot,
-			// restore from blog by reading the last committed block
-			db.log.Warn("[LoadSnapshot] ", r)
-			if everCommitted {
-				db.pushBlock(avatar[len(avatar)-1])
-				db.lastCommitted = avatar[len(avatar)-1].Id()
-			}
-		} else {
-			// successfully restored the forkdb branch
-			if everCommitted {
-				if avatar[len(avatar)-1].Id() != avatar[0].Id() {
-					db.log.Warn("[LoadSnapshot] inconsistent blog and forkdb, clear forkdb")
-					db.Reset()
-					db.pushBlock(avatar[len(avatar)-1])
-				}
-				db.lastCommitted = avatar[len(avatar)-1].Id()
-			} else if avatar[0].Id().BlockNum() != 1 {
-				db.log.Warn("[LoadSnapshot] blog was removed manually, clear forkdb")
-				db.Reset()
-			}
+	var lcVal = reflect.New(avatar)
+	common.InitializeStruct(avatar, lcVal.Elem())
+	lastCommittedBlock := lcVal.Interface().(common.ISignedBlock)
+	//lastCommittedBlock := &prototype.SignedBlock{}
+	everCommitted := false
+	if !blog.Empty() {
+		if err := blog.ReadBlock(lastCommittedBlock, blog.Size()-1); err != nil {
+			panic(err)
 		}
-		db.snapshot.Remove(dir)
-		db.log.Info("[LoadSnapshot] snapshot removed")
-	}()
-
-	if _, err := os.Stat(dir); os.IsNotExist(err) {
-		panic("dir not exist")
+		everCommitted = true
 	}
-	if err := db.snapshot.Open(dir); err != nil {
-		panic(err)
-	}
-	if db.snapshot.Empty() {
-		panic("snapshot empty")
-	}
+	// Note: if blog is empty, it's possible that it is deliberately removed
 
 	// clear
-	db.list = make([][]common.BlockID, defaultSize+1)
-	db.branches = make(map[common.BlockID]common.ISignedBlock)
-	db.detachedLink = make(map[common.BlockID]common.ISignedBlock)
+	db.Reset()
+
+	validSnapshot := true
+	if err := db.snapshot.Open(dir); err != nil {
+		validSnapshot = false
+	} else if db.snapshot.Empty() {
+		validSnapshot = false
+	}
+	if !validSnapshot {
+		if everCommitted {
+			// since there's something wrong with snapshot,
+			// restore from blog by reading the last committed block
+			db.pushBlock(lastCommittedBlock)
+			db.lastCommitted = lastCommittedBlock.Id()
+			db.log.Info("No usable block in snapshot, push last committed block in forkdb")
+		}
+		return
+	}
 
 	size := db.snapshot.Size()
+	blocks := make([]common.ISignedBlock, size+1)
 	var i int64
 	for i = 0; i < size; i++ {
-		if err := db.snapshot.ReadBlock(avatar[i], i); err != nil {
+		var lcVal = reflect.New(avatar)
+		common.InitializeStruct(avatar, lcVal.Elem())
+		blocks[i] = lcVal.Interface().(common.ISignedBlock)
+		if err := db.snapshot.ReadBlock(blocks[i], i); err != nil {
 			panic(err)
 		}
 	}
 	for i = 0; i < size; i++ {
-		db.pushBlock(avatar[i])
+		db.pushBlock(blocks[i])
+	}
+
+	// successfully restored the forkdb branch
+	if everCommitted {
+		if lastCommittedBlock.Id() != blocks[0].Id() {
+			db.log.Warn("[LoadSnapshot] inconsistent blog and forkdb, clear forkdb")
+			db.Reset()
+			db.pushBlock(lastCommittedBlock)
+		}
+		db.lastCommitted = lastCommittedBlock.Id()
+	} else if blocks[0].Id().BlockNum() != 1 {
+		db.log.Warn("[LoadSnapshot] blog was removed manually, clear forkdb")
+		db.Reset()
 	}
 }
 
