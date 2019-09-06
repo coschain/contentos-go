@@ -415,6 +415,8 @@ func (ev *ReplyEvaluator) Apply() {
 		rootId = pidWrap.GetRootId()
 	}
 
+	ev.VMInjector().StateChangeContext().PutCauseExtra("rootid",rootId)
+
 	cidWrap.Create(func(t *table.SoPost) {
 		t.PostId = op.Uuid
 		t.Tags = nil
@@ -490,6 +492,9 @@ func (ev *VoteEvaluator) Apply() {
 	weightedVp := new(big.Int).SetUint64(vest)
 	weightedVp.Sqrt(weightedVp)
 	weightedVp.Mul(weightedVp, new(big.Int).SetUint64(uint64(usedVp)))
+
+	// distinguish post or reply
+	ev.VMInjector().StateChangeContext().PutCauseExtra("parentid",postWrap.GetParentId())
 
 	// if voter's reputation is 0, she has no voting power.
 	if voterWrap.GetReputation() == constants.MinReputation {
