@@ -484,7 +484,6 @@ func (sabft *SABFT) tryCommit(b common.ISignedBlock) {
 }
 
 func (sabft *SABFT) checkBFTRoutine() {
-	return
 	if sabft.readyToProduce && sabft.isValidatorName(sabft.Name) {
 		//sabft.log.Infof("[SABFT] Starting gobft")
 		if err := sabft.bft.Start(); err == nil {
