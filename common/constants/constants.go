@@ -81,8 +81,8 @@ const (
 	TrxMaxExpirationTime = 60
 
 	// from total minted
-	RewardRateCreator = 5000
-	RewardRateBP     = 4000
+	RewardRateCreator = 6000
+	RewardRateBP     = 3000
 	RewardRateDapp   = 1000
 
 	// from Creator
