@@ -66,7 +66,7 @@ func (ci *CommitInfo) MarginStepInfo() []float64 {
 func (ci *CommitInfo) ConfirmationTimeInfo() []float64 {
 	ci.RLock()
 	defer ci.RUnlock()
-	
+
 	info := make([]float64, ci.displayRange)
 	for i := ci.start; i<len(ci.recentlyCommitted); i++ {
 		elapsed := ci.recentlyCommitted[i].t.Sub(time.Unix(int64(ci.recentlyCommitted[i].blk.Timestamp()), 0))
