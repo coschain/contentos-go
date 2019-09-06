@@ -2,6 +2,7 @@ package test
 
 import (
 	"github.com/coschain/contentos-go/common"
+	"sync"
 	"time"
 )
 
@@ -15,6 +16,8 @@ type CommitInfo struct {
 	recentlyCommitted []*commit
 	start int
 	displayRange int
+
+	sync.RWMutex
 }
 
 func NewCommitInfo() *CommitInfo {
@@ -25,6 +28,9 @@ func NewCommitInfo() *CommitInfo {
 }
 
 func (ci *CommitInfo) Commit(b common.ISignedBlock) {
+	ci.Lock()
+	defer ci.Unlock()
+
 	if len(ci.recentlyCommitted) == displayRange*2 {
 		newC := make([]*commit, 0, displayRange*2)
 		for i:= displayRange*2-ci.displayRange; i<displayRange*2; i++ {
@@ -44,6 +50,9 @@ func (ci *CommitInfo) Commit(b common.ISignedBlock) {
 }
 
 func (ci *CommitInfo) MarginStepInfo() []float64 {
+	ci.RLock()
+	defer ci.RUnlock()
+
 	info := make([]float64, 0, ci.displayRange)
 	for i := ci.start+1; i<len(ci.recentlyCommitted); i++ {
 		info = append(info, float64(ci.recentlyCommitted[i].blk.Id().BlockNum()-ci.recentlyCommitted[i-1].blk.Id().BlockNum()))
@@ -55,6 +64,9 @@ func (ci *CommitInfo) MarginStepInfo() []float64 {
 }
 
 func (ci *CommitInfo) ConfirmationTimeInfo() []float64 {
+	ci.RLock()
+	defer ci.RUnlock()
+	
 	info := make([]float64, ci.displayRange)
 	for i := ci.start; i<len(ci.recentlyCommitted); i++ {
 		elapsed := ci.recentlyCommitted[i].t.Sub(time.Unix(int64(ci.recentlyCommitted[i].blk.Timestamp()), 0))
