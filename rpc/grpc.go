@@ -1454,6 +1454,7 @@ func (as *APIService) getBlockProducerResponseByAccountName(acct *prototype.Acco
 				ProposedStaminaFree:   witWrap.GetProposedStaminaFree(),
 				TpsExpected:           witWrap.GetTpsExpected(),
 				VoterCount:            witWrap.GetVoterCount(),
+				GenBlockCount:         witWrap.GetGenBlockCount(),
 			}
 			return bp
 		}
