@@ -117,30 +117,24 @@ func (bl *BLog) Append(sb common.ISignedBlock) error {
 
 	payload, err := sb.Marshall()
 	if err != nil {
-		return fmt.Errorf("BLOG Append: %s", err.Error())
+		return fmt.Errorf("blog append: %s", err.Error())
 	}
 	if len(payload) > maxPayloadLen {
-		return errors.New("BLog Append: common.SignedBlock too big")
+		return errors.New("blog append: common.SignedBlock too big")
 	}
 
 	// append payload len to log file
-	lenByte := make([]byte, blockLenSize)
-	binary.LittleEndian.PutUint32(lenByte, uint32(len(payload)))
-	_, err = bl.logFile.Write(lenByte)
-	if err != nil {
-		return fmt.Errorf("BLOG Append: %s", err.Error())
-	}
+	buf := make([]byte, blockLenSize, blockLenSize+len(payload)+indexSize)
+	binary.LittleEndian.PutUint32(buf, uint32(len(payload)))
 
 	// append payload to log file
-	_, err = bl.logFile.Write(payload)
-	if err != nil {
-		return fmt.Errorf("BLOG Append: %s", err.Error())
-	}
+	buf = append(buf, payload...)
 
 	// append index to log file
 	indexByte := make([]byte, indexSize)
 	binary.LittleEndian.PutUint64(indexByte, uint64(logFileOffset))
-	_, err = bl.logFile.Write(indexByte)
+	buf = append(buf, indexByte...)
+	_, err = bl.logFile.Write(buf)
 	if err != nil {
 		return err
 	}
