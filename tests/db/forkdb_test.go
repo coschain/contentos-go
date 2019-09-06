@@ -1,6 +1,7 @@
 package db
 
 import (
+	"github.com/sirupsen/logrus"
 	"testing"
 
 	"github.com/coschain/contentos-go/common"
@@ -16,7 +17,7 @@ func TestForkDB(t *testing.T) {
 		Num:     0,
 		Prev:    p,
 	}
-	db := forkdb.NewDB()
+	db := forkdb.NewDB(logrus.New())
 	assert.Equal(db.Empty(), true)
 	db.PushBlock(msb0)
 	assert.Equal(db.Head(), msb0, "wrong head")
