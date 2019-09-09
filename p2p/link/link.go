@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"sync"
 	"time"
 
 	"github.com/coschain/contentos-go/p2p/common"
@@ -20,6 +21,7 @@ type Link struct {
 	time      time.Time              // The latest time the node activity
 	recvChan  chan *types.MsgPayload //msgpayload channel
 	reqIdRecord int64                //Map RequestId to Timestamp, using for rejecting too fast REQ_ID request in specific time
+	sync.RWMutex
 }
 
 func NewLink() *Link {
@@ -90,6 +92,9 @@ func (this *Link) GetRXTime() time.Time {
 }
 
 func (this *Link) Rx(magic uint32) {
+	this.RLock()
+	defer this.RUnlock()
+
 	conn := this.conn
 	if conn == nil {
 		return
@@ -147,6 +152,9 @@ func NewDisconnected() *types.TransferMsg {
 
 //close connection
 func (this *Link) CloseConn() {
+	this.Lock()
+	defer this.Unlock()
+
 	if this.conn != nil {
 		this.conn.Close()
 		this.conn = nil
@@ -154,6 +162,9 @@ func (this *Link) CloseConn() {
 }
 
 func (this *Link) Tx(msg types.Message, magic uint32) error {
+	this.RLock()
+	defer this.RUnlock()
+
 	conn := this.conn
 	if conn == nil {
 		return errors.New("[p2p]tx link invalid")
