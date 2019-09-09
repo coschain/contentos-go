@@ -349,7 +349,7 @@ func randomlyShutdownNodes(nodes []*node.Node, c []*test.Components, ch chan str
 			}
 			c[idx].State = test.OffLine
 			go func() {
-				time.Sleep(10 * time.Second)
+				time.Sleep(30 * time.Second)
 				if err := nodes[idx].Start(); err != nil {
 					panic(err)
 				}
