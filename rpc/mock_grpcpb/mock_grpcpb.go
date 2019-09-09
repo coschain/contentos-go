@@ -815,6 +815,26 @@ func (mr *MockApiServiceClientMockRecorder) GetAccountByPubKey(ctx, in interface
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAccountByPubKey", reflect.TypeOf((*MockApiServiceClient)(nil).GetAccountByPubKey), varargs...)
 }
 
+// GetBlockBFTInfoByNum mocks base method
+func (m *MockApiServiceClient) GetBlockBFTInfoByNum(ctx context.Context, in *pb.GetBlockBFTInfoByNumRequest, opts ...grpc.CallOption) (*pb.GetBlockBFTInfoByNumResponse, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{ctx, in}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "GetBlockBFTInfoByNum", varargs...)
+	ret0, _ := ret[0].(*pb.GetBlockBFTInfoByNumResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetBlockBFTInfoByNum indicates an expected call of GetBlockBFTInfoByNum
+func (mr *MockApiServiceClientMockRecorder) GetBlockBFTInfoByNum(ctx, in interface{}, opts ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{ctx, in}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBlockBFTInfoByNum", reflect.TypeOf((*MockApiServiceClient)(nil).GetBlockBFTInfoByNum), varargs...)
+}
+
 // MockApiServiceServer is a mock of ApiServiceServer interface
 type MockApiServiceServer struct {
 	ctrl     *gomock.Controller
@@ -1421,4 +1441,19 @@ func (m *MockApiServiceServer) GetAccountByPubKey(arg0 context.Context, arg1 *pb
 func (mr *MockApiServiceServerMockRecorder) GetAccountByPubKey(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAccountByPubKey", reflect.TypeOf((*MockApiServiceServer)(nil).GetAccountByPubKey), arg0, arg1)
+}
+
+// GetBlockBFTInfoByNum mocks base method
+func (m *MockApiServiceServer) GetBlockBFTInfoByNum(arg0 context.Context, arg1 *pb.GetBlockBFTInfoByNumRequest) (*pb.GetBlockBFTInfoByNumResponse, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetBlockBFTInfoByNum", arg0, arg1)
+	ret0, _ := ret[0].(*pb.GetBlockBFTInfoByNumResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetBlockBFTInfoByNum indicates an expected call of GetBlockBFTInfoByNum
+func (mr *MockApiServiceServerMockRecorder) GetBlockBFTInfoByNum(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBlockBFTInfoByNum", reflect.TypeOf((*MockApiServiceServer)(nil).GetBlockBFTInfoByNum), arg0, arg1)
 }

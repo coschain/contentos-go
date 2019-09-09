@@ -1579,3 +1579,29 @@ func (as *APIService) GetBlockProducerByName(ctx context.Context, req *grpcpb.Ge
 	return acct, nil
 
 }
+
+func (as *APIService) GetBlockBFTInfoByNum(ctx context.Context, req *grpcpb.GetBlockBFTInfoByNumRequest) (*grpcpb.GetBlockBFTInfoByNumResponse, error){
+	var (
+		res *grpcpb.GetBlockBFTInfoByNumResponse
+		voteList []*grpcpb.BFTVoteInfo
+	)
+	num := req.BlockNum
+	commit := as.consensus.GetBFTCommitInfo(num)
+	if commit != nil {
+		info := commit.(*message.Commit)
+		for _,vote := range info.Precommits {
+			vInfo := &grpcpb.BFTVoteInfo{
+				PubKey: string(vote.Address),
+				Signature: vote.Signature,
+			}
+			voteList = append(voteList, vInfo)
+		}
+		res = &grpcpb.GetBlockBFTInfoByNumResponse{
+			CommitterPubKey: string(info.Address),
+			Signature: info.Signature,
+			Vote: voteList,
+		}
+
+	}
+	return res,nil
+}

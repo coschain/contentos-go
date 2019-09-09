@@ -126,6 +126,8 @@ service ApiService {
     }
     rpc GetAccountByPubKey (GetAccountByPubKeyRequest) returns (AccountResponse) {
     }
+    rpc GetBlockBFTInfoByNum (GetBlockBFTInfoByNumRequest) returns (GetBlockBFTInfoByNumResponse) {
+    }
 }
 
 
@@ -667,4 +669,19 @@ message GetAccountListByVestRequest {
     prototype.vest   end       = 2;
     AccountInfo  last_account = 3;
     uint32           limit     = 4;
+}
+
+message GetBlockBFTInfoByNumRequest {
+    uint64      block_num = 1 [jstype = JS_STRING];
+}
+
+message BFTVoteInfo {
+    string   pub_key = 1;
+    bytes    signature = 2;
+}
+
+message GetBlockBFTInfoByNumResponse {
+    string   committer_pub_key = 1;
+    bytes    signature = 2;
+    repeated BFTVoteInfo  vote = 3;
 }
