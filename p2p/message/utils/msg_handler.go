@@ -22,8 +22,8 @@ import (
 )
 
 const (
-	MaxBlockQueriesPerSecond      = 5000
-	MaxCheckPointQueriesPerSecond = 5000
+	MaxBlockQueriesPerSecond      = 1500
+	MaxCheckPointQueriesPerSecond = 1500
 	MaxBlobSizePerSecond          = 10 * 1024 * 1024
 )
 
