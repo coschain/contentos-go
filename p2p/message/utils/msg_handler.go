@@ -1,7 +1,9 @@
 package utils
 
 import (
+	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/gobft/message"
+	"math"
 	"net"
 	"strconv"
 	"strings"
@@ -19,17 +21,39 @@ import (
 	"github.com/coschain/contentos-go/p2p/peer"
 )
 
-type MsgHandler struct {
-	blockCache map[common.BlockID]common.ISignedBlock
-	sync.Mutex
+const (
+	MaxBlockQueriesPerSecond      = 5000
+	MaxCheckPointQueriesPerSecond = 5000
+	MaxBlobSizePerSecond          = 10 * 1024 * 1024
+)
 
+type MsgHandler struct {
+	blockCache        map[common.BlockID]common.ISignedBlock
+
+	blockQueryLimiter      *msgCommon.RateLimiter
+	checkpointQueryLimiter *msgCommon.RateLimiter
+	blobSizeLimiter        *msgCommon.RateLimiter
+
+	sync.Mutex
 	syncPushBlock sync.Mutex
 }
 
 func NewMsgHandler() *MsgHandler {
+	const (
+		checkPointSize = 8192	// estimated size of a checkpoint in bytes
+	)
 	blockCache := make(map[common.BlockID]common.ISignedBlock)
 
-	return &MsgHandler{blockCache: blockCache, syncPushBlock: sync.Mutex{}}
+	maxBytesPerSecond := uint64(checkPointSize * MaxCheckPointQueriesPerSecond) + uint64(constants.MaxBlockSize * 5)
+	if maxBytesPerSecond > MaxBlobSizePerSecond {
+		maxBytesPerSecond = MaxBlobSizePerSecond
+	}
+	return &MsgHandler{
+		blockCache:             blockCache,
+		blockQueryLimiter:      msgCommon.NewRateLimiter(MaxBlockQueriesPerSecond),
+		checkpointQueryLimiter: msgCommon.NewRateLimiter(MaxCheckPointQueriesPerSecond),
+		blobSizeLimiter:        msgCommon.NewRateLimiter(uint32(maxBytesPerSecond)),
+	}
 }
 
 func (p *MsgHandler) popFirstBlock() common.ISignedBlock {
@@ -609,6 +633,7 @@ func (p *MsgHandler) IdMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ..
 		var blkId common.BlockID
 		copy(blkId.Data[:], msgdata.Value[0])
 
+		p.blockQueryLimiter.Request(1, false)
 		if !ctrl.HasBlock(blkId) {
 			var reqmsg msgTypes.TransferMsg
 			reqdata := new(msgTypes.IdMsg)
@@ -646,12 +671,21 @@ func (p *MsgHandler) IdMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ..
 				continue
 			}
 
+			if p.blockQueryLimiter.Request(1, false) == 0 {
+				break
+			}
+
 			IsigBlk, err := ctrl.FetchBlock(blkId)
 			if err != nil {
 				log.Error("[p2p] can't get IsigBlk from consensus, block number: ", blkId.BlockNum(), " error: ", err)
 				return
 			}
 			sigBlk := IsigBlk.(*prototype.SignedBlock)
+
+			size := sigBlk.GetBlockSize()
+			if size > 0 && size < math.MaxInt32 && p.blobSizeLimiter.Request(uint32(size), true) == 0 {
+				break
+			}
 
 			msg := msgpack.NewSigBlk(sigBlk, false)
 			err = p2p.Send(remotePeer, msg, false)
@@ -684,6 +718,7 @@ func (p *MsgHandler) IdMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ..
 				continue
 			}
 
+			p.blockQueryLimiter.Request(1, false)
 			if !ctrl.HasBlock(blkId) {
 				var tmp []byte
 				reqdata.Value = append(reqdata.Value, tmp)
@@ -715,6 +750,7 @@ func (p *MsgHandler) IdMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ..
 			//	continue
 			//}
 
+			p.blockQueryLimiter.Request(1, false)
 			if !ctrl.HasBlock(blkId) {
 				if idx == 0 {
 					remotePeer.OutOfRangeState.Lock()
@@ -815,16 +851,16 @@ func (p *MsgHandler) ReqIdHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ..
 		return
 	}
 
-	var blocksSize int
 	var ids []common.BlockID
-	stopFetchBlock := false
 	batchStart := start
-	blockCount := 0
 	for {
 		if batchStart > end {
 			break
 		}
-		batchEnd := batchStart + msgCommon.BATCH_LENGTH
+		batchEnd := batchStart + uint64(p.blockQueryLimiter.Request(msgCommon.BATCH_LENGTH, false))
+		if batchEnd == batchStart {
+			break
+		}
 		if batchEnd > end {
 			batchEnd = end
 		}
@@ -840,19 +876,7 @@ func (p *MsgHandler) ReqIdHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ..
 		}
 
 		for i := 0; i < len(blockList); i++ {
-			sigBlk := blockList[i].(*prototype.SignedBlock)
-			if blocksSize + sigBlk.GetBlockSize() <= msgCommon.BLOCKS_SIZE_LIMIT && blockCount + 1 <= msgCommon.MAX_BLOCK_COUNT {
-				ids = append(ids, blockList[i].Id())
-				blocksSize += sigBlk.GetBlockSize()
-				blockCount++
-			} else {
-				stopFetchBlock = true
-				break
-			}
-		}
-
-		if stopFetchBlock {
-			break
+			ids = append(ids, blockList[i].Id())
 		}
 		batchStart = batchEnd + 1
 	}
@@ -964,6 +988,9 @@ func (p *MsgHandler) RequestCheckpointBatchHandle(data *msgTypes.MsgPayload, p2p
 		if startNum >= endNum {
 			return
 		}
+		if p.checkpointQueryLimiter.Request(1, false) == 0 {
+			break
+		}
 		cp := ctrl.GetNextBFTCheckPoint(startNum)
 		if cp == nil {
 			return
@@ -1021,12 +1048,14 @@ func (p *MsgHandler) FetchOutOfRangeHandle(data *msgTypes.MsgPayload, p2p p2p.P2
 	}
 	ctrl := s.(iservices.IConsensus)
 
+	p.blockQueryLimiter.Request(1, false)
 	ret1, err := ctrl.IsOnMainBranch(startID)
 	if err != nil {
 		log.Error("can not check whether startID on main branch, ", err)
 		ret1 = false
 	}
 
+	p.blockQueryLimiter.Request(1, false)
 	ret2, err := ctrl.IsOnMainBranch(targetID)
 	if err != nil {
 		log.Error("can not check whether targetID on main branch, ", err)
@@ -1040,14 +1069,15 @@ func (p *MsgHandler) FetchOutOfRangeHandle(data *msgTypes.MsgPayload, p2p p2p.P2
 
 		var blockList []common.ISignedBlock
 		batchStart := startNum
-		blocksSize := 0
-		blockCount := 0
 		stopFetchBlock := false
 		for {
 			if batchStart > endNum {
 				break
 			}
-			batchEnd := batchStart + msgCommon.BATCH_LENGTH
+			batchEnd := batchStart + uint64(p.blockQueryLimiter.Request(msgCommon.BATCH_LENGTH, false))
+			if batchEnd == batchStart {
+				break
+			}
 			if batchEnd > endNum {
 				batchEnd = endNum
 			}
@@ -1068,10 +1098,9 @@ func (p *MsgHandler) FetchOutOfRangeHandle(data *msgTypes.MsgPayload, p2p p2p.P2
 
 			for i := 0; i < len(blockBatchList); i++ {
 				sigBlk := blockBatchList[i].(*prototype.SignedBlock)
-				if blocksSize + sigBlk.GetBlockSize() <= msgCommon.BLOCKS_SIZE_LIMIT && blockCount + 1 <= msgCommon.MAX_BLOCK_COUNT {
+				size := sigBlk.GetBlockSize()
+				if size > 0 && size < math.MaxInt32 && p.blobSizeLimiter.Request(uint32(size), true) > 0 {
 					blockList = append(blockList, blockBatchList[i])
-					blocksSize += sigBlk.GetBlockSize()
-					blockCount++
 				} else {
 					stopFetchBlock = true
 					break
@@ -1120,6 +1149,7 @@ func (p *MsgHandler) FetchOutOfRangeHandle(data *msgTypes.MsgPayload, p2p p2p.P2
 				break
 			}
 
+			p.blockQueryLimiter.Request(1, false)
 			IsigBlk, err := ctrl.FetchBlock(blkId)
 			if err != nil {
 				log.Error("[p2p] can't get IsigBlk from consensus, block number: ", blkId.BlockNum(), " error: ", err)
@@ -1187,6 +1217,9 @@ func (p *MsgHandler) RequestBlockBatchHandle(data *msgTypes.MsgPayload, p2p p2p.
 		if blkId == startID {
 			break
 		}
+		if p.blockQueryLimiter.Request(1, false) == 0 {
+			break
+		}
 		IsigBlk, err := ctrl.FetchBlock(blkId)
 		if err != nil {
 			log.Error("[p2p] can't get IsigBlk from consensus, block number: ", blkId.BlockNum(), " error: ", err)
@@ -1208,6 +1241,11 @@ func (p *MsgHandler) RequestBlockBatchHandle(data *msgTypes.MsgPayload, p2p p2p.
 
 	for i:=len(IsigBlkList)-1;i>=0;i-- {
 		sigBlk := IsigBlkList[i].(*prototype.SignedBlock)
+
+		size := sigBlk.GetBlockSize()
+		if size > 0 && size < math.MaxInt32 && p.blobSizeLimiter.Request(uint32(size), true) == 0 {
+			break
+		}
 
 		var msg msgTypes.Message
 		if i == 0 {
@@ -1256,6 +1294,9 @@ func (p *MsgHandler) DetectFormerIdsHandle(data *msgTypes.MsgPayload, p2p p2p.P2
 		IDList = append(IDList, blkId.Data[:])
 		count++
 		if count == msgCommon.BATCH_LENGTH {
+			break
+		}
+		if p.blockQueryLimiter.Request(1, false) == 0 {
 			break
 		}
 
