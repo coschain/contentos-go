@@ -48,13 +48,7 @@ const (
 	MAX_POSTID_NUM      = 10000000  // 10 million
 )
 
-var IPList []string = []string{
-	"34.199.54.140:8888",
-	"34.203.85.235:8888",
-	"18.207.49.32:8888",
-	"34.192.150.16:8888",
-	//"127.0.0.1:8888",
-}
+var IPList []string
 
 var CmdTypeList []string = []string{
 	CREATE_CMD,
@@ -174,10 +168,9 @@ func StartEachRoutine(index int) {
 	}
 }
 
-func StartBPRoutine(){
+func StartBPRoutine(filePath string){
 	defer Wg.Done()
 
-	filePath := os.Args[7]
 	bpListFile, err := os.Open(filePath)
 	if err != nil {
 		fmt.Println("can't open BP list file: ", err)

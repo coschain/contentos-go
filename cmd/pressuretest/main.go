@@ -1,7 +1,9 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
+	"github.com/coschain/cobra"
 	"github.com/coschain/contentos-go/cmd/pressuretest/request"
 	"github.com/coschain/contentos-go/common"
 	"os"
@@ -10,24 +12,49 @@ import (
 	"syscall"
 )
 
-func main() {
+var nodeFilePath, bpFilePath string
 
-	if len(os.Args) != 7 && len(os.Args) != 8 {
-		fmt.Println("params count error\n Example: pressuretest chain thread-count basename accountName publickey privateKey file-path")
+var rootCmd = &cobra.Command{
+	Use:   "pressuretest",
+	Run:   startTest,
+}
+
+func main() {
+	rootCmd.Flags().StringVarP(&nodeFilePath, "node", "n", "", "./pressuretest -n=/filepath/to/pressuretest/nodelist")
+	rootCmd.Flags().StringVarP(&bpFilePath, "bp", "p", "", "./pressuretest -p=/filepath/to/bplist")
+	if err := rootCmd.Execute(); err != nil {
+		os.Exit(1)
+	}
+}
+
+func startTest(cmd *cobra.Command, args []string) {
+
+	if len(args) < 6 {
+		fmt.Println("params count error\n Example: pressuretest chain thread-count basename accountName publickey privateKey")
 		return
 	}
 
-	request.ChainId.Value = common.GetChainIdByName(os.Args[1])
+	request.ChainId.Value = common.GetChainIdByName(args[0])
 
-	walletCnt, err := strconv.Atoi(os.Args[2])
+	walletCnt, err := strconv.Atoi(args[1])
 	if err != nil {
 		fmt.Println("param error: ", err)
 		return
 	}
 	fmt.Println("robot count: ", walletCnt)
 
+	if nodeFilePath == "" {
+		request.IPList = append(request.IPList, "127.0.0.1:8888")
+	} else {
+		err := readNodeListFile(nodeFilePath)
+		if err != nil {
+			fmt.Println("can't read nodes list file: ")
+			return
+		}
+	}
+
 	// create 9 accounts [accountName]1 ... [accountName]9 and initminer post 10 articles
-	request.InitEnv( os.Args[3], os.Args[4], os.Args[5], os.Args[6])
+	request.InitEnv( args[2], args[3], args[4], args[5])
 	fmt.Println("init base enviroment over")
 
 	for i:=0;i<walletCnt;i++ {
@@ -35,9 +62,9 @@ func main() {
 		go request.StartEachRoutine(i)
 	}
 
-	if len(os.Args) == 8 {
+	if bpFilePath != "" {
 		request.Wg.Add(1)
-		go request.StartBPRoutine()
+		go request.StartBPRoutine(bpFilePath)
 	}
 
 	go func() {
@@ -61,4 +88,21 @@ func main() {
 
 	request.Wg.Wait()
 	fmt.Println("robot exit")
+}
+
+func readNodeListFile(path string) error {
+	nodeListFile, err := os.Open(path)
+	if err != nil {
+		return err
+	}
+	defer nodeListFile.Close()
+
+	scanner := bufio.NewScanner(nodeListFile)
+	scanner.Split(bufio.ScanLines)
+
+	for scanner.Scan() {
+		lineTextStr := scanner.Text()
+		request.IPList = append(request.IPList, lineTextStr)
+	}
+	return nil
 }
