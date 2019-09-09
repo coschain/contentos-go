@@ -29,10 +29,10 @@ func NewNetServer(ctx *node.ServiceContext, lg *logrus.Logger) p2p.P2P {
 		msgCache: common.NewHashCache(),
 	}
 
-	n.PeerAddrMap.PeerSyncAddress = make(map[string]*peer.Peer)
-	n.PeerAddrMap.PeerConsAddress = make(map[string]*peer.Peer)
-
-	n.init()
+	//n.PeerAddrMap.PeerSyncAddress = make(map[string]*peer.Peer)
+	//n.PeerAddrMap.PeerConsAddress = make(map[string]*peer.Peer)
+	//
+	//n.init()
 
 	return n
 }
@@ -127,6 +127,11 @@ func (this *NetServer) init() error {
 
 //InitListen start listening on the config port
 func (this *NetServer) Start() {
+	this.PeerAddrMap.PeerSyncAddress = make(map[string]*peer.Peer)
+	this.PeerAddrMap.PeerConsAddress = make(map[string]*peer.Peer)
+
+	this.init()
+
 	this.startListening()
 }
 
@@ -358,6 +363,10 @@ func (this *NetServer) Halt() {
 	if this.conslistener != nil {
 		this.conslistener.Close()
 	}
+
+	this.inConnRecord.InConnectingAddrs = []string{}
+	this.outConnRecord.OutConnectingAddrs = []string{}
+	this.ConnectingAddrs = []string{}
 }
 
 //establishing the connection to remote peers and listening for inbound peers
