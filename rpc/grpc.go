@@ -906,7 +906,14 @@ func (as *APIService) getAccountResponseByName(name *prototype.AccountName, isNe
 		acctInfo.CreatedTime = accWrap.GetCreatedTime()
 		acctInfo.PostCount = accWrap.GetPostCount()
 		acctInfo.TrxCount = accWrap.GetCreatedTrxCount()
-		acctInfo.VotePower = accWrap.GetVotePower()
+		voterPower := accWrap.GetVotePower()
+		elapsedSeconds := gp.GetTime().UtcSeconds - accWrap.GetLastVoteTime().UtcSeconds
+		regeneratedPower := constants.FullVP * elapsedSeconds / constants.VoteRegenerateTime
+		voterPower += regeneratedPower
+		if voterPower > constants.FullVP {
+			voterPower = uint32(constants.FullVP)
+		}
+		acctInfo.VotePower = voterPower
 		acctInfo.StakeVestForMe = accWrap.GetStakeVestForMe()
 		acctInfo.StakeVestFromMe = accWrap.GetStakeVestFromMe()
 		acctInfo.WithdrawRemains = accWrap.GetToPowerdown()
