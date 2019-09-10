@@ -12,6 +12,10 @@ const (
 	StakeFreezeTime      	= 60 * 60 * 24 * 3
 	WindowSize           = 60 * 60 * 24
 
+	PerTicketPrice = 10000000
+	PerTicketPriceStr = "10000000.000000"
+	PerTicketWeight = uint64(1)
+
 	ClientName              = "Cos-go-mainnet"
 )
 

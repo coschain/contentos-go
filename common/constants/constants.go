@@ -121,9 +121,6 @@ const (
 	CopyrightConfirmation       = 2
 
 	MaxTicketsPerTurn = uint64(1e5)
-	PerTicketPrice = 1
-	PerTicketPriceStr = "1.000000"
-	PerTicketWeight = uint64(1e7)
 	InitTopN = 500
 	//InitEpochDuration = 60 * 60 * 24 * 30
 	InitEpochDuration = 600
