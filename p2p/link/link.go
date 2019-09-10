@@ -130,7 +130,7 @@ func (this *Link) Rx(magic uint32) {
 
 //disconnectNotify push disconnect msg to channel
 func (this *Link) disconnectNotify() {
-	go this.CloseConn()
+	//this.CloseConn()
 
 	reqmsg := NewDisconnected()
 

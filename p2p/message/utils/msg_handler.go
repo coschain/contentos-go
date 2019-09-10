@@ -590,13 +590,13 @@ func (p *MsgHandler) DisconnectHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, ar
 	}
 	p2p.RemoveFromConnectingList(data.Addr)
 
-	if remotePeer.SyncLink.GetAddr() == data.Addr {
+	if remotePeer.SyncLink != nil && remotePeer.SyncLink.GetAddr() == data.Addr {
 		p2p.RemovePeerSyncAddress(data.Addr)
 		p2p.RemovePeerConsAddress(data.Addr)
 		remotePeer.CloseSync()
 		remotePeer.CloseCons()
 	}
-	if remotePeer.ConsLink.GetAddr() == data.Addr {
+	if remotePeer.ConsLink != nil && remotePeer.ConsLink.GetAddr() == data.Addr {
 		p2p.RemovePeerConsAddress(data.Addr)
 		remotePeer.CloseCons()
 	}
