@@ -373,6 +373,6 @@ func RegisterService(app *node.Node, cfg node.Config) {
 	})
 
 	_ = app.Register(iservices.P2PServerName, func(ctx *node.ServiceContext) (node.Service, error) {
-		return p2p.NewServer(ctx, nil)
+		return p2p.NewServer(ctx, app.Log)
 	})
 }

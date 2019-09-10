@@ -129,6 +129,9 @@ func (this *NetServer) init() error {
 func (this *NetServer) Start() {
 	this.PeerAddrMap.PeerSyncAddress = make(map[string]*peer.Peer)
 	this.PeerAddrMap.PeerConsAddress = make(map[string]*peer.Peer)
+	this.inConnRecord.InConnectingAddrs = make([]string, 0)
+	this.outConnRecord.OutConnectingAddrs = make([]string, 0)
+	this.ConnectingAddrs = make([]string, 0)
 
 	this.init()
 
@@ -363,10 +366,6 @@ func (this *NetServer) Halt() {
 	if this.conslistener != nil {
 		this.conslistener.Close()
 	}
-
-	this.inConnRecord.InConnectingAddrs = []string{}
-	this.outConnRecord.OutConnectingAddrs = []string{}
-	this.ConnectingAddrs = []string{}
 }
 
 //establishing the connection to remote peers and listening for inbound peers
