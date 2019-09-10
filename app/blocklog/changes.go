@@ -93,6 +93,18 @@ var sInterestedChanges = []InterestedChange{
 			}
 		},
 	},
+	{
+		Table: table.StakeRecordTable,
+		Field: "LastStakeTime",
+		Maker: func(id, before, after interface{}) *GenericChange {
+			cid := id.(*prototype.StakeRecord)
+			return &GenericChange{
+				Id: 	cid.From.Value + "&" + cid.To.Value,
+				Before: before.(*prototype.TimePointSec).UtcSeconds,
+				After: 	after.(*prototype.TimePointSec).UtcSeconds,
+			}
+		},
+	},
 	//{
 	//	Table: table.BlockProducerTable,
 	//	Field: "BpVest",
