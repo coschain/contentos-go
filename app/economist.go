@@ -407,6 +407,9 @@ func (e *Economist) cashoutPosts(postsItems []*PostItem) {
 		e.stateChange.PutCauseExtra("total_wvps", currentGlobalPostsWvps.String())
 		post := table.NewSoPostWrap(e.db, &postItem.postId)
 		e.stateChange.PutCauseExtra("rootid", post.GetRootId())
+		e.stateChange.PutCauseExtra("reward", postReward.Uint64())
+		e.stateChange.PutCauseExtra("owner", postItem.beneficiary)
+
 		// result false: author banned
 		result := e.processRewardForAccount(postItem.beneficiary, postReward)
 		if !result {
@@ -458,6 +461,8 @@ func (e *Economist) cashoutReplies(repliesItems []*PostItem) {
 		e.stateChange.PutCauseExtra("total_wvps", currentGlobalRepliesWvps.String())
 		reply := table.NewSoPostWrap(e.db, &replyItem.postId)
 		e.stateChange.PutCauseExtra("rootid", reply.GetRootId())
+		e.stateChange.PutCauseExtra("reward", replyReward.Uint64())
+		e.stateChange.PutCauseExtra("owner", replyItem.beneficiary)
 
 		result := e.processRewardForAccount(replyItem.beneficiary, replyReward)
 		if !result {
@@ -554,6 +559,10 @@ func (e *Economist) cashoutVotes(votesItems []*VoteItem) {
 		e.stateChange.PutCauseExtra("total_wvps", currentGlobalVotesWvp.String())
 		post := table.NewSoPostWrap(e.db, &voteItem.postId)
 		e.stateChange.PutCauseExtra("rootid", post.GetRootId())
+		e.stateChange.PutCauseExtra("reward", voteReward.Uint64())
+		e.stateChange.PutCauseExtra("voter", voteItem.beneficiary)
+
+		e.stateChange.AddChange("VoteCashout","add", nil)
 
 		result := e.processRewardForAccount(voteItem.beneficiary, voteReward)
 		if !result {
