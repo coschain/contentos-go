@@ -112,9 +112,9 @@ func (this *Link) Rx(magic uint32) {
 		t := time.Now()
 		this.UpdateRXTime(t)
 
-		//if !this.needSendMsg(msg) {
-		//	continue
-		//}
+		if !this.needSendMsg(msg) {
+			continue
+		}
 
 		this.recvChan <- &types.MsgPayload{
 			Id:          this.id,
@@ -207,7 +207,7 @@ func (this *Link) Tx(msg types.Message, magic uint32) error {
 //}
 
 //needSendMsg check whether the msg is needed to push to channel
-//func (this *Link) needSendMsg(msg types.Message) bool {
+func (this *Link) needSendMsg(msg types.Message) bool {
 //	if msg.CmdType() != common.REQ_ID_TYPE {
 //		return true
 //	}
@@ -219,4 +219,5 @@ func (this *Link) Tx(msg types.Message, magic uint32) error {
 //
 //	this.reqIdRecord = now
 //	return true
-//}
+	return msg.CmdType() != common.DISCONNECT_TYPE
+}
