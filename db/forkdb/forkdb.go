@@ -417,7 +417,12 @@ func (db *DB) FetchBlocksFromMainBranch(num uint64) ([]common.ISignedBlock, erro
 		num = db.lastCommitted.BlockNum()
 	}
 
-	size := db.head.BlockNum() - num + 1
+	headNum := db.head.BlockNum()
+	if num > headNum {
+		return nil, errors.New("num out of range")
+	}
+
+	size := headNum - num + 1
 	ret := make([]common.ISignedBlock, size, size)
 	cur := db.head
 	for cur.BlockNum() >= num {
