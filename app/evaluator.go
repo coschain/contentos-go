@@ -1084,7 +1084,7 @@ func (ev *StakeEvaluator) Apply() {
 		From:   op.From,
 		To: op.To,
 	})
-	headBlockTime := ev.GlobalProp().HeadBlockTime()
+	headBlockNum := ev.GlobalProp().GetProps().HeadBlockNumber
 	if !recordWrap.CheckExist() {
 		recordWrap.Create(func(record *table.SoStakeRecord) {
 			record.Record = &prototype.StakeRecord{
@@ -1096,7 +1096,7 @@ func (ev *StakeEvaluator) Apply() {
 				From: op.From,
 			}
 			record.StakeAmount = addVests
-			record.LastStakeTime = headBlockTime
+			record.LastStakeBlockNum = headBlockNum
 		})
 	} else {
 		//oldVest := recordWrap.GetStakeAmount()
@@ -1104,7 +1104,7 @@ func (ev *StakeEvaluator) Apply() {
 		//recordWrap.SetStakeAmount(oldVest)
 		recordWrap.Modify(func(tInfo *table.SoStakeRecord) {
 			tInfo.StakeAmount.Add(addVests)
-			tInfo.LastStakeTime = headBlockTime
+			tInfo.LastStakeBlockNum = headBlockNum
 		})
 	}
 
@@ -1122,9 +1122,9 @@ func (ev *UnStakeEvaluator) Apply() {
 
 	recordWrap.MustExist("stake record not exist")
 
-	stakeTime := recordWrap.GetLastStakeTime()
-	headBlockTime := ev.GlobalProp().HeadBlockTime()
-	opAssert(headBlockTime.UtcSeconds-stakeTime.UtcSeconds > constants.StakeFreezeTime, "can not unstake when freeze")
+	lastStakeBlockNum := recordWrap.GetLastStakeBlockNum()
+	headBlockNum := ev.GlobalProp().GetProps().HeadBlockNumber
+	opAssert(headBlockNum - lastStakeBlockNum > constants.StakeFreezeTime, "can not unstake when freeze")
 
 	debtorWrap := table.NewSoAccountWrap(ev.Database(), op.Debtor)
 	creditorWrap := table.NewSoAccountWrap(ev.Database(), op.Creditor)

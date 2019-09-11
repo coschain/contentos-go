@@ -5,14 +5,14 @@ package table;
 
 option go_package = "github.com/coschain/contentos-go/app/table";
 
-import "prototype/type.proto";
 import "prototype/multi_id.proto";
+import "prototype/type.proto";
 
 message so_stakeRecord {
 	prototype.stake_record       record                          =      1;
     prototype.stake_record_reverse       record_reverse          =      2;
     prototype.vest               stake_amount                    =      3;
-    prototype.time_point_sec    last_stake_time                  =      4;
+    uint64                      last_stake_block_num                  =      4;
       
 }
 

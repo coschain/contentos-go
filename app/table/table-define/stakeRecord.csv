@@ -2,4 +2,4 @@ type                      ,pName                      ,mKey   ,unique ,sort   ,r
 prototype.stake_record    ,record                     ,1      ,1      ,1      ,0           ,prototype/multi_id.proto
 prototype.stake_record_reverse    ,record_reverse     ,0      ,0      ,1      ,0           ,prototype/multi_id.proto
 prototype.vest            ,stake_amount               ,0      ,0      ,0      ,0           ,prototype/type.proto
-prototype.time_point_sec ,last_stake_time             ,0      ,0      ,0      ,0           ,prototype/type.proto
+uint64                   ,last_stake_block_num             ,0      ,0      ,0      ,0           ,

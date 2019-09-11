@@ -95,13 +95,12 @@ var sInterestedChanges = []InterestedChange{
 	},
 	{
 		Table: table.StakeRecordTable,
-		Field: "LastStakeTime",
+		Field: "StakeAmount",
 		Maker: func(id, before, after interface{}) *GenericChange {
-			cid := id.(*prototype.StakeRecord)
 			return &GenericChange{
-				Id: 	cid.From.Value + "&" + cid.To.Value,
-				Before: before.(*prototype.TimePointSec).UtcSeconds,
-				After: 	after.(*prototype.TimePointSec).UtcSeconds,
+				Id: 	nil,
+				Before: before.(*prototype.Vest).GetValue(),
+				After: 	after.(*prototype.Vest).GetValue(),
 			}
 		},
 	},

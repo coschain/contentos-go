@@ -245,12 +245,12 @@ func (s *SoStakeRecordWrap) Modify(f func(tInfo *SoStakeRecord), errArgs ...inte
 	return s
 }
 
-func (s *SoStakeRecordWrap) SetLastStakeTime(p *prototype.TimePointSec, errArgs ...interface{}) *SoStakeRecordWrap {
+func (s *SoStakeRecordWrap) SetLastStakeBlockNum(p uint64, errArgs ...interface{}) *SoStakeRecordWrap {
 	err := s.modify(func(r *SoStakeRecord) {
-		r.LastStakeTime = p
+		r.LastStakeBlockNum = p
 	})
 	if err != nil {
-		panic(bindErrorInfo(fmt.Sprintf("SoStakeRecordWrap.SetLastStakeTime( %v ) failed: %s", p, err.Error()), errArgs...))
+		panic(bindErrorInfo(fmt.Sprintf("SoStakeRecordWrap.SetLastStakeBlockNum( %v ) failed: %s", p, err.Error()), errArgs...))
 	}
 	return s
 }
@@ -294,9 +294,9 @@ func (s *SoStakeRecordWrap) getModifiedFields(oriTable *SoStakeRecord, curTable 
 	hasWatcher := false
 	fields := make(map[string]bool)
 
-	if !reflect.DeepEqual(oriTable.LastStakeTime, curTable.LastStakeTime) {
-		fields["LastStakeTime"] = true
-		hasWatcher = hasWatcher || s.watcherFlag.HasLastStakeTimeWatcher
+	if !reflect.DeepEqual(oriTable.LastStakeBlockNum, curTable.LastStakeBlockNum) {
+		fields["LastStakeBlockNum"] = true
+		hasWatcher = hasWatcher || s.watcherFlag.HasLastStakeBlockNumWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.RecordReverse, curTable.RecordReverse) {
@@ -325,17 +325,17 @@ func (s *SoStakeRecordWrap) handleFieldMd(t FieldMdHandleType, so *SoStakeRecord
 
 	errStr := ""
 
-	if fields["LastStakeTime"] {
+	if fields["LastStakeBlockNum"] {
 		res := true
 		if t == FieldMdHandleTypeCheck {
-			res = s.mdFieldLastStakeTime(so.LastStakeTime, true, false, false, so)
-			errStr = fmt.Sprintf("fail to modify exist value of %v", "LastStakeTime")
+			res = s.mdFieldLastStakeBlockNum(so.LastStakeBlockNum, true, false, false, so)
+			errStr = fmt.Sprintf("fail to modify exist value of %v", "LastStakeBlockNum")
 		} else if t == FieldMdHandleTypeDel {
-			res = s.mdFieldLastStakeTime(so.LastStakeTime, false, true, false, so)
-			errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", "LastStakeTime")
+			res = s.mdFieldLastStakeBlockNum(so.LastStakeBlockNum, false, true, false, so)
+			errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", "LastStakeBlockNum")
 		} else if t == FieldMdHandleTypeInsert {
-			res = s.mdFieldLastStakeTime(so.LastStakeTime, false, false, true, so)
-			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "LastStakeTime")
+			res = s.mdFieldLastStakeBlockNum(so.LastStakeBlockNum, false, false, true, so)
+			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "LastStakeBlockNum")
 		}
 		if !res {
 			return errors.New(errStr)
@@ -551,7 +551,7 @@ func (s *SoStakeRecordWrap) RemoveStakeRecord(errMsgs ...interface{}) *SoStakeRe
 
 ////////////// SECTION Members Get/Modify ///////////////
 
-func (s *SoStakeRecordWrap) GetLastStakeTime() *prototype.TimePointSec {
+func (s *SoStakeRecordWrap) GetLastStakeBlockNum() uint64 {
 	res := true
 	msg := &SoStakeRecord{}
 	if s.dba == nil {
@@ -569,39 +569,39 @@ func (s *SoStakeRecordWrap) GetLastStakeTime() *prototype.TimePointSec {
 			if err != nil {
 				res = false
 			} else {
-				return msg.LastStakeTime
+				return msg.LastStakeBlockNum
 			}
 		}
 	}
 	if !res {
-		return nil
-
+		var tmpValue uint64
+		return tmpValue
 	}
-	return msg.LastStakeTime
+	return msg.LastStakeBlockNum
 }
 
-func (s *SoStakeRecordWrap) mdFieldLastStakeTime(p *prototype.TimePointSec, isCheck bool, isDel bool, isInsert bool,
+func (s *SoStakeRecordWrap) mdFieldLastStakeBlockNum(p uint64, isCheck bool, isDel bool, isInsert bool,
 	so *SoStakeRecord) bool {
 	if s.dba == nil {
 		return false
 	}
 
 	if isCheck {
-		res := s.checkLastStakeTimeIsMetMdCondition(p)
+		res := s.checkLastStakeBlockNumIsMetMdCondition(p)
 		if !res {
 			return false
 		}
 	}
 
 	if isDel {
-		res := s.delFieldLastStakeTime(so)
+		res := s.delFieldLastStakeBlockNum(so)
 		if !res {
 			return false
 		}
 	}
 
 	if isInsert {
-		res := s.insertFieldLastStakeTime(so)
+		res := s.insertFieldLastStakeBlockNum(so)
 		if !res {
 			return false
 		}
@@ -609,7 +609,7 @@ func (s *SoStakeRecordWrap) mdFieldLastStakeTime(p *prototype.TimePointSec, isCh
 	return true
 }
 
-func (s *SoStakeRecordWrap) delFieldLastStakeTime(so *SoStakeRecord) bool {
+func (s *SoStakeRecordWrap) delFieldLastStakeBlockNum(so *SoStakeRecord) bool {
 	if s.dba == nil {
 		return false
 	}
@@ -617,7 +617,7 @@ func (s *SoStakeRecordWrap) delFieldLastStakeTime(so *SoStakeRecord) bool {
 	return true
 }
 
-func (s *SoStakeRecordWrap) insertFieldLastStakeTime(so *SoStakeRecord) bool {
+func (s *SoStakeRecordWrap) insertFieldLastStakeBlockNum(so *SoStakeRecord) bool {
 	if s.dba == nil {
 		return false
 	}
@@ -625,7 +625,7 @@ func (s *SoStakeRecordWrap) insertFieldLastStakeTime(so *SoStakeRecord) bool {
 	return true
 }
 
-func (s *SoStakeRecordWrap) checkLastStakeTimeIsMetMdCondition(p *prototype.TimePointSec) bool {
+func (s *SoStakeRecordWrap) checkLastStakeBlockNumIsMetMdCondition(p uint64) bool {
 	if s.dba == nil {
 		return false
 	}
@@ -1285,7 +1285,7 @@ func (s *UniStakeRecordRecordWrap) UniQueryRecord(start *prototype.StakeRecord) 
 ////////////// SECTION Watchers ///////////////
 
 type StakeRecordWatcherFlag struct {
-	HasLastStakeTimeWatcher bool
+	HasLastStakeBlockNumWatcher bool
 
 	HasRecordReverseWatcher bool
 
@@ -1316,8 +1316,8 @@ func StakeRecordRecordWatcherChanged(dbSvcId uint32) {
 	flag.WholeWatcher = HasTableRecordWatcher(dbSvcId, StakeRecordTable.Record, "")
 	flag.AnyWatcher = flag.WholeWatcher
 
-	flag.HasLastStakeTimeWatcher = HasTableRecordWatcher(dbSvcId, StakeRecordTable.Record, "LastStakeTime")
-	flag.AnyWatcher = flag.AnyWatcher || flag.HasLastStakeTimeWatcher
+	flag.HasLastStakeBlockNumWatcher = HasTableRecordWatcher(dbSvcId, StakeRecordTable.Record, "LastStakeBlockNum")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasLastStakeBlockNumWatcher
 
 	flag.HasRecordReverseWatcher = HasTableRecordWatcher(dbSvcId, StakeRecordTable.Record, "RecordReverse")
 	flag.AnyWatcher = flag.AnyWatcher || flag.HasRecordReverseWatcher
