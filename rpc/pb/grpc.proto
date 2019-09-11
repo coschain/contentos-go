@@ -640,7 +640,7 @@ message EsimateResponse {
 message StakeInfo {
     prototype.account_name account = 1;
     prototype.vest stake_amount = 2;
-    prototype.time_point_sec stake_time = 3;
+    uint64 stake_block_num = 3;
 }
 
 message GetMyStakerListByNameRequest {

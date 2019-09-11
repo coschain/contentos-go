@@ -137,7 +137,7 @@ func (as *APIService) GetMyStakes(ctx context.Context, req *grpcpb.GetMyStakeLis
 					To: mVal.To,
 				})
 				info.StakeAmount = recordWrap.GetStakeAmount()
-				info.StakeTime = recordWrap.GetLastStakeTime()
+				info.StakeBlockNum = recordWrap.GetLastStakeBlockNum()
 				stakeList = append(stakeList,info)
 			}
 			if uint32(len(stakeList)) < limit {
@@ -174,7 +174,7 @@ func (as *APIService) GetMyStakers(ctx context.Context, req *grpcpb.GetMyStakerL
 					To: mVal.To,
 				})
 				info.StakeAmount = recordWrap.GetStakeAmount()
-				info.StakeTime = recordWrap.GetLastStakeTime()
+				info.StakeBlockNum = recordWrap.GetLastStakeBlockNum()
 				stakerList = append(stakerList,info)
 			}
 			if uint32(len(stakerList)) < limit {
