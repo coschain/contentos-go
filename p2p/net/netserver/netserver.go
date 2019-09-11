@@ -56,6 +56,8 @@ type NetServer struct {
 	NetworkMagic  uint32
 
 	msgCache	 *common.HashCache
+
+	startUpComplete bool
 }
 
 //InConnectionRecord include all addr connected
@@ -122,7 +124,14 @@ func (this *NetServer) init() error {
 	this.Np = &peer.NbrPeers{Log:this.log}
 	this.Np.Init()
 
+	this.startUpComplete = true
+	this.log.Info("net start ", len(this.inConnRecord.InConnectingAddrs), " ", len(this.outConnRecord.OutConnectingAddrs))
+
 	return nil
+}
+
+func (this *NetServer) CheckStartUpFinished() bool {
+	return this.startUpComplete
 }
 
 //InitListen start listening on the config port
@@ -366,6 +375,7 @@ func (this *NetServer) Halt() {
 	if this.conslistener != nil {
 		this.conslistener.Close()
 	}
+	this.startUpComplete = false
 }
 
 //establishing the connection to remote peers and listening for inbound peers

@@ -179,9 +179,12 @@ func (this *P2PServer) connectSeeds() {
 		np.Unlock()
 	}
 	if len(pList) > 0 {
-		rand.Seed(time.Now().UnixNano())
-		index := rand.Intn(len(pList))
-		this.reqNbrList(pList[index])
+		for _, p := range pList {
+			this.reqNbrList(p)
+		}
+		//rand.Seed(time.Now().UnixNano())
+		//index := rand.Intn(len(pList))
+		//this.reqNbrList(pList[index])
 	} else { //not found
 		for _, nodeAddr := range seedNodes {
 			go this.Network.Connect(nodeAddr, false)
@@ -394,6 +397,9 @@ func (this *P2PServer) removeFromRetryList(addr string) {
 }
 
 func (this *P2PServer) Broadcast(message interface{}) {
+	if !this.Network.CheckStartUpFinished() {
+		return
+	}
 	var msg msgtypes.Message
 	isConsensus := false
 	switch message.(type) {
@@ -423,6 +429,9 @@ func (this *P2PServer) Broadcast(message interface{}) {
 }
 
 func (this *P2PServer) TriggerSync(current_head_blk_id coomn.BlockID) {
+	if !this.Network.CheckStartUpFinished() {
+		return
+	}
 	reqmsg := new(msgtypes.TransferMsg)
 	reqdata := new(msgtypes.ReqIdMsg)
 	reqdata.HeadBlockId = current_head_blk_id.Data[:]
@@ -449,6 +458,9 @@ func (this *P2PServer) TriggerSync(current_head_blk_id coomn.BlockID) {
 }
 
 func (this *P2PServer) FetchUnlinkedBlock(prevId coomn.BlockID) {
+	if !this.Network.CheckStartUpFinished() {
+		return
+	}
 	var reqmsg msgtypes.TransferMsg
 	reqdata := new(msgtypes.IdMsg)
 	reqdata.Msgtype = msgtypes.IdMsg_request_sigblk_by_id
@@ -478,6 +490,9 @@ func (this *P2PServer) FetchUnlinkedBlock(prevId coomn.BlockID) {
 }
 
 func (this *P2PServer) RequestCheckpoint(startNum, endNum uint64) {
+	if !this.Network.CheckStartUpFinished() {
+		return
+	}
 	this.log.Infof("RequestCheckpoint from %d to %d", startNum, endNum)
 	reqmsg := msgpack.NewCheckpointBatchMsg(startNum, endNum)
 
@@ -501,6 +516,9 @@ func (this *P2PServer) RequestCheckpoint(startNum, endNum uint64) {
 }
 
 func (this *P2PServer) FetchOutOfRange(localHeadID, targetID coomn.BlockID) {
+	if !this.Network.CheckStartUpFinished() {
+		return
+	}
 	if localHeadID.BlockNum() >= targetID.BlockNum() {
 		this.log.Warn("local head number less than target number.local number: ", localHeadID.BlockNum(), " target number: ", targetID.BlockNum())
 		return
@@ -527,6 +545,9 @@ func (this *P2PServer) FetchOutOfRange(localHeadID, targetID coomn.BlockID) {
 }
 
 func (this *P2PServer) SendToPeer(p *peer.Peer, message interface{}) {
+	if !this.Network.CheckStartUpFinished() {
+		return
+	}
 	if p == nil {
 		this.log.Error("send message to a nil peer")
 		return
@@ -543,6 +564,9 @@ func (this *P2PServer) SendToPeer(p *peer.Peer, message interface{}) {
 }
 
 func (this *P2PServer) RandomSend(message interface{}) {
+	if !this.Network.CheckStartUpFinished() {
+		return
+	}
 	this.log.Info("send message to a random peer")
 
 	cmsg := message.(consmsg.ConsensusMessage)
@@ -565,6 +589,9 @@ func (this *P2PServer) RandomSend(message interface{}) {
 }
 
 func (this *P2PServer) GetNodeNeighbours() string {
+	if !this.Network.CheckStartUpFinished() {
+		return ""
+	}
 	var peerList string
 	peers := this.Network.GetNeighbors()
 	for _, p := range peers {

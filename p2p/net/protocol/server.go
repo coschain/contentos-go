@@ -54,4 +54,6 @@ type P2P interface {
 	GetMagic() uint32
 
 	RememberMsg(hash [common.HashSize]byte) (isNew bool)
+
+	CheckStartUpFinished() bool
 }
