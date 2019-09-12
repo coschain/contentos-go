@@ -355,21 +355,19 @@ func (e *Economist) Do() {
 		postId := voteId.PostId
 		postWrap := table.NewSoPostWrap(e.db, &postId)
 		// if the voted post is illegal, voter does not receive reward
-		postWvp := StringToBigInt(postWrap.GetWeightedVp())
 		authorName := postWrap.GetAuthor()
 		if author, err := e.getAccount(authorName); err != nil {
-			postWvp = new(big.Int).SetUint64(0)
+			voteWvp.SetUint64(0)
 			e.log.Warnf("author of post %d not found, name %s", postId, authorName.Value)
 		} else if author.GetReputation() == constants.MinReputation {
-			postWvp = new(big.Int).SetUint64(0)
+			voteWvp.SetUint64(0)
 			e.log.Warnf("ignored post %d due to bad reputation of author %s", postId, authorName.Value)
 		}
 		if postWrap.GetCopyright() == constants.CopyrightInfringement {
-			postWvp = new(big.Int).SetUint64(0)
+			voteWvp.SetUint64(0)
 			e.log.Warnf("ignored post %d due to invalid copyright,author %s", postId, authorName.Value)
 		}
-		wvp := new(big.Int).Mul(voteWvp, postWvp)
-		voteItem := &VoteItem{Item{wvp: wvp, beneficiary: voter}, postId}
+		voteItem := &VoteItem{Item{wvp: voteWvp, beneficiary: voter}, postId}
 		voteItems = append(voteItems, voteItem)
 	}
 	e.cashoutVotes(voteItems)

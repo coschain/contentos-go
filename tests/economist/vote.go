@@ -62,8 +62,7 @@ func (tester *VoteTester) normal2(t *testing.T, d *Dandelion) {
 	postWeightedVp := StringToBigInt(d.Post(POST).GetWeightedVp())
 	a.NotEqual(postWeightedVp.Int64(), int64(0))
 
-	voteWeightedVp := StringToBigInt(d.Vote(tester.acc1.Name, POST).GetWeightedVp())
-	weightedVp := new(big.Int).Mul(postWeightedVp, voteWeightedVp)
+	weightedVp := StringToBigInt(d.Vote(tester.acc1.Name, POST).GetWeightedVp())
 	decayedVoteWeight := bigDecay(StringToBigInt(d.GlobalProps().GetWeightedVpsVote()))
 	totalVoteRewards := new(big.Int).SetUint64(d.GlobalProps().GetPoolVoteRewards().Value)
 	nextBlockGlobalVoteReward := new(big.Int).Add(totalVoteRewards, new(big.Int).SetUint64(perBlockVoteReward(d)))
@@ -98,8 +97,7 @@ func (tester *VoteTester) normal3(t *testing.T, d *Dandelion) {
 	postWeightedVp := StringToBigInt(d.Post(POST).GetWeightedVp())
 	a.NotEqual(postWeightedVp.Int64(), int64(0))
 
-	acc2VoteWeightedVp := StringToBigInt(d.Vote(tester.acc2.Name, POST).GetWeightedVp())
-	acc2WeightedVp := new(big.Int).Mul(postWeightedVp, acc2VoteWeightedVp)
+	acc2WeightedVp := StringToBigInt(d.Vote(tester.acc2.Name, POST).GetWeightedVp())
 	decayedVoteWeight := bigDecay(StringToBigInt(d.GlobalProps().GetWeightedVpsVote()))
 	totalVoteRewards := new(big.Int).SetUint64(d.GlobalProps().GetPoolVoteRewards().Value)
 	nextBlockGlobalVoteReward := new(big.Int).Add(totalVoteRewards, new(big.Int).SetUint64(perBlockVoteReward(d)))
@@ -117,8 +115,7 @@ func (tester *VoteTester) normal3(t *testing.T, d *Dandelion) {
 	a.Equal(d.GlobalProps().GetClaimedVoteRewards(), exceptGlobalClaimRewardAfterCashout)
 	a.Equal(d.GlobalProps().GetPoolVoteRewards(), exceptGlobalRewardAfterCashout)
 
-	acc1VoteWeightedVp := StringToBigInt(d.Vote(tester.acc1.Name, POST).GetWeightedVp())
-	acc1WeightedVp := new(big.Int).Mul(postWeightedVp, acc1VoteWeightedVp)
+	acc1WeightedVp := StringToBigInt(d.Vote(tester.acc1.Name, POST).GetWeightedVp())
 	decayedVoteWeight = bigDecay(nextBlockGlobalVoteWeightedVp)
 	// subtract rewards which had been cashout to acc2
 	nextBlockGlobalVoteReward.Sub(nextBlockGlobalVoteReward, exceptVoteReward)
@@ -154,11 +151,8 @@ func (tester *VoteTester) normal4(t *testing.T, d *Dandelion) {
 	postWeightedVp := StringToBigInt(d.Post(POST).GetWeightedVp())
 	a.NotEqual(postWeightedVp.Int64(), int64(0))
 
-	vote1WeightedVp := StringToBigInt(d.Vote(tester.acc1.Name, POST).GetWeightedVp())
-	vote2WeightedVp := StringToBigInt(d.Vote(tester.acc2.Name, POST).GetWeightedVp())
-
-	weightedVp1 := new(big.Int).Mul(postWeightedVp, vote1WeightedVp)
-	weightedVp2 := new(big.Int).Mul(postWeightedVp, vote2WeightedVp)
+	weightedVp1 := StringToBigInt(d.Vote(tester.acc1.Name, POST).GetWeightedVp())
+	weightedVp2 := StringToBigInt(d.Vote(tester.acc2.Name, POST).GetWeightedVp())
 	weightedVp := new(big.Int).Add(weightedVp1, weightedVp2)
 	decayedVoteWeight := bigDecay(StringToBigInt(d.GlobalProps().GetWeightedVpsVote()))
 	currentGlobalVoteReward := new(big.Int).SetUint64(d.GlobalProps().GetPoolVoteRewards().Value)

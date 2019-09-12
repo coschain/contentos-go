@@ -115,9 +115,7 @@ func (tester *DecayTester) decayVote(t *testing.T, d *Dandelion) {
 	oldReplyWeightedVps := d.GlobalProps().WeightedVpsReply
 	oldDappWeightedVps := d.GlobalProps().WeightedVpsDapp
 
-	postWeightedVp := StringToBigInt(d.Post(POST).GetWeightedVp())
-	voteWeightedVp := StringToBigInt(d.Vote(tester.acc1.Name, POST).GetWeightedVp())
-	weightedVp := new(big.Int).Mul(postWeightedVp, voteWeightedVp)
+	weightedVp := StringToBigInt(d.Vote(tester.acc1.Name, POST).GetWeightedVp())
 	decayedVoteWeight := bigDecay(StringToBigInt(d.GlobalProps().GetWeightedVpsVote()))
 	totalVoteWeightedVp := decayedVoteWeight.Add(decayedVoteWeight, weightedVp)
 
