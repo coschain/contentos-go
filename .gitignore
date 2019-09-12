@@ -23,6 +23,7 @@ cmd/multinodetester/multinodetester
 cmd/databackup/databackup
 cmd/pressuretest/pressuretest
 cmd/nodedetector/nodedetector
+cmd/readtest/readtest
 
 coverage.*
 build
