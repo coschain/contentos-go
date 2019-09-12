@@ -1226,6 +1226,7 @@ func (ev *VoteByTicketEvaluator) Apply() {
 
 	postWrap := table.NewSoPostWrap(ev.Database(), &op.Idx)
 	postWrap.MustExist("post does not exist")
+	opAssert(postWrap.GetCashoutBlockNum() != math.MaxUint64, "post already cashed out")
 
 	originTicketCount := postWrap.GetTicket()
 
