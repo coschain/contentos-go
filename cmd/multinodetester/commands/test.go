@@ -179,7 +179,7 @@ func startNodes2(cnt int, runSecond int32) {
 		resetSvc(nodes[i], comp[i])
 	}
 	monitor := test.NewMonitor(comp)
-	go monitor.Run()
+	go monitor.Run(stopCh)
 
 	time.Sleep(2 * time.Second)
 	if !malicious {

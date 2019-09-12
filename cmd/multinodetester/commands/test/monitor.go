@@ -80,7 +80,7 @@ func NewMonitor(c []*Components) *Monitor {
 	return m
 }
 
-func (m *Monitor) Run() {
+func (m *Monitor) Run(stopCh chan struct{}) {
 	if err := ui.Init(); err != nil {
 		log.Fatalf("failed to initialize termui: %v", err)
 	}
@@ -102,6 +102,8 @@ func (m *Monitor) Run() {
 	ticker := time.NewTicker(2 * time.Second).C
 	for {
 		select {
+		case <-stopCh:
+			return
 		case e := <-uiEvents:
 			switch e.ID {
 			case "q", "<C-c>":
