@@ -122,8 +122,8 @@ const (
 
 	MaxTicketsPerTurn = uint64(1e5)
 	InitTopN = 500
-	//InitEpochDuration = 60 * 60 * 24 * 30
-	InitEpochDuration = 600
+	InitEpochDuration = 60 * 60 * 24 * 7
+	//InitEpochDuration = 600
 	MaxTopN = 10000
 	MinTicketPrice = 100
 
