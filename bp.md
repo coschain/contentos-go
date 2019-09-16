@@ -4,7 +4,7 @@ If you want to set up a Contentos Block Producer node, please follow the steps b
 
 ## 1.Create your Contentos account
 
-Please use our [online wallet](XXXX) to create your Contentos account
+Please use our [online wallet](https://wallet.contentos.io/) to create your Contentos account
 
 ## 2.Build and Initialization
 
@@ -40,6 +40,6 @@ you should execute the following commands in order
   bp register your_account_name publicKey_of_your_account
 ```
 
-## 4.Vote
+## 4.Block Producer Vote
 Now you have become a Block Producer, you should call for more people to vote for you, the more people who vote for you, the more votes you have.
-We will sort by number of votes in descending order, only the first 21 Block Producer can generate block.
+We will sort by number of votes in descending order, only the first 21 Block Producer can generate block. Here is web page for BP Vote(https://wallet.contentos.io/#/bpvote)
