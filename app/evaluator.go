@@ -495,6 +495,7 @@ func (ev *VoteEvaluator) Apply() {
 
 	// distinguish post or reply
 	ev.VMInjector().StateChangeContext().PutCauseExtra("parentid",postWrap.GetParentId())
+	ev.VMInjector().StateChangeContext().PutCauseExtra("rootid",postWrap.GetRootId())
 
 	// if voter's reputation is 0, she has no voting power.
 	if voterWrap.GetReputation() == constants.MinReputation {
