@@ -2,6 +2,8 @@ package commands
 
 import (
 	"fmt"
+	"github.com/coschain/contentos-go/cmd/multinodetester/commands/malnode"
+	"github.com/sirupsen/logrus"
 	"math/rand"
 	"os"
 	"os/exec"
@@ -89,9 +91,9 @@ func startNodes(cmd *cobra.Command, args []string) {
 		fmt.Println(err)
 		return
 	}
-	startNodes2(cnt, 0)
+	startNodes2(cnt, -1,0)
 }
-func startNodes2(cnt int, runSecond int32) {
+func startNodes2(cnt int, maliciousIdx int, runSecond int32) {
 	if malicious {
 		shut = false
 		testSync = false
@@ -113,7 +115,11 @@ func startNodes2(cnt int, runSecond int32) {
 		app.Log = mylog.Init(cfg.ResolvePath("logs"), cfg.LogLevel, 3600*24*7)
 		app.Log.Out = &emptyWriter{}
 		app.Log.Info("Cosd running version: ", VERSION)
-		RegisterService(app, cfg)
+		if i != maliciousIdx {
+			RegisterService(app, cfg)
+		} else {
+			RegisterService2(malnode.NewMaliciousNode(app), cfg)
+		}
 		if err := app.Start(); err != nil {
 			common.Fatalf("start node failed, err: %v\n", err)
 		}
@@ -375,4 +381,35 @@ func RegisterService(app *node.Node, cfg node.Config) {
 	_ = app.Register(iservices.P2PServerName, func(ctx *node.ServiceContext) (node.Service, error) {
 		return p2p.NewServer(ctx, app.Log)
 	})
+}
+
+func RegisterService2(app interface{}, cfg node.Config) {
+	var (
+		register func(string, node.ServiceConstructor) error
+		logger *logrus.Logger
+	)
+
+	if n, ok := app.(*node.Node); ok {
+		register, logger = n.Register, n.Log
+	}
+	if n, ok := app.(*malnode.MaliciousNode); ok {
+		register, logger = n.Register, n.Log
+	}
+	if register != nil {
+		_ = register(iservices.DbServerName, func(ctx *node.ServiceContext) (node.Service, error) {
+			return storage.NewGuardedDatabaseService(ctx, "./db/")
+		})
+
+		_ = register(iservices.TxPoolServerName, func(ctx *node.ServiceContext) (node.Service, error) {
+			return ctrl.NewController(ctx, nil)
+		})
+
+		_ = register(iservices.ConsensusServerName, func(ctx *node.ServiceContext) (node.Service, error) {
+			return consensus.NewSABFT(ctx, logger), nil
+		})
+
+		_ = register(iservices.P2PServerName, func(ctx *node.ServiceContext) (node.Service, error) {
+			return p2p.NewServer(ctx, logger)
+		})
+	}
 }

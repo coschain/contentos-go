@@ -5,5 +5,5 @@ import "testing"
 func TestConsensus(t *testing.T)  {
 	latency = 1500
 	shut = true
-	startNodes2(5, 30)
+	startNodes2(5, 1, 30)
 }
