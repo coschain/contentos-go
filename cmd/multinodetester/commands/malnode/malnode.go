@@ -2,12 +2,14 @@ package malnode
 
 import (
 	"errors"
+	"fmt"
 	"github.com/coschain/contentos-go/app"
 	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/node"
 	"github.com/coschain/contentos-go/prototype"
+	"github.com/gogo/protobuf/proto"
 	"time"
 )
 
@@ -63,11 +65,17 @@ func (n *MaliciousNode) TrxPoolPostGenerateAndApplyBlock(bpName string, pre *pro
 	if retErr != nil {
 		return retBlock, retErr
 	}
+	fmt.Println("block generated:", retBlock.Id().BlockNum(), bpName)
+
+	data, _ := proto.Marshal(retBlock)
+	block := new(prototype.SignedBlock)
+	_ = proto.Unmarshal(data, block)
+
 	var prevBlockId common.BlockID
 	copy(prevBlockId.Data[:], pre.Hash)
 	tx := &prototype.Transaction{
-		RefBlockNum: common.TaposRefBlockPrefix(prevBlockId.Data[:]),
-		RefBlockPrefix: common.TaposRefBlockNum(prevBlockId.BlockNum()),
+		RefBlockNum: common.TaposRefBlockNum(prevBlockId.BlockNum()),
+		RefBlockPrefix: common.TaposRefBlockPrefix(prevBlockId.Data[:]),
 		Expiration: &prototype.TimePointSec{UtcSeconds: uint32(time.Now().Unix()) + 10},
 	}
 	tx.AddOperation(&prototype.TransferOperation{
@@ -78,7 +86,7 @@ func (n *MaliciousNode) TrxPoolPostGenerateAndApplyBlock(bpName string, pre *pro
 	signTx := &prototype.SignedTransaction{Trx: tx}
 	sig := signTx.Sign(priKey, prototype.ChainId{ Value:common.GetChainIdByName("main") })
 	signTx.Signature = &prototype.SignatureType{Sig: sig}
-	retBlock.Transactions = append(retBlock.Transactions, &prototype.TransactionWrapper{
+	block.Transactions = append(block.Transactions, &prototype.TransactionWrapper{
 		SigTrx:               signTx,
 		Receipt:              &prototype.TransactionReceipt{
 			Status:               prototype.StatusSuccess,
@@ -86,9 +94,10 @@ func (n *MaliciousNode) TrxPoolPostGenerateAndApplyBlock(bpName string, pre *pro
 			CpuUsage:             456,
 		},
 	})
-	id := retBlock.CalculateMerkleRoot()
-	retBlock.SignedHeader.Header.TransactionMerkleRoot = &prototype.Sha256{Hash: id.Data[:]}
-	_ = retBlock.SignedHeader.Sign(priKey)
+	id := block.CalculateMerkleRoot()
+	block.SignedHeader.Header.TransactionMerkleRoot = &prototype.Sha256{Hash: id.Data[:]}
+	block.SignedHeader.BlockProducerSignature = new(prototype.SignatureType)
+	_ = block.SignedHeader.Sign(priKey)
 
-	return retBlock, retErr
+	return block, retErr
 }
