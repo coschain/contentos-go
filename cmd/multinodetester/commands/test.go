@@ -308,6 +308,7 @@ func eraseNodeDataAndRestart(node *node.Node, comp *test.Components, idx int, ch
 				}
 			}
 
+			time.Sleep(30 * time.Second)
 			if err := node.Start(); err != nil {
 				panic(err)
 			}

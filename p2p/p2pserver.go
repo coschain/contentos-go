@@ -33,6 +33,7 @@ type P2PServer struct {
 	Network   p2p.P2P
 	msgRouter *utils.MessageRouter
 	ReconnectAddrs
+	quitSeed       chan bool
 	quitOnline     chan bool
 	quitHeartBeat  chan bool
 	mockLatency  int
@@ -62,8 +63,9 @@ func NewServer(ctx *node.ServiceContext, lg *logrus.Logger) (*P2PServer, error) 
 	p.log = lg
 	p.ctx = ctx
 	p.msgRouter = utils.NewMsgRouter(p.Network)
-	p.quitOnline = make(chan bool)
-	p.quitHeartBeat = make(chan bool)
+	p.quitSeed = make(chan bool, 1)
+	p.quitOnline = make(chan bool, 1)
+	p.quitHeartBeat = make(chan bool, 1)
 	return p, nil
 }
 
@@ -93,6 +95,7 @@ func (this *P2PServer) Start(node *node.Node) error {
 //Stop halt all service by send signal to channels
 func (this *P2PServer) Stop() error {
 	this.Network.Halt()
+	this.quitSeed <- true
 	this.quitOnline <- true
 	this.quitHeartBeat <- true
 	this.msgRouter.Stop()
@@ -289,7 +292,7 @@ func (this *P2PServer) connectSeedService() {
 			this.connectSeeds()
 			t.Stop()
 			t.Reset(time.Second * common.CONN_MONITOR)
-		case <-this.quitOnline:
+		case <-this.quitSeed:
 			t.Stop()
 			break
 		}
