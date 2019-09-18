@@ -30,6 +30,7 @@ type ApplyDelegate interface {
 	GlobalProp() iservices.IGlobalPropRW
 	VMInjector() vminjector.Injector
 	Logger() *logrus.Logger
+	HardFork() uint64
 }
 
 type BaseDelegate struct {
@@ -50,6 +51,10 @@ func (d *BaseDelegate) VMInjector() vminjector.Injector {
 
 func (d *BaseDelegate) Logger() *logrus.Logger {
 	return d.delegate.Logger()
+}
+
+func (d *BaseDelegate) HardFork() uint64 {
+	return d.delegate.HardFork()
 }
 
 type BaseEvaluator interface {

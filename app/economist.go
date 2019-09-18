@@ -101,10 +101,11 @@ type Economist struct {
 	log *logrus.Logger
 	dgp *DynamicGlobalPropsRW
 	stateChange *blocklog.StateChangeContext
+	hardFork func()uint64
 }
 
-func NewEconomist(db iservices.IDatabaseService, noticer EventBus.Bus, log *logrus.Logger) *Economist {
-	return &Economist{db: db, noticer:noticer, log: log, dgp: &DynamicGlobalPropsRW{db: db}}
+func NewEconomist(db iservices.IDatabaseService, noticer EventBus.Bus, log *logrus.Logger, hardForkFunc func()uint64) *Economist {
+	return &Economist{db: db, noticer:noticer, log: log, dgp: &DynamicGlobalPropsRW{db: db}, hardFork:hardForkFunc}
 }
 
 func (e *Economist) getAccount(account *prototype.AccountName) (*table.SoAccountWrap, error) {

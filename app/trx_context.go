@@ -364,3 +364,7 @@ func (p *TrxContext) VmCache() *vmcache.VmCache {
 func (p *TrxContext) StateChangeContext() *blocklog.StateChangeContext {
 	return p.stateChangeCtx
 }
+
+func (p *TrxContext) HardFork() uint64 {
+	return p.control.HardFork()
+}
