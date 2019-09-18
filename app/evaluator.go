@@ -475,6 +475,8 @@ func (ev *VoteEvaluator) Apply() {
 
 	opAssert( postWrap.GetAuthor().Value != op.Voter.Value, "cant vote self")
 
+	opAssert( postWrap.GetCashoutBlockNum() != math.MaxUint64, "cant vote cashouted post")
+
 	regeneratedPower := constants.FullVP * elapsedSeconds / constants.VoteRegenerateTime
 	var currentVp uint32
 	votePower := voterWrap.GetVotePower() + regeneratedPower
@@ -501,12 +503,6 @@ func (ev *VoteEvaluator) Apply() {
 	if voterWrap.GetReputation() == constants.MinReputation {
 		weightedVp.SetUint64(0)
 	}
-	cashoutDone := postWrap.GetCashoutBlockNum() == math.MaxUint64
-
-	// if post cashouted, set vp to 0
-	if cashoutDone {
-		weightedVp.SetUint64(0)
-	}
 
 	lastVp := postWrap.GetWeightedVp()
 	var lvp, tvp big.Int
@@ -515,17 +511,13 @@ func (ev *VoteEvaluator) Apply() {
 	tvp.Add(weightedVp, &lvp)
 
 	postWrap.Modify(func(tInfo *table.SoPost) {
-		if !cashoutDone {
-			tInfo.WeightedVp = tvp.String()
-		}
+		tInfo.WeightedVp = tvp.String()
 		tInfo.VoteCnt++
 	})
 
 	// only weightedVp actually be added into post, the vote power be declined.
 	voterWrap.Modify(func(tInfo *table.SoAccount) {
-		if !cashoutDone {
-			tInfo.VotePower = currentVp - usedVp
-		}
+		tInfo.VotePower = currentVp - usedVp
 		tInfo.LastVoteTime = ev.GlobalProp().HeadBlockTime()
 	})
 	//voterWrap.SetVotePower(currentVp - usedVp)
@@ -540,21 +532,19 @@ func (ev *VoteEvaluator) Apply() {
 		t.VoteTime = ev.GlobalProp().HeadBlockTime()
 	})
 
-	if !cashoutDone {
-		// add vote into cashout table
-		voteCashoutBlockHeight := ev.GlobalProp().GetProps().HeadBlockNumber + constants.VoteCashOutDelayBlock
-		voteCashoutWrap := table.NewSoVoteCashoutWrap(ev.Database(), &voteCashoutBlockHeight)
+	// add vote into cashout table
+	voteCashoutBlockHeight := ev.GlobalProp().GetProps().HeadBlockNumber + constants.VoteCashOutDelayBlock
+	voteCashoutWrap := table.NewSoVoteCashoutWrap(ev.Database(), &voteCashoutBlockHeight)
 
-		if voteCashoutWrap.CheckExist() {
-			voterIds := voteCashoutWrap.GetVoterIds()
-			voterIds = append(voterIds, &voterId)
-			voteCashoutWrap.SetVoterIds(voterIds)
-		} else {
-			voteCashoutWrap.Create(func(tInfo *table.SoVoteCashout) {
-				tInfo.CashoutBlock = voteCashoutBlockHeight
-				tInfo.VoterIds = []*prototype.VoterId{&voterId}
-			})
-		}
+	if voteCashoutWrap.CheckExist() {
+		voterIds := voteCashoutWrap.GetVoterIds()
+		voterIds = append(voterIds, &voterId)
+		voteCashoutWrap.SetVoterIds(voterIds)
+	} else {
+		voteCashoutWrap.Create(func(tInfo *table.SoVoteCashout) {
+			tInfo.CashoutBlock = voteCashoutBlockHeight
+			tInfo.VoterIds = []*prototype.VoterId{&voterId}
+		})
 	}
 }
 

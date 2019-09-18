@@ -134,14 +134,13 @@ func (tester *VoteTester) voteAfterPostCashout(t *testing.T, d *Dandelion)  {
 	a.NoError(d.ProduceBlocks(constants.PostCashOutDelayBlock))
 
 	// waiting vote power recover
-	oldVp := d.Post(1).GetWeightedVp()
+	//oldVp := d.Post(1).GetWeightedVp()
+	//accountVP := d.Account(tester.acc2.Name).GetVotePower()
+	//oldVoterCnt := d.Post(1).GetVoteCnt()
 
-	accountVP := d.Account(tester.acc2.Name).GetVotePower()
-	oldVoterCnt := d.Post(1).GetVoteCnt()
-
-	a.NoError(tester.acc2.SendTrxAndProduceBlock(Vote(tester.acc2.Name, 1)))
-	a.Equal(oldVp, d.Post(1).GetWeightedVp())
-	a.Equal(accountVP, d.Account(tester.acc2.Name).GetVotePower())
-	a.Equal( d.GlobalProps().Time.UtcSeconds - 1, d.Account(tester.acc2.Name).GetLastVoteTime().UtcSeconds )
-	a.Equal( oldVoterCnt + 1, d.Post(1).GetVoteCnt() )
+	a.Error(tester.acc2.SendTrxAndProduceBlock(Vote(tester.acc2.Name, 1)))
+	//a.Equal(oldVp, d.Post(1).GetWeightedVp())
+	//a.Equal(accountVP, d.Account(tester.acc2.Name).GetVotePower())
+	//a.Equal( d.GlobalProps().Time.UtcSeconds - 1, d.Account(tester.acc2.Name).GetLastVoteTime().UtcSeconds )
+	//a.Equal( oldVoterCnt + 1, d.Post(1).GetVoteCnt() )
 }
