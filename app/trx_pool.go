@@ -100,7 +100,7 @@ func (c *TrxPool) Open() {
 		//c.log.Info("finish initGenesis")
 	}
 	c.iceberg = NewBlockIceberg(c.db, c.log, c.enableBAH)
-	c.economist = NewEconomist(c.db, c.noticer, c.log)
+	c.economist = NewEconomist(c.db, c.noticer, c.log, c.HardFork)
 
 	commit, _ := c.iceberg.LastFinalizedBlock()
 	latest, _, _ := c.iceberg.LatestBlock()
@@ -1169,4 +1169,9 @@ func (c *TrxPool) ShareTicketBonus() (err error) {
 		updateBpVoteValue(c.db, accountName, oldVest, newVest)
 	}
 	return
+}
+
+func (c *TrxPool) HardFork() uint64 {
+	blockNum, _, _ := c.iceberg.LatestBlock()
+	return common.GetHardFork(blockNum)
 }
