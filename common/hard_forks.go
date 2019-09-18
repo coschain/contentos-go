@@ -2,10 +2,12 @@ package common
 
 const (
 	Original uint64 = iota
+	HardFork1 = 1458000
 )
 
 var hardForks = []uint64{
 	Original,
+	HardFork1,
 }
 
 func GetHardFork(blockNum uint64) uint64 {

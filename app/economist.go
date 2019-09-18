@@ -157,6 +157,12 @@ func (e *Economist) Mint() {
 	dappReward := blockCurrent * constants.RewardRateDapp / constants.PERCENT
 	bpReward := blockCurrent - creatorReward - dappReward
 
+	if e.hardFork() >= common.HardFork1 {
+		creatorReward = blockCurrent * 6500 / constants.PERCENT
+		dappReward = blockCurrent * constants.RewardRateDapp / constants.PERCENT
+		bpReward = blockCurrent - creatorReward - dappReward
+	}
+
 	// merge author rewards and reply rewards
 	postReward := creatorReward * constants.RewardRateAuthor / constants.PERCENT
 	replyReward := creatorReward * constants.RewardRateReply / constants.PERCENT

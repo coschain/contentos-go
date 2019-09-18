@@ -488,7 +488,11 @@ func (ev *VoteEvaluator) Apply() {
 
 	vest := voterWrap.GetVest().Value
 	weightedVp := new(big.Int).SetUint64(vest)
-	weightedVp.Sqrt(weightedVp)
+
+	if ev.HardFork() < common.HardFork1 {
+		weightedVp.Sqrt(weightedVp)
+	}
+
 	weightedVp.Mul(weightedVp, new(big.Int).SetUint64(uint64(usedVp)))
 
 	// if voter's reputation is 0, she has no voting power.
