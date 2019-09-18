@@ -65,7 +65,7 @@ func (n *MaliciousNode) TrxPoolPostGenerateAndApplyBlock(bpName string, pre *pro
 	if retErr != nil {
 		return retBlock, retErr
 	}
-	fmt.Println("block generated:", retBlock.Id().BlockNum(), bpName)
+	fmt.Printf("malicious node %s produced block: %d\n", bpName, retBlock.Id().BlockNum())
 
 	data, _ := proto.Marshal(retBlock)
 	block := new(prototype.SignedBlock)
