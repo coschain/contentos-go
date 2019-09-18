@@ -75,6 +75,7 @@ func (s *BlockLogProcessService) addProcessors() {
 		NewCreateUserProcessor(),
 		NewEcosysProcessor(),
 		NewProducerVoteProcessor(),
+		NewPowerUpDownProcessor(),
 	)
 }
 
