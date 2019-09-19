@@ -15,7 +15,7 @@ func (tester *TrxTester) Test(t *testing.T, d *Dandelion) {
 	t.Run("too_big", d.Test(tester.tooBig))
 	t.Run("require_multi_signers", d.Test(tester.requireMultiSigners))
 	t.Run("double_spent", d.Test(tester.doubleSpent))
-
+	t.Run("dup_trx_inside_block", d.Test(tester.dupTrxInsideBlock))
 }
 
 func (tester *TrxTester) tooBig(t *testing.T, d *Dandelion) {
@@ -70,4 +70,31 @@ func (tester *TrxTester) requireMultiSigners(t *testing.T, d *Dandelion) {
 		Transfer(constants.COSInitMiner, "actor0", 2, ""),
 		Transfer("actor0", constants.COSInitMiner, 1, ""),
 	))
+}
+
+func (tester *TrxTester) dupTrxInsideBlock(t *testing.T, d *Dandelion) {
+	a := assert.New(t)
+
+	op := Transfer(constants.COSInitMiner, "actor0", 1, "")
+	acc := d.Account(constants.COSInitMiner)
+	key := d.GetAccountKey(constants.COSInitMiner)
+
+	// first, initminer transfer to actor0, we get a receipt which records net/cpu usage for a transfer.
+	r := acc.TrxReceipt(op)
+	a.NotNil(r)
+
+	// second, try to apply a block containing duplicate transfer transactions.
+	trx, _ := d.NewSignedTransaction(key, op)
+	trxWrapper := &prototype.TransactionWrapper{
+		SigTrx:               trx,
+		Receipt:              &prototype.TransactionReceipt{
+			Status:               r.Status,
+			NetUsage:             r.NetUsage,
+			CpuUsage:             r.CpuUsage,
+		},
+	}
+	block, err := d.PushBlock(trxWrapper, trxWrapper, trxWrapper)
+	a.NotNil(block)
+	// PushBlock() must fail because the block contains duplicate transactions.
+	a.Error(err)
 }

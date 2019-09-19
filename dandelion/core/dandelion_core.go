@@ -228,6 +228,14 @@ func (d *DandelionCore) SendRawTrx(signedTrx *prototype.SignedTransaction) (*pro
 }
 
 func (d *DandelionCore) sendTrx(privateKey *prototype.PrivateKeyType, operations...*prototype.Operation) (*prototype.SignedTransaction, error) {
+	signedTrx, err := d.NewSignedTransaction(privateKey, operations...)
+	if err == nil {
+		err = d.TrxPool().PushTrxToPending(signedTrx)
+	}
+	return signedTrx, err
+}
+
+func (d *DandelionCore) NewSignedTransaction(privateKey *prototype.PrivateKeyType, operations...*prototype.Operation) (*prototype.SignedTransaction, error) {
 	data, err := proto.Marshal(&prototype.Transaction{
 		RefBlockNum: common.TaposRefBlockNum(d.Head().BlockNum()),
 		RefBlockPrefix: common.TaposRefBlockPrefix(d.prevHash.Hash),
@@ -246,8 +254,7 @@ func (d *DandelionCore) sendTrx(privateKey *prototype.PrivateKeyType, operations
 		Signature: new(prototype.SignatureType),
 	}
 	signedTrx.Signature.Sig = signedTrx.Sign(privateKey, d.chainId)
-	err = d.TrxPool().PushTrxToPending(signedTrx)
-	return signedTrx, err
+	return signedTrx, nil
 }
 
 func (d *DandelionCore) sendTrxAndProduceBlock(privateKey *prototype.PrivateKeyType, operations...*prototype.Operation) (trx *prototype.SignedTransaction, block *prototype.SignedBlock, err error) {
@@ -346,4 +353,39 @@ func (d *DandelionCore) UnsubscribePreShuffle(beforeOrAfter bool, f interface{})
 			delete(d.afterPreshuffle, k)
 		}
 	}
+}
+
+func (d *DandelionCore) PushBlock(trxWrappers...*prototype.TransactionWrapper) (block *prototype.SignedBlock, err error) {
+	var blockId common.BlockID
+	copy(blockId.Data[:], d.prevHash.Hash)
+	num := blockId.BlockNum() + 1
+	bp := d.Consensus().GetProducer(num)
+	bpKey, ok := d.accounts[bp]
+	if !ok {
+		err = fmt.Errorf("unknown block producer: %s", bp)
+		return
+	}
+	block = &prototype.SignedBlock{
+		SignedHeader:         &prototype.SignedBlockHeader{
+			Header:                 &prototype.BlockHeader{
+				Previous:              &prototype.Sha256{ Hash: blockId.Data[:]},
+				Timestamp:             &prototype.TimePointSec{UtcSeconds: d.timeStamp},
+				BlockProducer:          &prototype.AccountName{Value: bp},
+			},
+			BlockProducerSignature: &prototype.SignatureType{},
+		},
+		Transactions:         trxWrappers,
+	}
+	id := block.CalculateMerkleRoot()
+	block.SignedHeader.Header.TransactionMerkleRoot = &prototype.Sha256{Hash: id.Data[:]}
+	_ = block.SignedHeader.Sign(bpKey)
+	if err = d.TrxPool().PushBlock(block, 0); err != nil {
+		return
+	}
+	blockId = block.Id()
+	d.TrxPool().Commit(num)
+	copy(d.prevHash.Hash, blockId.Data[:])
+	d.timeStamp += constants.BlockInterval
+	d.node.EvBus.Publish(constants.NoticeLibChange, []common.ISignedBlock{block})
+	return
 }
