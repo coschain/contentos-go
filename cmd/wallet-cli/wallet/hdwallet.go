@@ -118,9 +118,10 @@ func (w *BaseHDWallet) GenerateNewMnemonic() (string, error) {
 	return mnemonic, err
 }
 
-func (w *BaseHDWallet) GenerateFromMnemonic(mnemonic string) (string, string, error) {
+
+func GenerateKeyPairFromMnemonic(mnemonic string, hdPath string) (string, string, error) {
 	seed := bip39.NewSeed(mnemonic, "")
-	path, err := ParseDerivationPath(w.hdPath)
+	path, err := ParseDerivationPath(hdPath)
 	if err != nil {
 		return "", "", err
 	}
@@ -145,6 +146,10 @@ func (w *BaseHDWallet) GenerateFromMnemonic(mnemonic string) (string, string, er
 	privKeyStr := privKey.ToWIF()
 	pubKeyStr := pubKey.ToWIF()
 	return pubKeyStr, privKeyStr, nil
+}
+
+func (w *BaseHDWallet) GenerateFromMnemonic(mnemonic string) (string, string, error) {
+	return GenerateKeyPairFromMnemonic(mnemonic, w.hdPath)
 }
 
 
