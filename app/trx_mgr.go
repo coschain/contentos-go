@@ -355,6 +355,22 @@ func (m *TrxMgr) CheckBlockTrxs(b *prototype.SignedBlock) (entries []*TrxEntry, 
 			entries = nil
 			err = fmt.Errorf("block %d trxs[%d] check failed: %s", b.SignedHeader.Number(), errIdx, errs[errIdx].Error())
 		}
+
+		// check duplicate transactions inside the block.
+		// it's a must to prevent malicious block producers from replay attacking.
+		// m.history won't help here coz it updates in block level instead of transaction level.
+		trxSigs, dupTrx := make(map[string]bool), -1
+		for idx, e := range entries {
+			if trxSigs[e.sig] {
+				dupTrx = idx
+				break
+			}
+			trxSigs[e.sig] = true
+		}
+		if dupTrx >= 0 {
+			entries = nil
+			err = fmt.Errorf("block %d trxs[%d] duplicates", b.SignedHeader.Number(), dupTrx)
+		}
 	}
 	m.log.Debugf("TRXMGR: CheckBlockTrxs end %d: #tx=%d, %v", b.SignedHeader.Number(), len(b.Transactions), t0)
 	return
