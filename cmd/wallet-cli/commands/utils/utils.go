@@ -18,7 +18,7 @@ import (
 	"time"
 )
 
-const MinimumCos = "0.000001"
+const MinimumCos = "0.100000"
 var EstimateStamina bool
 
 func GenerateSignedTxAndValidate(cmd *cobra.Command, ops []interface{}, signers *wallet.PrivAccount) (*prototype.SignedTransaction, error) {

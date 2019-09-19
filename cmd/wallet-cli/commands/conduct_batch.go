@@ -103,6 +103,10 @@ func conductBatch(cmd *cobra.Command, args []string) {
 			bpName := cmdArgs[1]
 			bpPubKeyStr := cmdArgs[2]
 			bpPriKeyStr := cmdArgs[3]
+			var bpURL = ""
+			if len(cmdArgs) == 5 {
+				bpURL = cmdArgs[4]
+			}
 
 			bpAccount := &wallet.PrivAccount{
 				Account: wallet.Account{Name: bpName, PubKey: bpPubKeyStr},
@@ -111,18 +115,13 @@ func conductBatch(cmd *cobra.Command, args []string) {
 
 			pubkey, _ := prototype.PublicKeyFromWIF(bpPubKeyStr)
 
-			fee,err := utils.ParseCos(bpCreateAccountFee)
-			if err != nil {
-				fmt.Println(err)
-				return
-			}
 			bpRegister_op := &prototype.BpRegisterOperation{
 				Owner:           &prototype.AccountName{Value: bpName},
-				Url:             bpUrlFlag,
+				Url:             bpURL,
 				Desc:            bpDescFlag,
 				BlockSigningKey: pubkey,
 				Props: &prototype.ChainProperties{
-					AccountCreationFee:    prototype.NewCoin(fee),
+					AccountCreationFee:    prototype.NewCoin(constants.DefaultAccountCreateFee),
 					StaminaFree:           constants.DefaultStaminaFree,
 					TpsExpected:           constants.DefaultTPSExpected,
 					EpochDuration:         constants.InitEpochDuration,
