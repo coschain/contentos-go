@@ -95,10 +95,6 @@ type BaseHDWallet struct {
 }
 
 func NewBaseHDWallet(name string, path string) *BaseHDWallet {
-	b:=&BaseHDWallet{}
-
-	b.name = "a"
-
 	return &BaseHDWallet{
 		BaseWallet: BaseWallet{
 			name:     name,
