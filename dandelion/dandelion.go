@@ -138,13 +138,6 @@ func (d *Dandelion) ExtTrx(trxId *prototype.Sha256) *table.SoExtTrxWrap {
 	return table.NewSoExtTrxWrap(d.Database(), trxId)
 }
 
-func (d *Dandelion) ExtReward(account string, postId uint64) *table.SoExtRewardWrap {
-	return table.NewSoExtRewardWrap(d.Database(), &prototype.RewardCashoutId{
-		Account: prototype.NewAccountName(account),
-		PostId: postId,
-	})
-}
-
 func (d *Dandelion) ExtReplyCreated(postId uint64) *table.SoExtReplyCreatedWrap {
 	return table.NewSoExtReplyCreatedWrap(d.Database(), &postId)
 }
