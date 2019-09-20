@@ -6,7 +6,6 @@ import (
 	cmn "github.com/coschain/contentos-go/common"
 	"github.com/ethereum/go-ethereum/crypto"
 	"github.com/ethereum/go-ethereum/crypto/secp256k1"
-	"github.com/coschain/contentos-go/p2p/common"
 	"github.com/gogo/protobuf/proto"
 	"github.com/pkg/errors"
 )
@@ -150,22 +149,6 @@ func (p *SignedTransaction) MerkleDigest() (*Sha256, error) {
 	}
 	id := &Sha256{Hash: bs}
 	return id, nil
-}
-
-func (p *SignedTransaction) Serialization(sink *common.ZeroCopySink) error {
-	data, _ := proto.Marshal(p)
-	sink.WriteBytes(data)
-	return nil
-}
-
-func (tx *SignedTransaction) Deserialization(source *common.ZeroCopySource) error {
-	tmp := &SignedTransaction{}
-	err := proto.Unmarshal(source.Data(), tmp)
-	if err != nil {
-		return err
-	}
-	tx = tmp
-	return nil
 }
 
 func (tx *SignedTransaction) GetAffectedProps(props *map[string]bool) {
