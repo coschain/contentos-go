@@ -75,46 +75,6 @@ func (mr *MockApiServiceClientMockRecorder) GetAccountByName(ctx, in interface{}
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAccountByName", reflect.TypeOf((*MockApiServiceClient)(nil).GetAccountByName), varargs...)
 }
 
-// GetAccountCashout mocks base method
-func (m *MockApiServiceClient) GetAccountCashout(ctx context.Context, in *pb.GetAccountCashoutRequest, opts ...grpc.CallOption) (*pb.AccountCashoutResponse, error) {
-	m.ctrl.T.Helper()
-	varargs := []interface{}{ctx, in}
-	for _, a := range opts {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "GetAccountCashout", varargs...)
-	ret0, _ := ret[0].(*pb.AccountCashoutResponse)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetAccountCashout indicates an expected call of GetAccountCashout
-func (mr *MockApiServiceClientMockRecorder) GetAccountCashout(ctx, in interface{}, opts ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{ctx, in}, opts...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAccountCashout", reflect.TypeOf((*MockApiServiceClient)(nil).GetAccountCashout), varargs...)
-}
-
-// GetBlockCashout mocks base method
-func (m *MockApiServiceClient) GetBlockCashout(ctx context.Context, in *pb.GetBlockCashoutRequest, opts ...grpc.CallOption) (*pb.BlockCashoutResponse, error) {
-	m.ctrl.T.Helper()
-	varargs := []interface{}{ctx, in}
-	for _, a := range opts {
-		varargs = append(varargs, a)
-	}
-	ret := m.ctrl.Call(m, "GetBlockCashout", varargs...)
-	ret0, _ := ret[0].(*pb.BlockCashoutResponse)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetBlockCashout indicates an expected call of GetBlockCashout
-func (mr *MockApiServiceClientMockRecorder) GetBlockCashout(ctx, in interface{}, opts ...interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{ctx, in}, opts...)
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBlockCashout", reflect.TypeOf((*MockApiServiceClient)(nil).GetBlockCashout), varargs...)
-}
-
 // GetFollowerListByName mocks base method
 func (m *MockApiServiceClient) GetFollowerListByName(ctx context.Context, in *pb.GetFollowerListByNameRequest, opts ...grpc.CallOption) (*pb.GetFollowerListByNameResponse, error) {
 	m.ctrl.T.Helper()
@@ -886,36 +846,6 @@ func (m *MockApiServiceServer) GetAccountByName(arg0 context.Context, arg1 *pb.G
 func (mr *MockApiServiceServerMockRecorder) GetAccountByName(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAccountByName", reflect.TypeOf((*MockApiServiceServer)(nil).GetAccountByName), arg0, arg1)
-}
-
-// GetAccountCashout mocks base method
-func (m *MockApiServiceServer) GetAccountCashout(arg0 context.Context, arg1 *pb.GetAccountCashoutRequest) (*pb.AccountCashoutResponse, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetAccountCashout", arg0, arg1)
-	ret0, _ := ret[0].(*pb.AccountCashoutResponse)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetAccountCashout indicates an expected call of GetAccountCashout
-func (mr *MockApiServiceServerMockRecorder) GetAccountCashout(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAccountCashout", reflect.TypeOf((*MockApiServiceServer)(nil).GetAccountCashout), arg0, arg1)
-}
-
-// GetBlockCashout mocks base method
-func (m *MockApiServiceServer) GetBlockCashout(arg0 context.Context, arg1 *pb.GetBlockCashoutRequest) (*pb.BlockCashoutResponse, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetBlockCashout", arg0, arg1)
-	ret0, _ := ret[0].(*pb.BlockCashoutResponse)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
-}
-
-// GetBlockCashout indicates an expected call of GetBlockCashout
-func (mr *MockApiServiceServerMockRecorder) GetBlockCashout(arg0, arg1 interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBlockCashout", reflect.TypeOf((*MockApiServiceServer)(nil).GetBlockCashout), arg0, arg1)
 }
 
 // GetFollowerListByName mocks base method

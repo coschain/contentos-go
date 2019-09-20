@@ -16,13 +16,6 @@ service ApiService {
     rpc GetAccountByName (GetAccountByNameRequest) returns (AccountResponse) {
     }
 
-    rpc GetAccountCashout (GetAccountCashoutRequest) returns (AccountCashoutResponse) {
-    }
-
-    rpc GetBlockCashout (GetBlockCashoutRequest) returns (BlockCashoutResponse) {
-
-    }
-
     rpc GetFollowerListByName (GetFollowerListByNameRequest) returns (GetFollowerListByNameResponse) {
     }
 
