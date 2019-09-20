@@ -17,6 +17,7 @@ type PowerUpDownRecord struct {
 	BlockHeight uint64			`gorm:"index"`
 	BlockTime time.Time
 	OperationId string			`gorm:"index"`
+	Memo string
 }
 
 type PowerUpDownProcessor struct {
@@ -62,6 +63,7 @@ func (p *PowerUpDownProcessor) ProcessOperation(db *gorm.DB, blockLog *blocklog.
 				BlockHeight: blockLog.BlockNum,
 				BlockTime:   time.Unix(int64(blockLog.BlockTime), 0),
 				OperationId: fmt.Sprintf("%s_%d", trxLog.TrxId, opIdx),
+				Memo:        op.GetMemo(),
 			}
 			return db.Create(r).Error
 		}
@@ -75,6 +77,7 @@ func (p *PowerUpDownProcessor) ProcessOperation(db *gorm.DB, blockLog *blocklog.
 				BlockHeight: blockLog.BlockNum,
 				BlockTime:   time.Unix(int64(blockLog.BlockTime), 0),
 				OperationId: fmt.Sprintf("%s_%d", trxLog.TrxId, opIdx),
+				Memo:        "",
 			}
 			return db.Create(r).Error
 		}
