@@ -1181,8 +1181,30 @@ func {{$.ClsName}}RecordWatcherChanged(dbSvcId uint32) {
 	{{$.ClsName}}WatcherFlagsLock.Unlock()
 }
 
+////////////// SECTION Json query ///////////////
+
+func {{.ClsName}}Query(db iservices.IDatabaseRW, keyJson string) (valueJson string, err error) {
+    k := new({{.MainKeyType}})
+    d := json.NewDecoder(bytes.NewReader([]byte(keyJson)))
+    d.UseNumber()
+    if err = d.Decode(k); err != nil {
+        return
+    }
+    if v := NewSo{{.ClsName}}Wrap(db, k).get{{.ClsName}}(); v == nil {
+        err = errors.New("not found")
+    } else {
+        var jbytes []byte
+        if jbytes, err = json.Marshal(v); err == nil {
+            valueJson = string(jbytes)
+        }
+    }
+    return
+}
+
+
 func init() {
 	RegisterTableWatcherChangedCallback({{$.ClsName}}Table.Record, {{$.ClsName}}RecordWatcherChanged)
+	RegisterTableJsonQuery("{{.ClsName}}", {{.ClsName}}Query)
 }
 
 `

@@ -1,6 +1,8 @@
 package table
 
 import (
+	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"reflect"
@@ -2108,6 +2110,27 @@ func ContractRecordWatcherChanged(dbSvcId uint32) {
 	ContractWatcherFlagsLock.Unlock()
 }
 
+////////////// SECTION Json query ///////////////
+
+func ContractQuery(db iservices.IDatabaseRW, keyJson string) (valueJson string, err error) {
+	k := new(prototype.ContractId)
+	d := json.NewDecoder(bytes.NewReader([]byte(keyJson)))
+	d.UseNumber()
+	if err = d.Decode(k); err != nil {
+		return
+	}
+	if v := NewSoContractWrap(db, k).getContract(); v == nil {
+		err = errors.New("not found")
+	} else {
+		var jbytes []byte
+		if jbytes, err = json.Marshal(v); err == nil {
+			valueJson = string(jbytes)
+		}
+	}
+	return
+}
+
 func init() {
 	RegisterTableWatcherChangedCallback(ContractTable.Record, ContractRecordWatcherChanged)
+	RegisterTableJsonQuery("Contract", ContractQuery)
 }

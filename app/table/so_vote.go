@@ -1,6 +1,8 @@
 package table
 
 import (
+	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"reflect"
@@ -1615,6 +1617,27 @@ func VoteRecordWatcherChanged(dbSvcId uint32) {
 	VoteWatcherFlagsLock.Unlock()
 }
 
+////////////// SECTION Json query ///////////////
+
+func VoteQuery(db iservices.IDatabaseRW, keyJson string) (valueJson string, err error) {
+	k := new(prototype.VoterId)
+	d := json.NewDecoder(bytes.NewReader([]byte(keyJson)))
+	d.UseNumber()
+	if err = d.Decode(k); err != nil {
+		return
+	}
+	if v := NewSoVoteWrap(db, k).getVote(); v == nil {
+		err = errors.New("not found")
+	} else {
+		var jbytes []byte
+		if jbytes, err = json.Marshal(v); err == nil {
+			valueJson = string(jbytes)
+		}
+	}
+	return
+}
+
 func init() {
 	RegisterTableWatcherChangedCallback(VoteTable.Record, VoteRecordWatcherChanged)
+	RegisterTableJsonQuery("Vote", VoteQuery)
 }

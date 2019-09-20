@@ -1,6 +1,8 @@
 package table
 
 import (
+	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"reflect"
@@ -3113,6 +3115,27 @@ func DemoRecordWatcherChanged(dbSvcId uint32) {
 	DemoWatcherFlagsLock.Unlock()
 }
 
+////////////// SECTION Json query ///////////////
+
+func DemoQuery(db iservices.IDatabaseRW, keyJson string) (valueJson string, err error) {
+	k := new(prototype.AccountName)
+	d := json.NewDecoder(bytes.NewReader([]byte(keyJson)))
+	d.UseNumber()
+	if err = d.Decode(k); err != nil {
+		return
+	}
+	if v := NewSoDemoWrap(db, k).getDemo(); v == nil {
+		err = errors.New("not found")
+	} else {
+		var jbytes []byte
+		if jbytes, err = json.Marshal(v); err == nil {
+			valueJson = string(jbytes)
+		}
+	}
+	return
+}
+
 func init() {
 	RegisterTableWatcherChangedCallback(DemoTable.Record, DemoRecordWatcherChanged)
+	RegisterTableJsonQuery("Demo", DemoQuery)
 }

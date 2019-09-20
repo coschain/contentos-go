@@ -1,6 +1,8 @@
 package table
 
 import (
+	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"reflect"
@@ -1372,6 +1374,27 @@ func GiftTicketRecordWatcherChanged(dbSvcId uint32) {
 	GiftTicketWatcherFlagsLock.Unlock()
 }
 
+////////////// SECTION Json query ///////////////
+
+func GiftTicketQuery(db iservices.IDatabaseRW, keyJson string) (valueJson string, err error) {
+	k := new(prototype.GiftTicketKeyType)
+	d := json.NewDecoder(bytes.NewReader([]byte(keyJson)))
+	d.UseNumber()
+	if err = d.Decode(k); err != nil {
+		return
+	}
+	if v := NewSoGiftTicketWrap(db, k).getGiftTicket(); v == nil {
+		err = errors.New("not found")
+	} else {
+		var jbytes []byte
+		if jbytes, err = json.Marshal(v); err == nil {
+			valueJson = string(jbytes)
+		}
+	}
+	return
+}
+
 func init() {
 	RegisterTableWatcherChangedCallback(GiftTicketTable.Record, GiftTicketRecordWatcherChanged)
+	RegisterTableJsonQuery("GiftTicket", GiftTicketQuery)
 }
