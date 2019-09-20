@@ -1558,3 +1558,11 @@ func (as *APIService) GetBlockProducerByName(ctx context.Context, req *grpcpb.Ge
 	return acct, nil
 
 }
+
+func (as *APIService) GetAppTableRecord(ctx context.Context, req *grpcpb.GetAppTableRecordRequest) (*grpcpb.GetAppTableRecordResponse, error) {
+	if valueJson, err := table.QueryTableRecord(as.db, req.GetTableName(), req.GetKey()); err == nil {
+		return &grpcpb.GetAppTableRecordResponse{ Success:true, Record:valueJson }, nil
+	} else {
+		return &grpcpb.GetAppTableRecordResponse{ Success:false, ErrorMsg:err.Error() }, nil
+	}
+}

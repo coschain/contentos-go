@@ -126,6 +126,9 @@ service ApiService {
     }
     rpc GetAccountByPubKey (GetAccountByPubKeyRequest) returns (AccountResponse) {
     }
+
+    rpc GetAppTableRecord (GetAppTableRecordRequest) returns (GetAppTableRecordResponse) {
+    }
 }
 
 
@@ -663,8 +666,19 @@ message GetMyStakeListByNameResponse {
 }
 
 message GetAccountListByVestRequest {
-    prototype.vest   start     = 1;
-    prototype.vest   end       = 2;
-    AccountInfo  last_account = 3;
-    uint32           limit     = 4;
+    prototype.vest start = 1;
+    prototype.vest end = 2;
+    AccountInfo last_account = 3;
+    uint32 limit = 4;
+}
+
+message GetAppTableRecordRequest {
+    string  table_name = 1;
+    string  key = 2;
+}
+
+message GetAppTableRecordResponse {
+    bool    success = 1;
+    string  error_msg = 2;
+    string  record = 3;
 }
