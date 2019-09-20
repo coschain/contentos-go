@@ -14,5 +14,6 @@ var (
 	ErrCoinFormatErr = errors.New("Coin Format Error")
 	ErrJSONFormatErr = errors.New("JSON Format Error")
 	ErrCoinZero = errors.New("Coin Value Zero Error")
+	ErrSigInvalidS    = errors.New("Invalid S value of signature")
 
 )

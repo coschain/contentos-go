@@ -28,6 +28,10 @@ func newPubValidator(s *SABFT, pk *prototype.PublicKeyType, n string) *publicVal
 }
 
 func (pv *publicValidator) VerifySig(digest, signature []byte) bool {
+	sig := &prototype.SignatureType{Sig:signature}
+	if err := sig.Validate(); err != nil {
+		return false
+	}
 	buffer, err := secp256k1.RecoverPubkey(digest, signature)
 	if err != nil {
 		pv.sab.log.Error(err)

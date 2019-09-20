@@ -94,6 +94,12 @@ func (sb *SignedBlock) GetSignee() (interface{}, error) {
 }
 
 func (sbh *SignedBlockHeader) GetSignee() (interface{}, error) {
+	if sbh.BlockProducerSignature == nil {
+		return nil, errors.New("no signature")
+	}
+	if err := sbh.BlockProducerSignature.Validate(); err != nil {
+		return nil, err
+	}
 	hash := sbh.Header.Hash()
 	buf, err := secp256k1.RecoverPubkey(hash[:], sbh.BlockProducerSignature.Sig)
 	if err != nil {

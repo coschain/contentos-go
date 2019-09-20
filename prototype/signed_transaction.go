@@ -20,6 +20,9 @@ func (p *SignedTransaction) ExportPubKeys(cid ChainId) (*PublicKeyType, error) {
 	if p.Signature == nil {
 		return nil, errors.New("no signatures")
 	}
+	if err = p.Signature.Validate(); err != nil {
+		return nil, err
+	}
 
 	result := &PublicKeyType{}
 
@@ -60,6 +63,12 @@ func (p *SignedTransaction) VerifySig(pubKey *PublicKeyType, cid ChainId) bool {
 	buf, err := p.getTrxHash(cid)
 
 	if err != nil {
+		return false
+	}
+	if p.Signature == nil {
+		return false
+	}
+	if err = p.Signature.Validate(); err != nil {
 		return false
 	}
 
