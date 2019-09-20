@@ -1,10 +1,12 @@
 package common
 
 import (
+	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/common/constants"
 	. "github.com/coschain/contentos-go/dandelion"
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/stretchr/testify/assert"
+	"math/big"
 	"strings"
 	"testing"
 )
@@ -16,6 +18,7 @@ func (tester *TrxTester) Test(t *testing.T, d *Dandelion) {
 	t.Run("require_multi_signers", d.Test(tester.requireMultiSigners))
 	t.Run("double_spent", d.Test(tester.doubleSpent))
 	t.Run("dup_trx_inside_block", d.Test(tester.dupTrxInsideBlock))
+	t.Run("sig_replay", d.Test(tester.sigReplay))
 }
 
 func (tester *TrxTester) tooBig(t *testing.T, d *Dandelion) {
@@ -97,4 +100,32 @@ func (tester *TrxTester) dupTrxInsideBlock(t *testing.T, d *Dandelion) {
 	a.NotNil(block)
 	// PushBlock() must fail because the block contains duplicate transactions.
 	a.Error(err)
+}
+
+func (tester *TrxTester) sigReplay(t *testing.T, d *Dandelion) {
+	const amount = 1
+	a := assert.New(t)
+
+	op := Transfer(constants.COSInitMiner, "actor0", amount, "")
+	acc := d.Account(constants.COSInitMiner)
+	key := d.GetAccountKey(constants.COSInitMiner)
+	balance := acc.GetBalance().GetValue()
+
+	trx, _ := d.NewSignedTransaction(key, op)
+
+	trx2 := new(prototype.SignedTransaction)
+	*trx2 = *trx
+	sig := common.CopyBytes(trx.Signature.Sig)
+	s := big.NewInt(0).SetBytes(sig[32:64])
+	n, _ := big.NewInt(0).SetString("FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFEBAAEDCE6AF48A03BBFD25E8CD0364141", 16)
+	copy(sig[32:64], s.Sub(n, s).Bytes())
+	sig[64] ^= 1
+	trx2.Signature = &prototype.SignatureType{Sig:sig}
+
+	_, _ = d.SendRawTrx(trx)
+	_, _ = d.SendRawTrx(trx2)
+
+	a.NoError(d.ProduceBlocks(1))
+
+	a.EqualValues(balance - amount, acc.GetBalance().GetValue())
 }
