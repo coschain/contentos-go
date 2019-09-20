@@ -1,6 +1,8 @@
 package table
 
 import (
+	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"reflect"
@@ -936,6 +938,27 @@ func TransactionObjectRecordWatcherChanged(dbSvcId uint32) {
 	TransactionObjectWatcherFlagsLock.Unlock()
 }
 
+////////////// SECTION Json query ///////////////
+
+func TransactionObjectQuery(db iservices.IDatabaseRW, keyJson string) (valueJson string, err error) {
+	k := new(prototype.Sha256)
+	d := json.NewDecoder(bytes.NewReader([]byte(keyJson)))
+	d.UseNumber()
+	if err = d.Decode(k); err != nil {
+		return
+	}
+	if v := NewSoTransactionObjectWrap(db, k).getTransactionObject(); v == nil {
+		err = errors.New("not found")
+	} else {
+		var jbytes []byte
+		if jbytes, err = json.Marshal(v); err == nil {
+			valueJson = string(jbytes)
+		}
+	}
+	return
+}
+
 func init() {
 	RegisterTableWatcherChangedCallback(TransactionObjectTable.Record, TransactionObjectRecordWatcherChanged)
+	RegisterTableJsonQuery("TransactionObject", TransactionObjectQuery)
 }

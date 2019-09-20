@@ -1,6 +1,8 @@
 package table
 
 import (
+	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"reflect"
@@ -1155,6 +1157,27 @@ func ReportListRecordWatcherChanged(dbSvcId uint32) {
 	ReportListWatcherFlagsLock.Unlock()
 }
 
+////////////// SECTION Json query ///////////////
+
+func ReportListQuery(db iservices.IDatabaseRW, keyJson string) (valueJson string, err error) {
+	k := new(uint64)
+	d := json.NewDecoder(bytes.NewReader([]byte(keyJson)))
+	d.UseNumber()
+	if err = d.Decode(k); err != nil {
+		return
+	}
+	if v := NewSoReportListWrap(db, k).getReportList(); v == nil {
+		err = errors.New("not found")
+	} else {
+		var jbytes []byte
+		if jbytes, err = json.Marshal(v); err == nil {
+			valueJson = string(jbytes)
+		}
+	}
+	return
+}
+
 func init() {
 	RegisterTableWatcherChangedCallback(ReportListTable.Record, ReportListRecordWatcherChanged)
+	RegisterTableJsonQuery("ReportList", ReportListQuery)
 }

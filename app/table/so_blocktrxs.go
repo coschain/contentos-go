@@ -1,6 +1,8 @@
 package table
 
 import (
+	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"reflect"
@@ -753,6 +755,27 @@ func BlocktrxsRecordWatcherChanged(dbSvcId uint32) {
 	BlocktrxsWatcherFlagsLock.Unlock()
 }
 
+////////////// SECTION Json query ///////////////
+
+func BlocktrxsQuery(db iservices.IDatabaseRW, keyJson string) (valueJson string, err error) {
+	k := new(uint64)
+	d := json.NewDecoder(bytes.NewReader([]byte(keyJson)))
+	d.UseNumber()
+	if err = d.Decode(k); err != nil {
+		return
+	}
+	if v := NewSoBlocktrxsWrap(db, k).getBlocktrxs(); v == nil {
+		err = errors.New("not found")
+	} else {
+		var jbytes []byte
+		if jbytes, err = json.Marshal(v); err == nil {
+			valueJson = string(jbytes)
+		}
+	}
+	return
+}
+
 func init() {
 	RegisterTableWatcherChangedCallback(BlocktrxsTable.Record, BlocktrxsRecordWatcherChanged)
+	RegisterTableJsonQuery("Blocktrxs", BlocktrxsQuery)
 }

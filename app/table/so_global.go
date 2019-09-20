@@ -1,6 +1,8 @@
 package table
 
 import (
+	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"reflect"
@@ -754,6 +756,27 @@ func GlobalRecordWatcherChanged(dbSvcId uint32) {
 	GlobalWatcherFlagsLock.Unlock()
 }
 
+////////////// SECTION Json query ///////////////
+
+func GlobalQuery(db iservices.IDatabaseRW, keyJson string) (valueJson string, err error) {
+	k := new(int32)
+	d := json.NewDecoder(bytes.NewReader([]byte(keyJson)))
+	d.UseNumber()
+	if err = d.Decode(k); err != nil {
+		return
+	}
+	if v := NewSoGlobalWrap(db, k).getGlobal(); v == nil {
+		err = errors.New("not found")
+	} else {
+		var jbytes []byte
+		if jbytes, err = json.Marshal(v); err == nil {
+			valueJson = string(jbytes)
+		}
+	}
+	return
+}
+
 func init() {
 	RegisterTableWatcherChangedCallback(GlobalTable.Record, GlobalRecordWatcherChanged)
+	RegisterTableJsonQuery("Global", GlobalQuery)
 }

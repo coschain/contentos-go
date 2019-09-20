@@ -1,6 +1,8 @@
 package table
 
 import (
+	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"reflect"
@@ -1086,6 +1088,27 @@ func ExtDailyTrxRecordWatcherChanged(dbSvcId uint32) {
 	ExtDailyTrxWatcherFlagsLock.Unlock()
 }
 
+////////////// SECTION Json query ///////////////
+
+func ExtDailyTrxQuery(db iservices.IDatabaseRW, keyJson string) (valueJson string, err error) {
+	k := new(prototype.TimePointSec)
+	d := json.NewDecoder(bytes.NewReader([]byte(keyJson)))
+	d.UseNumber()
+	if err = d.Decode(k); err != nil {
+		return
+	}
+	if v := NewSoExtDailyTrxWrap(db, k).getExtDailyTrx(); v == nil {
+		err = errors.New("not found")
+	} else {
+		var jbytes []byte
+		if jbytes, err = json.Marshal(v); err == nil {
+			valueJson = string(jbytes)
+		}
+	}
+	return
+}
+
 func init() {
 	RegisterTableWatcherChangedCallback(ExtDailyTrxTable.Record, ExtDailyTrxRecordWatcherChanged)
+	RegisterTableJsonQuery("ExtDailyTrx", ExtDailyTrxQuery)
 }
