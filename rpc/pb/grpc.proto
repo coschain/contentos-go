@@ -121,6 +121,9 @@ service ApiService {
     }
     rpc GetBlockBFTInfoByNum (GetBlockBFTInfoByNumRequest) returns (GetBlockBFTInfoByNumResponse) {
     }
+
+    rpc GetAppTableRecord (GetAppTableRecordRequest) returns (GetAppTableRecordResponse) {
+    }
 }
 
 
@@ -677,4 +680,15 @@ message GetBlockBFTInfoByNumResponse {
     string   committer_pub_key = 1;
     bytes    signature = 2;
     repeated BFTVoteInfo  vote = 3;
+}
+
+message GetAppTableRecordRequest {
+    string  table_name = 1;
+    string  key = 2;
+}
+
+message GetAppTableRecordResponse {
+    bool    success = 1;
+    string  error_msg = 2;
+    string  record = 3;
 }

@@ -1544,3 +1544,11 @@ func (as *APIService) GetBlockBFTInfoByNum(ctx context.Context, req *grpcpb.GetB
 	}
 	return res,nil
 }
+
+func (as *APIService) GetAppTableRecord(ctx context.Context, req *grpcpb.GetAppTableRecordRequest) (*grpcpb.GetAppTableRecordResponse, error) {
+	if valueJson, err := table.QueryTableRecord(as.db, req.GetTableName(), req.GetKey()); err == nil {
+		return &grpcpb.GetAppTableRecordResponse{ Success:true, Record:valueJson }, nil
+	} else {
+		return &grpcpb.GetAppTableRecordResponse{ Success:false, ErrorMsg:err.Error() }, nil
+	}
+}

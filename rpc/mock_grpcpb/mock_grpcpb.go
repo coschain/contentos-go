@@ -795,6 +795,26 @@ func (mr *MockApiServiceClientMockRecorder) GetBlockBFTInfoByNum(ctx, in interfa
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBlockBFTInfoByNum", reflect.TypeOf((*MockApiServiceClient)(nil).GetBlockBFTInfoByNum), varargs...)
 }
 
+// GetAppTableRecord mocks base method
+func (m *MockApiServiceClient) GetAppTableRecord(ctx context.Context, in *pb.GetAppTableRecordRequest, opts ...grpc.CallOption) (*pb.GetAppTableRecordResponse, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{ctx, in}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "GetAppTableRecord", varargs...)
+	ret0, _ := ret[0].(*pb.GetAppTableRecordResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetAppTableRecord indicates an expected call of GetAppTableRecord
+func (mr *MockApiServiceClientMockRecorder) GetAppTableRecord(ctx, in interface{}, opts ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{ctx, in}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAppTableRecord", reflect.TypeOf((*MockApiServiceClient)(nil).GetAppTableRecord), varargs...)
+}
+
 // MockApiServiceServer is a mock of ApiServiceServer interface
 type MockApiServiceServer struct {
 	ctrl     *gomock.Controller
@@ -1386,4 +1406,19 @@ func (m *MockApiServiceServer) GetBlockBFTInfoByNum(arg0 context.Context, arg1 *
 func (mr *MockApiServiceServerMockRecorder) GetBlockBFTInfoByNum(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBlockBFTInfoByNum", reflect.TypeOf((*MockApiServiceServer)(nil).GetBlockBFTInfoByNum), arg0, arg1)
+}
+
+// GetAppTableRecord mocks base method
+func (m *MockApiServiceServer) GetAppTableRecord(arg0 context.Context, arg1 *pb.GetAppTableRecordRequest) (*pb.GetAppTableRecordResponse, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetAppTableRecord", arg0, arg1)
+	ret0, _ := ret[0].(*pb.GetAppTableRecordResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetAppTableRecord indicates an expected call of GetAppTableRecord
+func (mr *MockApiServiceServerMockRecorder) GetAppTableRecord(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAppTableRecord", reflect.TypeOf((*MockApiServiceServer)(nil).GetAppTableRecord), arg0, arg1)
 }
