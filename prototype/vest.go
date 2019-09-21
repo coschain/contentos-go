@@ -46,11 +46,13 @@ func (m *Vest) ToCoin() *Coin {
 }
 
 func (m *Vest) ToString() string {
-	var result float64
+	var result = m.Value
 
-	result = float64(m.Value * 1.0) / float64(constants.COSTokenDecimals * 1.0)
-	return fmt.Sprintf("%.6f %s",
-		result,
+	var high = result / constants.COSTokenDecimals
+	var low = result % constants.COSTokenDecimals
+
+	return fmt.Sprintf("%d.%06d %s",
+		high,low,
 		constants.VestSymbol)
 }
 
