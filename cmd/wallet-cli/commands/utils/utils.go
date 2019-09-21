@@ -14,6 +14,7 @@ import (
 	"math/rand"
 	"regexp"
 	"strconv"
+	"strings"
 	"syscall"
 	"time"
 )
@@ -98,20 +99,30 @@ func GetPassphrase(reader PasswordReader) (string, error) {
 }
 
 func ParseCos(v string) (uint64,error) {
-	if m, _ := regexp.MatchString("^[0-9]*\\.[0-9]{6}$", v); !m {
+	if m, _ := regexp.MatchString("^[0-9]+\\.[0-9]{6}$", v); !m {
 		return 0,errors.New("input must be x.xxxxxx : any bit before . and six bit after .")
 	}
 
-	amountFloat, err := strconv.ParseFloat(v, 64)
-	if err != nil {
-		return 0,err
+	i := strings.Index(v, ".")
+	if -1 == i {
+		return 0,errors.New(". symbol not found")
 	}
-	if amountFloat < 0.000001 {
-		err = errors.New(fmt.Sprintf("minimum can not less 0.000001"))
-		return 0,err
+
+	left := v[:i]
+	right := v[i+1:]
+
+	leftN,err1 := strconv.ParseUint(left,10,64)
+	if err1 != nil {
+		return 0,err1
 	}
-	amount := amountFloat * constants.COSTokenDecimals
-	return uint64(amount),nil
+	rightN,err2 := strconv.ParseUint(right,10,64)
+	if err2 != nil {
+		return 0,err2
+	}
+
+	amount := leftN * constants.COSTokenDecimals + rightN
+
+	return amount,nil
 }
 
 func ProcessEstimate(cmd *cobra.Command) bool {
