@@ -263,8 +263,10 @@ func e_setCopyright(proc *exec.Process, postIds, postIdsLen, copyrights, copyrig
 	w.CosAssert(postIdsLen == copyrightsLen*2 && postIdsLen == memoPtrLen*2 && postIdsLen == memoSizeLen*2, "setCopyright(): illegal parameters")
 
 	for i := 0; i < count; i++ {
-		offset := i * 8
-		id := binary.LittleEndian.Uint64(postIdValues[offset:])
+		longOffset := i * 8
+		offset := i * 4
+
+		id := binary.LittleEndian.Uint64(postIdValues[longOffset:])
 
 		value := binary.LittleEndian.Uint32(valInts[offset:])
 		w.CosAssert(value >= constants.CopyrightUnkown && value <= constants.CopyrightConfirmation,
