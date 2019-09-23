@@ -1,14 +1,28 @@
 package wallet
 
 import (
+	"encoding/json"
 	"github.com/stretchr/testify/assert"
+	"io/ioutil"
 	"testing"
 )
 
+type BIP39 struct {
+	Mnemonic string `json:"Mnemonic"`
+	PublicKey string `json:"PublicKey"`
+	PrivateKey string `json:"PrivateKey"`
+}
+
 func TestBaseHDWallet_GenerateFromMnemonic(t *testing.T) {
+	data, _ := ioutil.ReadFile("testdata/bip39.json")
 	a := assert.New(t)
 	wallet := NewBaseHDWallet("1", "")
-	pubkeystr, privkeystr, _ := wallet.GenerateFromMnemonic("situate icon cluster install same burst vanish exchange tiny radar tourist labor exercise palm slab parrot drum spy liberty face flower hammer use walk")
-	a.Equal("COS66qMKdw7Khcyhvr5FWGQEMhn5XksqL1wxXoXYyftj4pKbF1ku5", pubkeystr)
-	a.Equal("3qBXa1xEzyzppu2BWnuJEFTW5HUFnXnJ3D9GiY636PNJSeXxrk", privkeystr)
+	var bips []BIP39
+	_ = json.Unmarshal(data, &bips)
+	for _, bip := range bips {
+		public, private, err := wallet.GenerateFromMnemonic(bip.Mnemonic)
+		a.NoError(err, "generate from mnemonic error!", bip.Mnemonic, err)
+		a.Equal(public, bip.PublicKey)
+		a.Equal(private, bip.PrivateKey)
+	}
 }
