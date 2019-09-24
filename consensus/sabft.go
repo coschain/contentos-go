@@ -458,7 +458,7 @@ func (sabft *SABFT) start() {
 func (sabft *SABFT) tryCommit(b common.ISignedBlock) {
 	commit := sabft.cp.NextUncommitted()
 	if commit != nil && b.Id() == ExtractBlockID(commit) {
-		success := sabft.cp.Validate(commit)
+		success := sabft.verifyCommitSig(commit)
 		if !success {
 			if !sabft.readyToProduce {
 				sabft.revertToLastCheckPoint()
@@ -651,8 +651,15 @@ func (sabft *SABFT) verifyCommitSig(records *message.Commit) bool {
 		e := fmt.Sprintf("empty dynasty in %s", sabft.Name)
 		panic(e)
 	}
+
+	valNum := sabft.dynasties.Front().GetValidatorNum()
+	precommitNum := len(records.Precommits)
+	if precommitNum <= valNum*2/3 {
+		sabft.log.Errorf("insufficient precommits in Commit %d ** %d: %v", valNum, precommitNum, records)
+		return false
+	}
+
 	for i := range records.Precommits {
-		//val := sabft.getValidator(records.Precommits[i].Address)
 		val := sabft.dynasties.Front().GetValidatorByPubKey(records.Precommits[i].Address)
 		if val == nil {
 			sabft.log.Errorf("[SABFT] error while checking precommits: %s is not a validator, current Dynasty: %s",
@@ -729,7 +736,7 @@ func (sabft *SABFT) loopCommit(commit *message.Commit) {
 			return
 		}
 
-		if !sabft.cp.Validate(checkPoint) {
+		if !sabft.verifyCommitSig(checkPoint) {
 			sabft.log.Error("validation on checkpoint failed, remove it")
 			sabft.cp.Remove(checkPoint)
 			return
@@ -980,9 +987,15 @@ func (sabft *SABFT) Commit(commitRecords *message.Commit) error {
 	defer sabft.Unlock()
 
 	sabft.log.Info("[SABFT] try to commit ", commitRecords)
+	if !sabft.verifyCommitSig(commitRecords) {
+		sabft.updateAppState(commitRecords)
+		return ErrInvalidCheckPoint
+	}
+
 	err := sabft.cp.Add(commitRecords)
 	if err == ErrCheckPointOutOfRange || err == ErrInvalidCheckPoint {
 		sabft.log.Error(err)
+		sabft.updateAppState(commitRecords)
 		return err
 	}
 	err = sabft.commit(commitRecords)
