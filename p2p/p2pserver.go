@@ -184,7 +184,7 @@ func (this *P2PServer) connectSeeds() {
 		}
 		np.Unlock()
 	}
-	if len(pList) > 1 {
+	if len(pList) > 0 {
 		for _, p := range pList {
 			this.reqNbrList(p)
 		}
