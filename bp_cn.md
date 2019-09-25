@@ -17,7 +17,7 @@
 
 ## 2.编译节点程序
 
-具体的步骤参考
+切换到分支`origin/release-v1.0.0`，具体的步骤参考
 [编译流程](https://github.com/coschain/contentos-go#building-the-source)
 [初始化流程](https://github.com/coschain/contentos-go#initialization)
 
@@ -30,7 +30,7 @@
   BootStrap = false (注意，这个值必须设置为false)
   LocalBpName = your_account_name (刚才第一步创建的账号名)
   LocalBpPrivateKey = your_private_key (刚才第一步创建账号生成的私钥)
-  SeedList = ["XXX","XXX"] (主网的种子节点，需要正确配置才能保证连上网络中其他节点)
+  SeedList = ["3.210.182.21:20338","34.206.144.13:20338"] (主网的种子节点，需要正确配置才能保证连上网络中其他节点)
 ```
 
 ### 启动节点等待数据同步完成

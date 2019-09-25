@@ -8,7 +8,7 @@ Please use our [online wallet](https://wallet.contentos.io/) to create your Cont
 
 ## 2.Build and Initialization
 
-To acquire detail instruction, you can refer
+Switch to branch `origin/release-v1.0.0`.To acquire detail instruction, you can refer
 [build instruction](https://github.com/coschain/contentos-go#building-the-source)
 [Initialization](https://github.com/coschain/contentos-go#initialization)
 
@@ -21,7 +21,7 @@ Please modify the following things in the file config.toml:
   BootStrap : false (Be careful, this must be set to false)
   LocalBpName : your account name
   LocalBpPrivateKey : private key of your Contentos account
-  SeedList : ["XXX","XXX"] (Set this to the seed nodes of contentos main net)
+  SeedList : ["3.210.182.21:20338","34.206.144.13:20338"] (Set this to the seed nodes of contentos main net)
 ```
 
 ### Start the node and register your account as a block producer
