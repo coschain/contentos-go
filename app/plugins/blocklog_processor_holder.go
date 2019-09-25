@@ -36,27 +36,35 @@ func (p *HolderProcessor) Prepare(db *gorm.DB, blockLog *blocklog.BlockLog) (err
 	return
 }
 
-func (p *HolderProcessor) ProcessChange(db *gorm.DB, change *blocklog.StateChange, blockLog *blocklog.BlockLog, changeIdx, opIdx, trxIdx int) error {
+func (p *HolderProcessor) ProcessChange(db *gorm.DB, change *blocklog.StateChange, blockLog *blocklog.BlockLog, changeIdx, opIdx, trxIdx int) (err error) {
+	if change.What != "Account.Balance" && change.What != "Account.Vest" && change.What != "Account.StakeVestFromMe" && change.What != "Contract.Balance" {
+		return nil
+	}
 	rec := new(Holder)
+	update := true
+	name := change.Change.Id.(string)
+	value := common.JsonNumberUint64(change.Change.After.(json.Number))
+	if db.Where(Holder{Name: name}).First(rec).RecordNotFound() {
+		rec.Name = name
+		update = false
+	}
+	rec.IsContract = change.What == "Contract.Balance"
 	switch change.What {
 	case "Account.Balance":
-		return db.Where(Holder{Name: change.Change.Id.(string)}).
-			Assign(Holder{Balance: common.JsonNumberUint64(change.Change.After.(json.Number)), IsContract:false}).
-			FirstOrCreate(rec).Error
+		rec.Balance = value
 	case "Account.Vest":
-		return db.Where(Holder{Name: change.Change.Id.(string)}).
-			Assign(Holder{Vest: common.JsonNumberUint64(change.Change.After.(json.Number)), IsContract:false}).
-			FirstOrCreate(rec).Error
+		rec.Vest = value
 	case "Account.StakeVestFromMe":
-		return db.Where(Holder{Name: change.Change.Id.(string)}).
-			Assign(Holder{StakeVestFromMe: common.JsonNumberUint64(change.Change.After.(json.Number)), IsContract:false}).
-			FirstOrCreate(rec).Error
+		rec.StakeVestFromMe = value
 	case "Contract.Balance":
-		return db.Where(Holder{Name: change.Change.Id.(string)}).
-			Assign(Holder{Balance: common.JsonNumberUint64(change.Change.After.(json.Number)), IsContract:true}).
-			FirstOrCreate(rec).Error
+		rec.Balance = value
 	}
-	return nil
+	if update {
+		err = db.Save(rec).Error
+	} else {
+		err = db.Create(rec).Error
+	}
+	return
 }
 
 func (p *HolderProcessor) ProcessOperation(db *gorm.DB, blockLog *blocklog.BlockLog, opIdx, trxIdx int) error {

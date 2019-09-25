@@ -32,6 +32,15 @@ func (tester *BlockLogTester) Test(t *testing.T, d *Dandelion) {
 	}
 	tester.prepare()
 	tester.doSomething()
+	tester.poorInitminer()
+}
+
+func (tester *BlockLogTester) poorInitminer() {
+	initminer := tester.d.Account(constants.COSInitMiner)
+	balance := initminer.GetBalance().GetValue()
+	tester.a.NoError(initminer.SendTrxAndProduceBlock(Transfer(initminer.Name, "actor0", balance, "take it all")))
+	balance = initminer.GetBalance().GetValue()
+	tester.a.EqualValues(0, balance)
 }
 
 func (tester *BlockLogTester) doSomething() {
