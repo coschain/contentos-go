@@ -1221,6 +1221,9 @@ func (sabft *SABFT) ValidateProposal(data message.ProposedData) bool {
 		return false
 	}
 
+	// TODO: the proposed block should be on mainbranch, cause blocks
+	// on fork branch might be an invalid block. we're fucked if
+	// an invalid block is committed.
 	if _, err := sabft.ForkDB.FetchBlock(blockID); err != nil {
 		return false
 	}
@@ -1280,6 +1283,7 @@ func (sabft *SABFT) switchFork(old, new common.BlockID) bool {
 	poppedNum := len(branches[0]) - 1
 	sabft.popBlock(branches[0][poppedNum-1].BlockNum())
 	rw := sabft.ForkDB.RewindBranch(branches[0][poppedNum])
+	sabft.log.Debugf("rewind to block #%d, %v", branches[0][poppedNum].BlockNum(), branches[0][poppedNum])
 
 	appendedNum := len(branches[1]) - 1
 	errWhileSwitch := false
@@ -1297,12 +1301,11 @@ func (sabft *SABFT) switchFork(old, new common.BlockID) bool {
 		if !sabft.validateProducer(b) {
 			if head != nil {
 				slotTime := sabft.getSlotTime(sabft.getSlotAtTime(time.Now()))
-				s := fmt.Sprintf("%s head %d timestamp %d, new block %d ts %d, slottime %d",
+				s := fmt.Sprintf("%s block validation failed: head %d timestamp %d, new block %d ts %d, slottime %d",
 					sabft.Name, head.Id().BlockNum(), head.Timestamp(), b.Id().BlockNum(), b.Timestamp(), slotTime)
-				panic(s)
-			} else {
-				return false
+				sabft.log.Error(s)
 			}
+			return false
 		}
 		if sabft.applyBlock(b) != nil {
 			sabft.log.Errorf("[SABFT][switchFork] applying block %v failed.", b.Id())
