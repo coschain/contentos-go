@@ -1213,6 +1213,7 @@ func (sabft *SABFT) ValidateProposal(data message.ProposedData) bool {
 	blockID := common.BlockID{
 		Data: data,
 	}
+	blockNum := blockID.BlockNum()
 
 	sabft.RLock()
 	defer sabft.RUnlock()
@@ -1224,7 +1225,9 @@ func (sabft *SABFT) ValidateProposal(data message.ProposedData) bool {
 	// TODO: the proposed block should be on mainbranch, cause blocks
 	// on fork branch might be an invalid block. we're fucked if
 	// an invalid block is committed.
-	if _, err := sabft.ForkDB.FetchBlock(blockID); err != nil {
+	if b, err := sabft.ForkDB.FetchBlockFromMainBranch(blockNum); err != nil {
+		return false
+	} else if b.Id() != blockID {
 		return false
 	}
 
