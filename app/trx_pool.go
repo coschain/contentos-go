@@ -414,8 +414,8 @@ func (c *TrxPool) notifyTrxApplyResult(trx *prototype.SignedTransaction, res boo
 	}
 }
 
-func (c *TrxPool) notifyBlockLog(blockLog *blocklog.BlockLog) {
-	c.noticer.Publish(constants.NoticeBlockLog, blockLog)
+func (c *TrxPool) notifyBlockLog(blockLog *blocklog.BlockLog, blockProducer string) {
+	c.noticer.Publish(constants.NoticeBlockLog, blockLog, blockProducer)
 }
 
 func (c *TrxPool) applyTransactionOnDb(db iservices.IDatabasePatch, entry *TrxEntry, blockNum uint64) {

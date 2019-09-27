@@ -54,12 +54,13 @@ func (s *BlockLogService) initDatabase() error {
 	return nil
 }
 
-func (s *BlockLogService) onBlockLog(blockLog *blocklog.BlockLog) {
+func (s *BlockLogService) onBlockLog(blockLog *blocklog.BlockLog, blockProducer string) {
 	isGenesis := blockLog.BlockNum == 0
 	rec := &iservices.BlockLogRecord{
 		BlockId:     blockLog.BlockId,
 		BlockHeight: blockLog.BlockNum,
 		BlockTime:   time.Unix(int64(blockLog.BlockTime), 0),
+		BlockProducer: blockProducer,
 		Final:       isGenesis,
 		JsonLog:     blockLog.ToJsonString(),
 	}

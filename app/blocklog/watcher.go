@@ -11,7 +11,7 @@ import (
 	"sync"
 )
 
-type WatcherCallback func(*BlockLog)
+type WatcherCallback func(*BlockLog,string)
 
 type Watcher struct {
 	sync.RWMutex
@@ -79,6 +79,7 @@ func (w *Watcher) BeginBlock(blockNum uint64) error {
 
 func (w *Watcher) EndBlock(ok bool, block *prototype.SignedBlock) error {
 	var blockLog *BlockLog
+	var blockProducer string
 
 	w.Lock()
 	if w.currBlock == nil {
@@ -87,6 +88,7 @@ func (w *Watcher) EndBlock(ok bool, block *prototype.SignedBlock) error {
 	if ok {
 		w.makeLog(block)
 		blockLog = w.currBlock
+		blockProducer = block.GetSignedHeader().GetHeader().GetBlockProducer().GetValue()
 	}
 	w.changeCtxs = w.changeCtxs[:0]
 	w.changeCtxsByBranch = make(map[string]*StateChangeContext)
@@ -95,7 +97,7 @@ func (w *Watcher) EndBlock(ok bool, block *prototype.SignedBlock) error {
 	w.Unlock()
 
 	if blockLog != nil && w.callback != nil {
-		w.callback(blockLog)
+		w.callback(blockLog, blockProducer)
 	}
 	return nil
 }

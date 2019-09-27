@@ -123,7 +123,7 @@ func (tester *BlockLogTester) addBlockProducer(who...int) {
 	}
 }
 
-func (tester *BlockLogTester) onBlockLog(blockLog *blocklog.BlockLog) {
+func (tester *BlockLogTester) onBlockLog(blockLog *blocklog.BlockLog, blockProducer string) {
 	tester.a.NotNil(blockLog)
 	j, err := json.MarshalIndent(blockLog, "", "    ")
 	tester.a.NoError(err)
