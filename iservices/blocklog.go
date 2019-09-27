@@ -16,6 +16,7 @@ type BlockLogRecord struct {
 	BlockId string					`gorm:"not null;unique_index"`
 	BlockHeight uint64				`gorm:"not null;index"`
 	BlockTime time.Time				`gorm:"not null"`
+	BlockProducer string			`gorm:"index"`
 	Final bool						`gorm:"not null;index"`
 	JsonLog string					`gorm:"type:longtext"`
 }
