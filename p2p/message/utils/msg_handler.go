@@ -938,7 +938,7 @@ func (p *MsgHandler) ConsMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args 
 	}
 	ctrl := s.(iservices.IConsensus)
 
-	log.Info("receive a consensus message, message data: ", msgdata)
+	log.Infof("receive a consensus message, message data: %v, from: %v", msgdata, data.Addr)
 
 	ctrl.Push(msgdata.MsgData, remotePeer)
 
