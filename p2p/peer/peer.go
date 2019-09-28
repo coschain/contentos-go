@@ -146,7 +146,7 @@ func NewPeer() *Peer {
 	p.TrxCache.trxCount = 0
 	p.TrxCache.useFilter2 = false
 
-	p.ConsensusCache = common.NewHashCache()
+	p.ConsensusCache = common.NewHashCache(common.DefaultHashCacheMaxCount)
 
 	p.SyncLink = conn.NewLink()
 	p.ConsLink = conn.NewLink()

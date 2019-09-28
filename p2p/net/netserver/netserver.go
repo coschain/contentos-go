@@ -26,7 +26,7 @@ func NewNetServer(ctx *node.ServiceContext, lg *logrus.Logger) p2p.P2P {
 		SyncChan: make(chan *types.MsgPayload, common.CHAN_CAPABILITY),
 		ConsChan: make(chan *types.MsgPayload, common.CHAN_CAPABILITY),
 		NetworkMagic: common2.GetChainIdByName(ctx.Config().ChainId),
-		msgCache: common.NewHashCache(),
+		msgCache: common.NewHashCache(common.DefaultHashCacheMaxCount * 50),
 	}
 
 	//n.PeerAddrMap.PeerSyncAddress = make(map[string]*peer.Peer)
