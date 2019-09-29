@@ -1124,7 +1124,7 @@ func (as *APIService) fetchPostInfoResponseById(postId uint64,isNeedLock bool) *
 			GlobalWeightedVp: globalWeightedVp,
 			Copyright:      pWrap.GetCopyright(),
 			CopyrightMemo:  pWrap.GetCopyrightMemo(),
-
+			CashoutBlockNum: pWrap.GetCashoutBlockNum(),
 		}
 	}
 	return res
