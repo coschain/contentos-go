@@ -296,7 +296,7 @@ func (this *P2PServer) connectSeedService() {
 			t.Reset(time.Second * common.CONN_MONITOR)
 		case <-this.quitSeed:
 			t.Stop()
-			break
+			return
 		}
 	}
 }
@@ -312,7 +312,7 @@ func (this *P2PServer) keepOnlineService() {
 			t.Reset(time.Second * common.CONN_MONITOR)
 		case <-this.quitOnline:
 			t.Stop()
-			break
+			return
 		}
 	}
 }
@@ -336,7 +336,7 @@ func (this *P2PServer) heartBeatService() {
 			this.timeout()
 		case <-this.quitHeartBeat:
 			t.Stop()
-			break
+			return
 		}
 	}
 }

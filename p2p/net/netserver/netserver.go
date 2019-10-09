@@ -384,7 +384,7 @@ func (this *NetServer) Halt() {
 func (this *NetServer) startListening() error {
 
 	syncPort := this.base.GetSyncPort()
-	consPort := this.base.GetConsPort()
+	//consPort := this.base.GetConsPort()
 
 	if syncPort == 0 {
 		this.log.Error("[p2p] sync port invalid")
@@ -398,19 +398,19 @@ func (this *NetServer) startListening() error {
 	}
 
 	//consensus
-	if this.ctx.Config().P2P.DualPortSupport == false {
-		this.log.Debug("[p2p] dual port mode not supported,keep single link")
-		return nil
-	}
-	if consPort == 0 || consPort == syncPort {
-		//still work
-		this.log.Warn("[p2p] consensus port invalid,keep single link")
-	} else {
-		err = this.startConsListening(consPort)
-		if err != nil {
-			return err
-		}
-	}
+	//if this.ctx.Config().P2P.DualPortSupport == false {
+	//	this.log.Debug("[p2p] dual port mode not supported,keep single link")
+	//	return nil
+	//}
+	//if consPort == 0 || consPort == syncPort {
+	//	//still work
+	//	this.log.Warn("[p2p] consensus port invalid,keep single link")
+	//} else {
+	//	err = this.startConsListening(consPort)
+	//	if err != nil {
+	//		return err
+	//	}
+	//}
 	return nil
 }
 
