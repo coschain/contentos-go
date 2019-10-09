@@ -45,8 +45,10 @@ const (
 	DIAL_TIMEOUT          = 6     //connect timeout in sec
 	CONN_MONITOR          = 6     //time to retry connect in sec
 	CONN_MAX_BACK         = 4000  //max backoff time in micro sec
-	MAX_RETRY_COUNT       = 3     //max reconnect time of remote peer
+	MAX_RETRY_COUNT       = 2     //max reconnect time of remote peer
 	CHAN_CAPABILITY       = 10000 //channel capability of recv link
+
+	PEER_SEND_CHAN_LENGTH = 1000  // send channel length for every peer
 )
 
 // The peer state

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"github.com/coschain/contentos-go/p2p/common"
 	"github.com/coschain/contentos-go/prototype"
+	"github.com/sirupsen/logrus"
 	"testing"
 	"time"
 
@@ -19,8 +20,9 @@ var (
 )
 
 func init() {
-	cliLink = NewLink()
-	serverLink = NewLink()
+	lg := logrus.New()
+	cliLink = NewLink(lg)
+	serverLink = NewLink(lg)
 
 	cliLink.id = 0x12345
 	serverLink.id = 0x6789
@@ -132,9 +134,6 @@ func TestUnpackBufNode(t *testing.T) {
 	demsg, _, err := mt.ReadMessage(buf, 0x12345)
 	assert.NotNil(t, demsg)
 	assert.Nil(t, err)
-
-	cliLink.Tx(msg, 0x123456)
-	serverLink.Rx(0x123456)
 
 	serverLink.disconnectNotify()
 }
