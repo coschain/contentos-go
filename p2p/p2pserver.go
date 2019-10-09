@@ -162,6 +162,7 @@ func (this *P2PServer) connectSeeds() {
 		seedNodes = append(seedNodes, ns[0]+port)
 	}
 
+	needAskAddr := true
 	for _, nodeAddr := range seedNodes {
 		var ip net.IP
 		np := this.Network.GetNp()
@@ -178,11 +179,12 @@ func (this *P2PServer) connectSeeds() {
 			if nodeAddr == addrString && tn.GetSyncState() == common.ESTABLISH {
 				pList = append(pList, tn)
 			}
-			if tn.GetSyncState() == common.ESTABLISH {
+			if needAskAddr && tn.GetSyncState() == common.ESTABLISH {
 				this.reqNbrList(tn)
 			}
 		}
 		np.Unlock()
+		needAskAddr = false
 	}
 	if len(pList) > 0 {
 		for _, p := range pList {
