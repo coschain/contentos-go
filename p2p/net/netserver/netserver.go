@@ -295,6 +295,8 @@ func (this *NetServer) Connect(addr string, isConsensus bool) error {
 	this.connectLock.Lock()
 	if added := this.AddOutConnectingList(addr); added == false {
 		this.log.Debug("[p2p] node exist in connecting list ", addr)
+		this.connectLock.Unlock()
+		return nil
 	}
 	this.connectLock.Unlock()
 
