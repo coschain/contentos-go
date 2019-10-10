@@ -40,7 +40,7 @@ var StartCmd = func() *cobra.Command {
 
 var NodeName string
 const (
-	ClientTag  = "v1.0.1"
+	ClientTag  = "v1.0.2"
 )
 
 
