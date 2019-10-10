@@ -104,6 +104,9 @@ func (this *Link) GetRXTime() time.Time {
 }
 
 func (this *Link) SendMessage(msg types.Message) error {
+	this.Lock()
+	defer this.Unlock()
+
 	if len(this.sendChan) == cap(this.sendChan) {
 		this.log.Warn(errors.New("peer send buffer is full, discard this message"))
 		return errors.New("peer send buffer is full, discard this message")
