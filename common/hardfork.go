@@ -1,15 +1,14 @@
 package common
 
-const (
-	Original uint64 = iota
-)
+import "github.com/coschain/contentos-go/common/constants"
 
 var hardForks = []uint64{
-	Original,
+	constants.Original,
+	constants.HardFork1,
 }
 
 func GetHardFork(blockNum uint64) uint64 {
-	r := Original
+	r := constants.Original
 	for _, hf := range hardForks {
 		if blockNum >= hf {
 			r = hf
