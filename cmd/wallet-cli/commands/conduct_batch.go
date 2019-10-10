@@ -63,6 +63,7 @@ func conductBatch(cmd *cobra.Command, args []string) {
 				return
 			}
 			client = grpcpb.NewApiServiceClient(conn)
+			cmd.SetContext("rpcclient", client)
 			continue
 		case "selectChain":
 			chainName := cmdArgs[1]
