@@ -6,15 +6,15 @@
 
 可以使用[网页钱包](https://wallet.contentos.io/)来创建一个账号，拿到自己的用户名公钥私钥。
 
-注意：保证账号中至少包含30000个VEST。如果你还没有VEST，那么你可以通过以下操作步骤获取
+注意：保证账号中至少包含30000个VEST。如果你还没有VEST，那么你可以通过以下操作步骤获取:
 
- 1. 首先在交易所买到`BEP2`格式的COS
- 2. 通过[COS币映射程序](http://swapcos.contentos.io)将`BEP2-COS`转换为主网币
- 3. 然后通过[网页钱包](https://wallet.contentos.io/)将COS转换为VEST
+* 1. 首先在交易所买到`BEP2`格式的COS
+* 2. 通过[COS币映射程序](http://swapcos.contentos.io)将`BEP2-COS`转换为主网币
+* 3. 然后通过[网页钱包](https://wallet.contentos.io/)将COS转换为VEST
 
 ## 2.编译节点程序
 
-切换到分支`origin/release-v1.0.0`，具体的步骤参考
+切换到分支`origin/release-v1.0.0`进行编译，具体的步骤参考
 
 ```sh
 git clone git@github.com:coschain/contentos-go.git
