@@ -24,7 +24,7 @@ git pull origin release-v1.0.0
 
 cd cmd/cosd
 go build
-./cosd init
+./cosd init # 默认路径为 ~/.coschain/cosd
 
 cd ../wallet-cli/
 go build
@@ -35,20 +35,19 @@ go build
 ### 修改配置文件
 
 ```
-cd contentos-go
-vim config.toml
+vim ~/.coschain/cosd/config.toml
 ```
 
 编辑以下内容:
 
 ```
 [Consensus]
-BootStrap = false (注意，这个值必须设置为false)
-LocalBpName = your_account_name (刚才第一步创建的账号名)
-LocalBpPrivateKey = your_private_key (刚才第一步创建账号生成的私钥)
+BootStrap = false # 注意，这个值必须设置为false
+LocalBpName = your_account_name # 刚才第一步创建的账号名
+LocalBpPrivateKey = your_private_key # 刚才第一步创建账号生成的私钥
 
 [P2P.Genesis]
-SeedList = ["3.210.182.21:20338","34.206.144.13:20338"] (主网的种子节点，需要正确配置才能保证连上网络中其他节点)
+SeedList = ["3.210.182.21:20338","34.206.144.13:20338"] # 主网的种子节点，需要正确配置才能保证连上网络中其他节点
 ```
 
 ### 启动节点等待数据同步完成
