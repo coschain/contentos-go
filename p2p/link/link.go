@@ -8,25 +8,37 @@ import (
 	"sync"
 	"time"
 
+	"github.com/sirupsen/logrus"
 	"github.com/coschain/contentos-go/p2p/common"
 	"github.com/coschain/contentos-go/p2p/message/types"
 )
 
 //Link used to establish
 type Link struct {
+	log       *logrus.Logger
 	id        uint64
 	addr      string                 // The address of the node
 	conn      net.Conn               // Connect socket with the peer node
 	port      uint32                 // The server port of the node
 	time      time.Time              // The latest time the node activity
 	recvChan  chan *types.MsgPayload //msgpayload channel
+	stopRecv  chan bool
+
 	reqIdRecord int64                //Map RequestId to Timestamp, using for rejecting too fast REQ_ID request in specific time
+
+	sendChan chan types.Message
+	stopSend chan bool
+
 	sync.RWMutex
 }
 
-func NewLink() *Link {
+func NewLink(lg *logrus.Logger) *Link {
 	link := &Link{
+		log:         lg,
 		reqIdRecord: 0,
+		sendChan:    make(chan types.Message, common.PEER_SEND_CHAN_LENGTH),
+		stopRecv:    make(chan bool, 1),
+		stopSend:    make(chan bool, 1),
 	}
 	return link
 }
@@ -91,10 +103,33 @@ func (this *Link) GetRXTime() time.Time {
 	return this.time
 }
 
-func (this *Link) Rx(magic uint32) {
-	this.RLock()
-	defer this.RUnlock()
+func (this *Link) SendMessage(msg types.Message) error {
+	this.Lock()
+	defer this.Unlock()
 
+	if len(this.sendChan) == cap(this.sendChan) {
+		this.log.Warn(errors.New("peer send buffer is full, discard this message"))
+		return errors.New("peer send buffer is full, discard this message")
+	}
+	this.sendChan <- msg
+	return nil
+}
+
+func (this *Link) StopSendMessage() {
+	if len(this.stopSend) == cap(this.stopSend) {
+		return
+	}
+	this.stopSend <- true
+}
+
+func (this *Link) StopRecvMessage() {
+	if len(this.stopRecv) == cap(this.stopRecv) {
+		return
+	}
+	this.stopRecv <- true
+}
+
+func (this *Link) Rx(magic uint32) {
 	conn := this.conn
 	if conn == nil {
 		return
@@ -103,29 +138,29 @@ func (this *Link) Rx(magic uint32) {
 	reader := bufio.NewReaderSize(conn, common.MAX_BUF_LEN)
 
 	for {
-		msg, payloadSize, err := types.ReadMessage(reader, magic)
-		if err != nil {
-			//fmt.Println("read msg error: ", err)
-			break
+		select {
+		case <-this.stopRecv:
+			this.log.Info("Stop receive message from peer: ", this.addr)
+			return
+		default:
+			msg, payloadSize, err := types.ReadMessage(reader, magic)
+			if err != nil {
+				this.log.Infof("read from peer %s error: %v", this.addr, err)
+				this.disconnectNotify()
+				return
+			}
+
+			t := time.Now()
+			this.UpdateRXTime(t)
+
+			this.recvChan <- &types.MsgPayload{
+				Id:          this.id,
+				Addr:        this.addr,
+				PayloadSize: payloadSize,
+				Payload:     msg,
+			}
 		}
-
-		t := time.Now()
-		this.UpdateRXTime(t)
-
-		//if !this.needSendMsg(msg) {
-		//	continue
-		//}
-
-		this.recvChan <- &types.MsgPayload{
-			Id:          this.id,
-			Addr:        this.addr,
-			PayloadSize: payloadSize,
-			Payload:     msg,
-		}
-
 	}
-
-	this.disconnectNotify()
 }
 
 //disconnectNotify push disconnect msg to channel
@@ -152,71 +187,46 @@ func NewDisconnected() *types.TransferMsg {
 
 //close connection
 func (this *Link) CloseConn() {
-	this.Lock()
-	defer this.Unlock()
-
 	if this.conn != nil {
 		this.conn.Close()
 		this.conn = nil
 	}
 }
 
-func (this *Link) Tx(msg types.Message, magic uint32) error {
-	this.RLock()
-	defer this.RUnlock()
+func (this *Link) Tx(magic uint32) {
+	for {
+		select {
+		case <- this.stopSend:
+			this.log.Info("Stop send message to peer ", this.GetAddr())
+			return
+		case msg := <-this.sendChan:
+			conn := this.conn
+			if conn == nil {
+				this.log.Error("[p2p]tx link invalid")
+				return
+			}
 
-	conn := this.conn
-	if conn == nil {
-		return errors.New("[p2p]tx link invalid")
+			sink := common.NewZeroCopySink(nil)
+			err := types.WriteMessage(sink, msg, magic)
+			if err != nil {
+				this.log.Error(errors.New( fmt.Sprintf("[p2p] error serialize messge: %v", err) ))
+				return
+			}
+
+			payload := sink.Bytes()
+			nByteCnt := len(payload)
+
+			nCount := nByteCnt / common.PER_SEND_LEN
+			if nCount == 0 {
+				nCount = 1
+			}
+			conn.SetWriteDeadline(time.Now().Add(time.Duration(nCount*common.WRITE_DEADLINE) * time.Second))
+			_, err = conn.Write(payload)
+			if err != nil {
+				this.log.Error(errors.New( fmt.Sprintf("[p2p] socket buffer write too much time, error sending messge to %s :%s", this.GetAddr(), err.Error()) ))
+				this.disconnectNotify()
+				return
+			}
+		}
 	}
-
-	// TODO just for test,should be deleted when test is done
-	// **********************************
-	//sleepRandomTime()
-	// **********************************
-
-	sink := common.NewZeroCopySink(nil)
-	err := types.WriteMessage(sink, msg, magic)
-	if err != nil {
-		return errors.New( fmt.Sprintf("[p2p] error serialize messge: %v", err) )
-	}
-
-	payload := sink.Bytes()
-	nByteCnt := len(payload)
-
-	nCount := nByteCnt / common.PER_SEND_LEN
-	if nCount == 0 {
-		nCount = 1
-	}
-	conn.SetWriteDeadline(time.Now().Add(time.Duration(nCount*common.WRITE_DEADLINE) * time.Second))
-	_, err = conn.Write(payload)
-	if err != nil {
-		//errStr := fmt.Sprintf("[p2p] socket buffer write too much time, error sending messge to %s :%s", this.GetAddr(), err.Error())
-		//fmt.Println(errStr, " ,timestamp: ", time.Now())
-		this.disconnectNotify()
-		return errors.New( fmt.Sprintf("[p2p] socket buffer write too much time, error sending messge to %s :%s", this.GetAddr(), err.Error()) )
-	}
-
-	return nil
 }
-
-//func sleepRandomTime() {
-//	r := rand.New(rand.NewSource(time.Now().UnixNano()))
-//	delay := 500 + r.Intn(501)
-//	time.Sleep( time.Duration(delay) * time.Millisecond )
-//}
-
-//needSendMsg check whether the msg is needed to push to channel
-//func (this *Link) needSendMsg(msg types.Message) bool {
-//	if msg.CmdType() != common.REQ_ID_TYPE {
-//		return true
-//	}
-//	now := time.Now().Unix()
-//
-//	if now - this.reqIdRecord < common.REQ_INTERVAL {
-//		return false
-//	}
-//
-//	this.reqIdRecord = now
-//	return true
-//}

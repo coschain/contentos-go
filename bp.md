@@ -2,6 +2,10 @@
 
 If you want to set up a Contentos Block Producer node, please follow the steps below.
 
+## Precondition
+
+Ensure that the three ports of the node 20338, 8888, and 8080 can be accessed by the public network.
+
 ## 1.Create your Contentos account
 
 Please use our [online wallet](https://wallet.contentos.io/) to create your Contentos account

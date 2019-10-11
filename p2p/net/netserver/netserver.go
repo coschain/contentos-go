@@ -295,6 +295,8 @@ func (this *NetServer) Connect(addr string, isConsensus bool) error {
 	this.connectLock.Lock()
 	if added := this.AddOutConnectingList(addr); added == false {
 		this.log.Debug("[p2p] node exist in connecting list ", addr)
+		this.connectLock.Unlock()
+		return nil
 	}
 	this.connectLock.Unlock()
 
@@ -325,21 +327,23 @@ func (this *NetServer) Connect(addr string, isConsensus bool) error {
 
 	if !isConsensus {
 		this.AddOutConnRecord(addr)
-		remotePeer = peer.NewPeer()
+		remotePeer = peer.NewPeer(this.log)
 		this.AddPeerSyncAddress(addr, remotePeer)
 		remotePeer.SyncLink.SetAddr(addr)
 		remotePeer.SyncLink.SetConn(conn)
 		remotePeer.AttachSyncChan(this.SyncChan)
 		go remotePeer.SyncLink.Rx(this.NetworkMagic)
+		go remotePeer.SyncLink.Tx(this.NetworkMagic)
 		remotePeer.SetSyncState(common.HAND)
 
 	} else {
-		remotePeer = peer.NewPeer() //would merge with a exist peer in versionhandle
+		remotePeer = peer.NewPeer(this.log) //would merge with a exist peer in versionhandle
 		this.AddPeerConsAddress(addr, remotePeer)
 		remotePeer.ConsLink.SetAddr(addr)
 		remotePeer.ConsLink.SetConn(conn)
 		remotePeer.AttachConsChan(this.ConsChan)
 		go remotePeer.ConsLink.Rx(this.NetworkMagic)
+		go remotePeer.SyncLink.Tx(this.NetworkMagic)
 		remotePeer.SetConsState(common.HAND)
 	}
 
@@ -382,7 +386,7 @@ func (this *NetServer) Halt() {
 func (this *NetServer) startListening() error {
 
 	syncPort := this.base.GetSyncPort()
-	consPort := this.base.GetConsPort()
+	//consPort := this.base.GetConsPort()
 
 	if syncPort == 0 {
 		this.log.Error("[p2p] sync port invalid")
@@ -396,19 +400,19 @@ func (this *NetServer) startListening() error {
 	}
 
 	//consensus
-	if this.ctx.Config().P2P.DualPortSupport == false {
-		this.log.Debug("[p2p] dual port mode not supported,keep single link")
-		return nil
-	}
-	if consPort == 0 || consPort == syncPort {
-		//still work
-		this.log.Warn("[p2p] consensus port invalid,keep single link")
-	} else {
-		err = this.startConsListening(consPort)
-		if err != nil {
-			return err
-		}
-	}
+	//if this.ctx.Config().P2P.DualPortSupport == false {
+	//	this.log.Debug("[p2p] dual port mode not supported,keep single link")
+	//	return nil
+	//}
+	//if consPort == 0 || consPort == syncPort {
+	//	//still work
+	//	this.log.Warn("[p2p] consensus port invalid,keep single link")
+	//} else {
+	//	err = this.startConsListening(consPort)
+	//	if err != nil {
+	//		return err
+	//	}
+	//}
 	return nil
 }
 
@@ -421,7 +425,7 @@ func (this *NetServer) startSyncListening(port uint32) error {
 											this.ctx.Config().P2P.KeyPath,
 											this.ctx.Config().P2P.CAPath)
 	if err != nil {
-		this.log.Error("[p2p] failed to create sync listener")
+		this.log.Error("[p2p] failed to create sync listener ", err)
 		return errors.New("[p2p] failed to create sync listener")
 	}
 
@@ -493,7 +497,7 @@ func (this *NetServer) startSyncAccept(listener net.Listener) {
 			continue
 		}
 
-		remotePeer := peer.NewPeer()
+		remotePeer := peer.NewPeer(this.log)
 		addr := conn.RemoteAddr().String()
 		this.AddInConnRecord(addr)
 
@@ -503,6 +507,7 @@ func (this *NetServer) startSyncAccept(listener net.Listener) {
 		remotePeer.SyncLink.SetConn(conn)
 		remotePeer.AttachSyncChan(this.SyncChan)
 		go remotePeer.SyncLink.Rx(this.NetworkMagic)
+		go remotePeer.SyncLink.Tx(this.NetworkMagic)
 	}
 }
 
@@ -533,7 +538,7 @@ func (this *NetServer) startConsAccept(listener net.Listener) {
 			continue
 		}
 
-		remotePeer := peer.NewPeer()
+		remotePeer := peer.NewPeer(this.log)
 		addr := conn.RemoteAddr().String()
 		this.AddPeerConsAddress(addr, remotePeer)
 
@@ -541,6 +546,7 @@ func (this *NetServer) startConsAccept(listener net.Listener) {
 		remotePeer.ConsLink.SetConn(conn)
 		remotePeer.AttachConsChan(this.ConsChan)
 		go remotePeer.ConsLink.Rx(this.NetworkMagic)
+		go remotePeer.SyncLink.Tx(this.NetworkMagic)
 	}
 }
 

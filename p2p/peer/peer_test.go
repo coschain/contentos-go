@@ -10,7 +10,7 @@ import (
 var p *Peer
 
 func init() {
-	p = NewPeer()
+	p = NewPeer(logrus.New())
 	p.base.version = 1
 	p.base.services = 1
 	p.base.syncPort = 10338
