@@ -4,8 +4,8 @@ Name = "cosd"
 
 [Consensus]
   BootStrap = false
-  LocalBpName = ""
-  LocalBpPrivateKey = ""
+  LocalBpName = "yaozihao"
+  LocalBpPrivateKey = "4JdPeDeDoMjUQZUGhAYU62KS25R6wSUFKJPcUStBE9MjzfRVSE"
   Type = "SABFT"
 
 [GRPC]
@@ -36,7 +36,7 @@ Name = "cosd"
   ReservedPeersOnly = false
 
   [P2P.Genesis]
-    SeedList = []
+    SeedList = ["3.210.182.21:20338","34.206.144.13:20338"]
 
   [P2P.ReservedCfg]
     MaskPeers = []
