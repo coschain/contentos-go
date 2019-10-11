@@ -8,9 +8,9 @@
 
 注意：保证账号中至少包含30000个VEST。如果你还没有VEST，那么你可以通过以下操作步骤获取:
 
-* 1. 首先在交易所买到`BEP2`格式的COS
-* 2. 通过[COS币映射程序](http://swapcos.contentos.io)将`BEP2-COS`转换为主网币
-* 3. 然后通过[网页钱包](https://wallet.contentos.io/)将COS转换为VEST
+* 首先在交易所买到`BEP2`格式的COS
+* 通过[COS币映射程序](http://swapcos.contentos.io)将`BEP2-COS`转换为主网币
+* 然后通过[网页钱包](https://wallet.contentos.io/)将COS转换为VEST
 
 ## 2.编译节点程序
 
