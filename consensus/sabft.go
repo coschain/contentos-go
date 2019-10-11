@@ -1279,39 +1279,21 @@ func (sabft *SABFT) switchFork(old, new common.BlockID) bool {
 	sabft.log.Debug("[SABFT][switchFork] fork branches: ", branches)
 	poppedNum := len(branches[0]) - 1
 	sabft.popBlock(branches[0][poppedNum-1].BlockNum())
-	rw := sabft.ForkDB.RewindBranch(branches[0][poppedNum])
 
 	appendedNum := len(branches[1]) - 1
 	errWhileSwitch := false
 	var newBranchIdx int
-	head, err := sabft.ForkDB.FetchBlock(branches[0][poppedNum])
-	if err != nil {
-		panic(err)
-	}
 	for newBranchIdx = appendedNum - 1; newBranchIdx >= 0; newBranchIdx-- {
 		b, err := sabft.ForkDB.FetchBlock(branches[1][newBranchIdx])
 		if err != nil {
 			panic(err)
 		}
-
-		if !sabft.validateProducer(b) {
-			if head != nil {
-				slotTime := sabft.getSlotTime(sabft.getSlotAtTime(time.Now()))
-				s := fmt.Sprintf("%s head %d timestamp %d, new block %d ts %d, slottime %d",
-					sabft.Name, head.Id().BlockNum(), head.Timestamp(), b.Id().BlockNum(), b.Timestamp(), slotTime)
-				panic(s)
-			} else {
-				return false
-			}
-		}
-		if sabft.applyBlock(b) != nil {
+		if !sabft.validateProducer(b) || sabft.applyBlock(b) != nil {
 			sabft.log.Errorf("[SABFT][switchFork] applying block %v failed.", b.Id())
 			errWhileSwitch = true
 			// TODO: peels off this invalid branch to avoid flip-flop switch
 			break
 		}
-		rw.ApplyBlock(branches[1][newBranchIdx])
-		head = b
 	}
 
 	// switch back
@@ -1330,12 +1312,12 @@ func (sabft *SABFT) switchFork(old, new common.BlockID) bool {
 		}
 
 		// restore the good old head of ForkDB
-		rw.Undo()
+		sabft.ForkDB.ResetHead(branches[0][0])
 		return false
 	}
 
 	// also need to reset new head in case new branch is shorter
-	rw.Done()
+	sabft.ForkDB.ResetHead(new)
 	sabft.ForkDB.PurgeBranch()
 
 	// handle checkpoints on new branch
