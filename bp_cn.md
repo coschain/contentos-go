@@ -24,7 +24,7 @@ git pull origin release-v1.0.0
 
 cd cmd/cosd
 go build
-./cosd init # 默认路径为 ~/.coschain/cosd
+./cosd init # 生成初始文件。默认路径为 ~/.coschain/cosd
 
 cd ../wallet-cli/
 go build
