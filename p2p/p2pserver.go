@@ -250,11 +250,12 @@ func (this *P2PServer) retryInactivePeer() {
 		addrs := make([]string, 0, len(this.RetryAddrs))
 		for addr, v := range this.RetryAddrs {
 			v += 1
-			addrs = append(addrs, addr)
-			if v < common.MAX_RETRY_COUNT {
+			//addrs = append(addrs, addr)
+			if v <= common.MAX_RETRY_COUNT {
+				addrs = append(addrs, addr)
 				list[addr] = v
 			}
-			if v >= common.MAX_RETRY_COUNT {
+			if v > common.MAX_RETRY_COUNT {
 				this.Network.RemoveFromInConnRecord(addr)
 				this.Network.RemoveFromOutConnRecord(addr)
 				this.Network.RemoveFromConnectingList(addr)
@@ -395,7 +396,8 @@ func (this *P2PServer) addToRetryList(addr string) {
 		this.RetryAddrs = make(map[string]int)
 	}
 	if _, ok := this.RetryAddrs[addr]; ok {
-		delete(this.RetryAddrs, addr)
+		return
+		//delete(this.RetryAddrs, addr)
 	}
 	//alway set retry to 0
 	this.RetryAddrs[addr] = 0
