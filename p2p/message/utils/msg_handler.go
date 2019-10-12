@@ -516,23 +516,23 @@ func (p *MsgHandler) VerAckHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args .
 		p2p.RemoveFromConnectingList(data.Addr)
 		remotePeer.DumpInfo(log)
 
-		addr := remotePeer.SyncLink.GetAddr()
+		//addr := remotePeer.SyncLink.GetAddr()
 
 		if s == msgCommon.HAND_SHAKE {
 			msg := msgpack.NewVerAck(false)
 			p2p.Send(remotePeer, msg, false)
 		} else {
 			//consensus port connect
-			if ctx.Config().P2P.DualPortSupport && remotePeer.GetConsPort() > 0 {
-				addrIp, err := msgCommon.ParseIPAddr(addr)
-				if err != nil {
-					log.Error("[p2p] can't parse IP address: ", err)
-					return
-				}
-				nodeConsensusAddr := addrIp + ":" +
-					strconv.Itoa(int(remotePeer.GetConsPort()))
-				go p2p.Connect(nodeConsensusAddr, true)
-			}
+			//if ctx.Config().P2P.DualPortSupport && remotePeer.GetConsPort() > 0 {
+			//	addrIp, err := msgCommon.ParseIPAddr(addr)
+			//	if err != nil {
+			//		log.Error("[p2p] can't parse IP address: ", err)
+			//		return
+			//	}
+			//	nodeConsensusAddr := addrIp + ":" +
+			//		strconv.Itoa(int(remotePeer.GetConsPort()))
+			//	go p2p.Connect(nodeConsensusAddr, true)
+			//}
 		}
 
 		msg := msgpack.NewAddrReq()
