@@ -310,7 +310,7 @@ message PostResponse {
     uint32                                      ticket                  =      27;
     uint32                                      copyright               =      28;
     string                                      copyright_memo          =      29;
-    uint64                                      cashout_block_num       =      30;
+    uint64                                      cashout_block_num       =      30 [jstype = JS_STRING];
 }
 
 message GetPostListByCreatedRequest {
