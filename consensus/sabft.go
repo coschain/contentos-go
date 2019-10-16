@@ -774,12 +774,6 @@ func (sabft *SABFT) gobftCatchUp(commit *message.Commit) bool {
 }
 
 func (sabft *SABFT) validateProducer(b common.ISignedBlock) bool {
-	head := sabft.ForkDB.Head()
-	slotTime := sabft.getSlotTime(sabft.getSlotAtTime(time.Now()))
-	if head.Timestamp() >= b.Timestamp() || b.Timestamp() > slotTime {
-		return false
-	}
-
 	slot := sabft.getSlotAtTime(time.Unix(int64(b.Timestamp()), 0))
 	validProducer := sabft.getScheduledProducer(slot)
 	producer, err := b.GetSignee()
@@ -825,6 +819,12 @@ func (sabft *SABFT) pushMaliciousBlock(b common.ISignedBlock) {
 
 func (sabft *SABFT) pushBlock(b common.ISignedBlock, applyStateDB bool) error {
 	sabft.log.Debug("[SABFT] start pushBlock #", b.Id().BlockNum())
+	// TODO: check signee & merkle
+
+	//if b.Timestamp() < sabft.getSlotTime(1) {
+	//	// sabft.log.Debugf("the timestamp of the new block is less than that of the head block.")
+	//}
+
 	var headNum uint64
 	head := sabft.ForkDB.Head()
 	if head != nil {
@@ -1272,6 +1272,7 @@ func (sabft *SABFT) Send(msg message.ConsensusMessage, p custom.IPeer) error {
 }
 
 func (sabft *SABFT) switchFork(old, new common.BlockID) bool {
+	// TODO: validate block producer
 	branches, err := sabft.ForkDB.FetchBranch(old, new)
 	if err != nil {
 		panic(err)
@@ -1288,7 +1289,7 @@ func (sabft *SABFT) switchFork(old, new common.BlockID) bool {
 		if err != nil {
 			panic(err)
 		}
-		if !sabft.validateProducer(b) || sabft.applyBlock(b) != nil {
+		if sabft.applyBlock(b) != nil {
 			sabft.log.Errorf("[SABFT][switchFork] applying block %v failed.", b.Id())
 			errWhileSwitch = true
 			// TODO: peels off this invalid branch to avoid flip-flop switch
