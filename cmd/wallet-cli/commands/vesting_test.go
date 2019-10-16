@@ -26,7 +26,7 @@ func TestTransferVest(t *testing.T) {
 	for _, child := range cmd.Commands() {
 		child.Context = cmd.Context
 	}
-	cmd.SetArgs([]string{"initminer", "initminer", "0.000500"})
+	cmd.SetArgs([]string{"initminer", "initminer", "0.000500", ""})
 	priv_account := &wallet.PrivAccount{
 		Account: wallet.Account{
 			Name:   "initminer",

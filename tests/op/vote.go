@@ -25,6 +25,15 @@ func ISqrt(n uint64) uint64 {
 	return r
 }
 
+func Vest2VotePower(d *Dandelion, vest uint64) uint64 {
+	switch d.TrxPool().HardFork() {
+	case constants.HardFork1:
+		return vest
+	default:
+		return ISqrt(vest)
+	}
+}
+
 func (tester *VoteTester) TestNormal(t *testing.T, d *Dandelion) {
 	tester.acc0 = d.Account("actor0")
 	tester.acc1 = d.Account("actor1")
@@ -74,13 +83,25 @@ func (tester *VoteTester) normal(t *testing.T, d *Dandelion) {
 	a := assert.New(t)
 	const POST1 = 1
 	const POST2 = 2
+	const POST3 = 3
+	a.Equal(constants.Original, d.TrxPool().HardFork())
 	a.NoError(tester.acc0.SendTrxAndProduceBlock(Post(POST1, tester.acc0.Name, "title", "content", []string{"1"}, nil)))
 	a.NoError(tester.acc0.SendTrxAndProduceBlock(Post(POST2, tester.acc0.Name, "title", "content", []string{"1"}, nil)))
 	a.NoError(tester.acc1.SendTrxAndProduceBlock(Vote(tester.acc1.Name, POST1)))
 	usedVp := uint32(constants.FullVP / constants.VPMarks)
-	a.Equal(strconv.FormatUint(uint64(usedVp) * ISqrt(tester.acc1.GetVest().Value), 10), d.Post(POST1).GetWeightedVp())
+	expectedPost1Vp := strconv.FormatUint(uint64(usedVp) * Vest2VotePower(d, tester.acc1.GetVest().Value), 10)
+	a.Equal(expectedPost1Vp, d.Post(POST1).GetWeightedVp())
 	a.NoError(tester.acc1.SendTrxAndProduceBlock(Vote(tester.acc1.Name, POST2)))
-	a.Equal(strconv.FormatUint(uint64(usedVp) * ISqrt(tester.acc1.GetVest().Value), 10), d.Post(POST2).GetWeightedVp())
+	expectedPost2Vp := strconv.FormatUint(uint64(usedVp) * Vest2VotePower(d, tester.acc1.GetVest().Value), 10)
+	a.Equal(expectedPost2Vp, d.Post(POST2).GetWeightedVp())
+
+	// entered hard fork 1 and test again
+	a.NoError(d.ProduceBlocks(int(constants.HardFork1)))
+	a.NoError(tester.acc0.SendTrxAndProduceBlock(Post(POST3, tester.acc0.Name, "title", "content", []string{"1"}, nil)))
+	a.NoError(tester.acc1.SendTrxAndProduceBlock(Vote(tester.acc1.Name, POST3)))
+	a.Equal(constants.HardFork1, d.TrxPool().HardFork())
+	expectedPost3Vp := strconv.FormatUint(uint64(usedVp) * Vest2VotePower(d, tester.acc1.GetVest().Value), 10)
+	a.Equal(expectedPost3Vp, d.Post(POST3).GetWeightedVp())
 }
 
 
@@ -101,7 +122,8 @@ func (tester *VoteTester) revote(t *testing.T, d *Dandelion) {
 	a.NoError(tester.acc1.SendTrxAndProduceBlock(Post(1, tester.acc1.Name, "title", "content", []string{"1"}, nil)))
 	a.NoError(tester.acc0.SendTrxAndProduceBlock(Vote(tester.acc0.Name, 1)))
 	usedVp := uint32(constants.FullVP / constants.VPMarks)
-	a.Equal(strconv.FormatUint(uint64(usedVp) * ISqrt(tester.acc0.GetVest().Value), 10), d.Post(POST).GetWeightedVp())
+	expectedPostVp := strconv.FormatUint(uint64(usedVp) * Vest2VotePower(d, tester.acc0.GetVest().Value), 10)
+	a.Equal(expectedPostVp, d.Post(POST).GetWeightedVp())
 	receipt, err := tester.acc0.SendTrxEx(Vote(tester.acc0.Name, 1))
 	a.NoError(err)
 	a.NotEqual(receipt.Status, prototype.StatusSuccess)

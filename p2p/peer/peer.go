@@ -111,6 +111,7 @@ type FetchOutOfRangeState struct {
 
 //Peer represent the node in p2p
 type Peer struct {
+	log                *logrus.Logger
 	base               PeerCom
 	cap                [32]byte
 	SyncLink           *conn.Link
@@ -133,8 +134,9 @@ type Peer struct {
 }
 
 //NewPeer return new peer without publickey initial
-func NewPeer() *Peer {
+func NewPeer(lg *logrus.Logger) *Peer {
 	p := &Peer{
+		log:       lg,
 		syncState: common.INIT,
 		consState: common.INIT,
 		busy: 0,
@@ -146,10 +148,10 @@ func NewPeer() *Peer {
 	p.TrxCache.trxCount = 0
 	p.TrxCache.useFilter2 = false
 
-	p.ConsensusCache = common.NewHashCache()
+	p.ConsensusCache = common.NewHashCache(common.DefaultHashCacheMaxCount)
 
-	p.SyncLink = conn.NewLink()
-	p.ConsLink = conn.NewLink()
+	p.SyncLink = conn.NewLink(p.log)
+	p.ConsLink = conn.NewLink(p.log)
 	runtime.SetFinalizer(p, rmPeer)
 	return p
 }
@@ -311,7 +313,7 @@ func (this *Peer) SetConsPort(port uint32) {
 //SendToSync call sync link to send buffer
 func (this *Peer) SendToSync(msg types.Message, magic uint32) error {
 	if this.SyncLink != nil && this.SyncLink.Valid() {
-		return this.SyncLink.Tx(msg, magic)
+		return this.SyncLink.SendMessage(msg)
 	}
 	return errors.New("[p2p]sync link invalid")
 }
@@ -319,7 +321,7 @@ func (this *Peer) SendToSync(msg types.Message, magic uint32) error {
 //SendToCons call consensus link to send buffer
 func (this *Peer) SendToCons(msg types.Message, magic uint32) error {
 	if this.ConsLink != nil && this.ConsLink.Valid() {
-		return this.ConsLink.Tx(msg, magic)
+		return this.ConsLink.SendMessage(msg)
 	}
 	return errors.New("[p2p]cons link invalid")
 }
@@ -327,24 +329,25 @@ func (this *Peer) SendToCons(msg types.Message, magic uint32) error {
 //CloseSync halt sync connection
 func (this *Peer) CloseSync() {
 	this.SetSyncState(common.INACTIVITY)
-	conn := this.SyncLink.GetConn()
+
 	this.connLock.Lock()
-	if conn != nil {
-		conn.Close()
-	}
-	this.connLock.Unlock()
+	defer this.connLock.Unlock()
+
+	this.SyncLink.StopRecvMessage()
+	this.SyncLink.StopSendMessage()
+	this.SyncLink.CloseConn()
 }
 
 //CloseCons halt consensus connection
 func (this *Peer) CloseCons() {
 	this.SetConsState(common.INACTIVITY)
-	conn := this.ConsLink.GetConn()
-	this.connLock.Lock()
-	if conn != nil {
-		conn.Close()
 
-	}
-	this.connLock.Unlock()
+	this.connLock.Lock()
+	defer this.connLock.Unlock()
+
+	this.ConsLink.StopRecvMessage()
+	this.ConsLink.StopSendMessage()
+	this.ConsLink.CloseConn()
 }
 
 //GetID return peer`s id

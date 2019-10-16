@@ -21,7 +21,7 @@ func creatPeers(cnt uint32) []*Peer {
 		consport = 30000 + i
 		id = 0x12345 + uint64(i)
 		height = 10086 + uint64(i)
-		p = NewPeer()
+		p = NewPeer(logrus.New())
 		p.UpdateInfo(time.Now(), 2, 3, syncport, consport, id, 0, height, "abc")
 		p.SetConsState(2)
 		p.SetSyncState(3)
@@ -58,7 +58,7 @@ func TestGetPeer(t *testing.T) {
 }
 
 func TestAddNbrNode(t *testing.T) {
-	p := NewPeer()
+	p := NewPeer(logrus.New())
 	p.UpdateInfo(time.Now(), 2, 3, 10335, 10336, 0x7123456, 0, 100, "abc")
 	p.SetConsState(2)
 	p.SetSyncState(3)
