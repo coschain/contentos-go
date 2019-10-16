@@ -21,12 +21,12 @@ func createListener(port uint32, isTls bool, CertPath, KeyPath, CAPath string) (
 	if isTls {
 		listener, err = initTlsListen(port, CertPath, KeyPath, CAPath)
 		if err != nil {
-			return nil, errors.New("[p2p] initTlslisten failed")
+			return nil, errors.New(fmt.Sprintf("[p2p] initTlslisten failed %s", err) )
 		}
 	} else {
 		listener, err = initNonTlsListen(port)
 		if err != nil {
-			return nil, errors.New("[p2p] initNonTlsListen failed")
+			return nil, errors.New( fmt.Sprintf("[p2p] initNonTlsListen failed %s", err) )
 		}
 	}
 	return listener, nil
@@ -97,7 +97,7 @@ func initTlsListen(port uint32, CertPath, KeyPath, CAPath string) (net.Listener,
 	pool := x509.NewCertPool()
 	ret := pool.AppendCertsFromPEM(caData)
 	if !ret {
-		return nil, errors.New("[p2p]failed to parse root certificate")
+		return nil, errors.New("[p2p] failed to parse root certificate")
 	}
 
 	tlsConfig := &tls.Config{

@@ -15,8 +15,8 @@ var TransferVestCmd = func() *cobra.Command {
 		Use:     "transfer_vest",
 		Short:   "convert COS to VEST",
 		Long:    "convert amounts of liquidity COS to VEST",
-		Example: "transfer_vest alice alice 500.000000",
-		Args:    cobra.ExactArgs(3),
+		Example: "transfer_vest alice alice 500.000000 \"memo\"",
+		Args:    cobra.ExactArgs(4),
 		Run:     transferVest,
 	}
 	utils.ProcessEstimate(cmd)
@@ -34,6 +34,7 @@ func transferVest(cmd *cobra.Command, args []string) {
 	from := args[0]
 	to := args[1]
 	amount, err := utils.ParseCos(args[2])
+	memo := args[3]
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -48,6 +49,7 @@ func transferVest(cmd *cobra.Command, args []string) {
 		From:   &prototype.AccountName{Value: from},
 		To:     &prototype.AccountName{Value: to},
 		Amount: prototype.NewCoin(amount),
+		Memo:	memo,
 	}
 
 	signTx, err := utils.GenerateSignedTxAndValidate(cmd, []interface{}{transferv_op}, fromAccount)

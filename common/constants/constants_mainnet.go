@@ -19,3 +19,8 @@ const (
 	ClientName              = "Cos-go-mainnet"
 )
 
+// hard forks
+const (
+	Original uint64 = 0
+	HardFork1 uint64 = 1732100	// around 2019-10-15 15:30 +0800
+)

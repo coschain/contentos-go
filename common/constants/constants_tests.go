@@ -17,3 +17,9 @@ const (
 
 	ClientName              = "Cos-go-tests"
 )
+
+// hard forks
+const (
+	Original uint64 = 0
+	HardFork1 uint64 = 1000
+)

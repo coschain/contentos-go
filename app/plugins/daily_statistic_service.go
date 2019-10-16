@@ -47,7 +47,7 @@ func (s *DailyStatisticService) Start(node *node.Node) error {
 	if !s.db.HasTable("trxinfo") {
 		return errors.New("need init trxinfo table before start this plugin")
 	}
-	s.dappWithCreator = map[string]string{"contentos": "costvtycoon"}
+	s.dappWithCreator = map[string]string{"contentos": "costvtycoon", "photogrid": "photogrid"}
 	s.dappsCache = map[string]dateRow{}
 	for dapp, _ := range s.dappWithCreator {
 		s.dappsCache[dapp] = dateRow{}
@@ -104,6 +104,12 @@ func (s *DailyStatisticService) cron() {
 	s.Unlock()
 }
 
+func (s *DailyStatisticService) printErr(errs []error) {
+	if len(errs) > 0 {
+		s.log.Error("daily statistic:", errs)
+	}
+}
+
 func (s *DailyStatisticService) make(dapp, datetime string) (*itype.Row, error) {
 	s.Lock()
 	defer s.Unlock()
@@ -119,32 +125,37 @@ func (s *DailyStatisticService) make(dapp, datetime string) (*itype.Row, error) 
 	end := startDate.Add(24 * time.Hour).Unix()
 
 	var dau uint32
-	s.db.Table("create_user_records").Where("create_user_records.creator = ?", creator).
+	dauErr := s.db.Table("create_user_records").Where("create_user_records.creator = ?", creator).
 		Joins("JOIN trxinfo on trxinfo.creator = create_user_records.new_account").
 		Where("trxinfo.block_time > ? AND trxinfo.block_time < ?", start, end).
 		Select("count(distinct(create_user_records.new_account))").
-		Count(&dau)
+		Count(&dau).GetErrors()
+	s.printErr(dauErr)
 
 	var dnu uint32
-	s.db.Model(&CreateUserRecord{}).Where("block_time > ? AND block_time < ? AND creator = ?", time.Unix(start, 0), time.Unix(end, 0), creator).Count(&dnu)
+	dnuErr := s.db.Model(&CreateUserRecord{}).Where("block_time > ? AND block_time < ? AND creator = ?", time.Unix(start, 0), time.Unix(end, 0), creator).Count(&dnu).GetErrors()
+	s.printErr(dnuErr)
 
 	var count uint32
-	s.db.Table("create_user_records").Where("create_user_records.creator = ?", creator).
+	countErr := s.db.Table("create_user_records").Where("create_user_records.creator = ?", creator).
 		Joins("JOIN trxinfo on trxinfo.creator = create_user_records.new_account").
 		Where("trxinfo.block_time > ? AND trxinfo.block_time < ?", start, end).
-		Count(&count)
+		Count(&count).GetErrors()
+	s.printErr(countErr)
 
 	type AmountWrap struct {
 		Amount uint64
 	}
 	var amount AmountWrap
-	s.db.Table("transfer_records").Select("sum(transfer_records.amount) as amount").
+	amountErr := s.db.Table("transfer_records").Select("sum(transfer_records.amount) as amount").
 		Where("transfer_records.block_time > ? AND transfer_records.block_time < ?", time.Unix(start, 0), time.Unix(end, 0)).
 		Joins("JOIN create_user_records on transfer_records.from = create_user_records.new_account").
-		Where("create_user_records.creator = ?", creator).Scan(&amount)
+		Where("create_user_records.creator = ?", creator).Scan(&amount).GetErrors()
+	s.printErr(amountErr)
 
 	var total uint32
-	s.db.Model(&CreateUserRecord{}).Where("creator = ? and block_time < ?", creator, time.Unix(end, 0)).Count(&total)
+	totalErr := s.db.Model(&CreateUserRecord{}).Where("creator = ? and block_time < ?", creator, time.Unix(end, 0)).Count(&total).GetErrors()
+	s.printErr(totalErr)
 
 	row := &itype.Row{Timestamp: uint64(start), Dapp: dapp, Dau: dau, Dnu: dnu, TrxCount: count, Amount:amount.Amount, TotalUserCount:total}
 	return row, nil

@@ -16,8 +16,8 @@ import (
 )
 
 const (
-	DefaultRPCEndPoint  = "127.0.0.1:8888"
-	DefaultHTTPEndPoint = "127.0.0.1:8080"
+	DefaultRPCEndPoint  = "0.0.0.0:8888"
+	DefaultHTTPEndPoint = "0.0.0.0:8080"
 )
 
 const (

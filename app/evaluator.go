@@ -457,8 +457,6 @@ func (ev *ReplyEvaluator) Apply() {
 	//opAssertE(ev.Database().Put([]byte(key), []byte(value)), "put reply key into db error")
 }
 
-// upvote is true: upvote otherwise downvote
-// no downvote has been supplied by command, so I ignore it
 func (ev *VoteEvaluator) Apply() {
 	op := ev.op
 
@@ -492,7 +490,9 @@ func (ev *VoteEvaluator) Apply() {
 
 	vest := voterWrap.GetVest().Value
 	weightedVp := new(big.Int).SetUint64(vest)
-	weightedVp.Sqrt(weightedVp)
+	if ev.HardFork() < constants.HardFork1 {
+		weightedVp.Sqrt(weightedVp)
+	}
 	weightedVp.Mul(weightedVp, new(big.Int).SetUint64(uint64(usedVp)))
 
 	// distinguish post or reply
