@@ -43,22 +43,6 @@ type DB struct {
 	log *logrus.Logger
 }
 
-type Rewind struct {
-	db   *DB
-	from common.BlockID
-	to   common.BlockID
-}
-
-func (r *Rewind) ApplyBlock(id common.BlockID) {
-	r.db.head = id
-}
-
-func (r *Rewind) Undo() {
-	r.db.head = r.from
-}
-
-func (r *Rewind) Done() {}
-
 // NewDB ...
 func NewDB(lg *logrus.Logger) *DB {
 	// TODO: purge the detachedLink
@@ -326,18 +310,8 @@ func (db *DB) Pop() common.ISignedBlock {
 	old := db.head
 	db.head = ret.Previous()
 	delete(db.branches, old)
-	// TODO: remove from db.list
 
 	return ret
-}
-
-func (db *DB) RewindBranch(to common.BlockID) *Rewind {
-	db.head = to
-	return &Rewind{
-		db:   db,
-		from: db.head,
-		to:   to,
-	}
 }
 
 // ResetHead...
