@@ -119,6 +119,14 @@ func (cp *BFTCheckPoint) Flush(bid common.BlockID) error {
 			cp.nextCP = ConvertToBlockID(v.ProposedData)
 		}
 		if cp.lastCommitted == bid {
+			newCache := make(map[common.BlockID]*message.Commit)
+			if cp.nextCP != common.EmptyBlockID {
+				newCache[cp.lastCommitted] = cp.cache[cp.lastCommitted]
+			}
+			if cp.lastCommitted.BlockNum() % 1000 == 0 {
+				cp.cache = newCache // clean cache in case there're too many malformed Commit
+			}
+
 			return nil
 		}
 		if cp.nextCP == common.EmptyBlockID {
@@ -149,7 +157,7 @@ func (cp *BFTCheckPoint) Add(commit *message.Commit) error {
 	if _, ok := cp.cache[prev]; ok {
 		return ErrCheckPointExists
 	}
-	cp.cache[prev] = commit
+	cp.cache[prev] = commit // prev could be malformed
 	if cp.lastCommitted == prev {
 		cp.nextCP = blockID
 	}
