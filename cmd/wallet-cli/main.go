@@ -20,6 +20,8 @@ var rootCmd = &cobra.Command{
 	Short: "wallet-cli is a key-pair storage",
 }
 
+var path string
+
 func pcFromCommands(parent readline.PrefixCompleterInterface, c *cobra.Command) {
 	pc := readline.PcItem(c.Use)
 	parent.SetChildren(append(parent.GetChildren(), pc))
@@ -36,6 +38,11 @@ func inheritContext(c *cobra.Command) {
 }
 
 func runShell() {
+	localWallet := wallet.NewBaseHDWallet("default", path)
+	_ = localWallet.LoadAll()
+	_ = localWallet.Start()
+	rootCmd.SetContext("wallet", localWallet)
+	defer localWallet.Close()
 	completer := readline.NewPrefixCompleter()
 	for _, child := range rootCmd.Commands() {
 		pcFromCommands(completer, child)
@@ -172,6 +179,7 @@ func addCommands() {
 }
 
 func init() {
+	rootCmd.Flags().StringVar(&path, "path", DefaultDataDir(), "--path path")
 	addCommands()
 	rootCmd.Run = func(cmd *cobra.Command, args []string) {
 		runShell()
@@ -180,13 +188,13 @@ func init() {
 
 func main() {
 	//localWallet := wallet.NewBaseWallet("default", DefaultDataDir())
-	localWallet := wallet.NewBaseHDWallet("default", DefaultDataDir())
+	//localWallet := wallet.NewBaseHDWallet("default", path)
+	//_ = localWallet.LoadAll()
+	//_ = localWallet.Start()
+	//rootCmd.SetContext("wallet", localWallet)
+	//defer localWallet.Close()
 	preader := utils.MyPasswordReader{}
-	_ = localWallet.LoadAll()
-	_ = localWallet.Start()
-	rootCmd.SetContext("wallet", localWallet)
 	rootCmd.SetContext("preader", preader)
-	defer localWallet.Close()
 
 	conn, err := rpc.Dial("localhost:8888")
 	defer conn.Close()
