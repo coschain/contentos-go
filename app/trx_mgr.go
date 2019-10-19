@@ -146,6 +146,9 @@ const (
 
 	// minimal interval between cleanings
 	sMinCleanupInterval = 10 * time.Second
+
+	// shrink the waiting/fetched pools every 100K transactions
+	sShrinkCountWaterMark = 100000
 )
 
 // ITrxMgrPlugin is an interface of manager plugins.
@@ -170,6 +173,7 @@ type TrxMgr struct {
 	history 		*InBlockTrxChecker					// checker of transaction duplication
 	plugins         []ITrxMgrPlugin						// manager plugins, consisting of above checkers
 	lastCleanTime	time.Time							// last time we clean up expired waiting transactions
+	shrinkCounter   uint64								// a counter to determine when to shrink pools
 }
 
 // NewTrxMgr creates an instance of TrxMgr.
@@ -415,6 +419,9 @@ func (m *TrxMgr) BlockApplied(b *prototype.SignedBlock) {
 	// clean expired waiting trxs if necessary
 	m.cleanExpiredWaiting()
 
+	// shrink pool memory if necessary
+	m.shrinkPoolMemories()
+
 	timing.Mark()
 
 	m.fetchedLock.Unlock()
@@ -473,6 +480,8 @@ func (m *TrxMgr) addToWaiting(entries...*TrxEntry) (count int) {
 		m.waiting[e.sig] = e
 		count++
 	}
+
+	atomic.AddUint64(&m.shrinkCounter, uint64(count))
 	return
 }
 
@@ -562,5 +571,22 @@ func (m *TrxMgr) cleanExpiredWaiting() {
 			}
 			delete(m.waiting, k)
 		}
+	}
+}
+
+// delete(map, key) won't release any memory occupied by a map.
+// so we need to re-copy our pools from time to time, otherwise they're eating memory slowly but forever.
+func (m *TrxMgr) shrinkPoolMemories() {
+	if atomic.LoadUint64(&m.shrinkCounter) > sShrinkCountWaterMark {
+		atomic.StoreUint64(&m.shrinkCounter, 0)
+
+		waiting, fetched := make(map[string]*TrxEntry), make(map[string]*TrxEntry)
+		for k, e := range m.waiting {
+			waiting[k] = e
+		}
+		for k, e := range m.fetched {
+			fetched[k] = e
+		}
+		m.waiting, m.fetched = waiting, fetched
 	}
 }
