@@ -20,7 +20,7 @@ var rootCmd = &cobra.Command{
 	Short: "wallet-cli is a key-pair storage",
 }
 
-var path string
+var datadir string
 
 func pcFromCommands(parent readline.PrefixCompleterInterface, c *cobra.Command) {
 	pc := readline.PcItem(c.Use)
@@ -38,7 +38,7 @@ func inheritContext(c *cobra.Command) {
 }
 
 func runShell() {
-	localWallet := wallet.NewBaseHDWallet("default", path)
+	localWallet := wallet.NewBaseHDWallet("default", datadir)
 	_ = localWallet.LoadAll()
 	_ = localWallet.Start()
 	rootCmd.SetContext("wallet", localWallet)
@@ -179,7 +179,7 @@ func addCommands() {
 }
 
 func init() {
-	rootCmd.Flags().StringVar(&path, "path", DefaultDataDir(), "--path path")
+	rootCmd.PersistentFlags().StringVar(&datadir, "datadir", DefaultDataDir(), "--datadir path")
 	addCommands()
 	rootCmd.Run = func(cmd *cobra.Command, args []string) {
 		runShell()
