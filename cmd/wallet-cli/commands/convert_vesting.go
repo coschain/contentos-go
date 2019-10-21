@@ -8,7 +8,6 @@ import (
 	"github.com/coschain/contentos-go/cmd/wallet-cli/wallet"
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/coschain/contentos-go/rpc/pb"
-	"strconv"
 )
 
 var ConvertVestCmd = func() *cobra.Command {
@@ -16,7 +15,7 @@ var ConvertVestCmd = func() *cobra.Command {
 		Use:     "convert_vest",
 		Short:   "convert VEST to COS",
 		Long:    "convert VEST to COS, it takes 13 weeks before finish",
-		Example: "convert_vest alice 500",
+		Example: "convert_vest alice 500.000000",
 		Args:    cobra.MinimumNArgs(2),
 		Run:     convert,
 	}
@@ -33,7 +32,7 @@ func convert(cmd *cobra.Command, args []string) {
 	w := cmd.Context["wallet"]
 	mywallet := w.(wallet.Wallet)
 	from := args[0]
-	amount, err := strconv.ParseInt(args[2], 10, 64)
+	amount, err := utils.ParseCos(args[1])
 	if err != nil {
 		fmt.Println(err)
 		return
