@@ -5,6 +5,7 @@ const (
 	EmptyLine          = ""
 	Positive           = "yes"
 	Negative           = "no"
+	Separator          = ","
 )
 
 // read type

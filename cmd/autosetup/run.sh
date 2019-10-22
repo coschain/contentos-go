@@ -3,6 +3,9 @@
 nodeName=$1
 chainid=$2
 
+#echo $nodeName
+#echo $chainid
+
 cd ../cosd/
 
 GO=`which go`
