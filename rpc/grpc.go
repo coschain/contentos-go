@@ -1552,3 +1552,42 @@ func (as *APIService) GetAppTableRecord(ctx context.Context, req *grpcpb.GetAppT
 		return &grpcpb.GetAppTableRecordResponse{ Success:false, ErrorMsg:err.Error() }, nil
 	}
 }
+
+func (as *APIService) GetBlockProducerVoterList(ctx context.Context, req *grpcpb.GetBlockProducerVoterListRequest) (*grpcpb.GetBlockProducerVoterListResponse, error) {
+	as.db.RLock()
+	defer as.db.RUnlock()
+	bpName := req.BlockProducer
+
+	wrap := table.NewBlockProducerVoteBlockProducerIdWrap(as.db)
+
+	var bpNameStart, bpNameEnd, key *prototype.BpBlockProducerId
+
+	if req.LastVoter != nil {
+		bpNameStart = &prototype.BpBlockProducerId{BlockProducer: bpName, Voter: req.LastVoter}
+		key = &prototype.BpBlockProducerId{BlockProducer: bpName, Voter: req.LastVoter}
+	} else {
+		bpNameStart = &prototype.BpBlockProducerId{BlockProducer: bpName, Voter: prototype.MinAccountName}
+	}
+
+	bpNameEnd = &prototype.BpBlockProducerId{BlockProducer:bpName, Voter: prototype.MaxAccountName}
+
+	var voterList []*grpcpb.BlockProducerVoterResponse
+	limit := checkLimit(req.Limit)
+	err := wrap.ForEachByOrder(bpNameStart, bpNameEnd, key, key, func(mVal *prototype.BpBlockProducerId, sVal *prototype.BpBlockProducerId, idx uint32) bool {
+		if mVal != nil {
+			voter := mVal.Voter
+			voterInfo := as.getAccountResponseByName(voter,false)
+			if voterInfo != nil {
+				vest := voterInfo.Info.Vest
+				blockProducerVoter := &grpcpb.BlockProducerVoterResponse{AccountName:voter, Vest: vest}
+				voterList = append(voterList, blockProducerVoter)
+			}
+			if uint32(len(voterList)) >= limit {
+				return false
+			}
+			return true
+		}
+		return false
+	})
+	return &grpcpb.GetBlockProducerVoterListResponse{Voter:voterList}, err
+}
