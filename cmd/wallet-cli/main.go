@@ -38,11 +38,6 @@ func inheritContext(c *cobra.Command) {
 }
 
 func runShell() {
-	localWallet := wallet.NewBaseHDWallet("default", datadir)
-	_ = localWallet.LoadAll()
-	_ = localWallet.Start()
-	rootCmd.SetContext("wallet", localWallet)
-	defer localWallet.Close()
 	completer := readline.NewPrefixCompleter()
 	for _, child := range rootCmd.Commands() {
 		pcFromCommands(completer, child)
@@ -61,7 +56,6 @@ func runShell() {
 	defer func() {
 		if err := recover(); err != nil {
 			fmt.Println(err)
-			runShell()
 		}
 	}()
 
@@ -182,6 +176,12 @@ func init() {
 	rootCmd.PersistentFlags().StringVar(&datadir, "datadir", DefaultDataDir(), "--datadir path")
 	addCommands()
 	rootCmd.Run = func(cmd *cobra.Command, args []string) {
+		if _, ok := rootCmd.Context["wallet"]; !ok {
+			localWallet := wallet.NewBaseHDWallet("default", datadir)
+			_ = localWallet.LoadAll()
+			_ = localWallet.Start()
+			rootCmd.SetContext("wallet", localWallet)
+		}
 		runShell()
 	}
 }
