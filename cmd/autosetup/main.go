@@ -22,7 +22,7 @@ func main(){
 
 	if setup.InitNewConfig {
 		autoSetUp.ReadAndProcess(setup.ChainId,
-			fmt.Sprintf("Which chain do you want to connect? ( %s/%s/%s, connect default chain enter %s) ",
+			fmt.Sprintf("Which chain do you want to connect? ( %s / %s / %s, connect default chain enter %s) ",
 				common.ChainNameMainNet, common.ChainNameTestNet, common.ChainNameDevNet, setup.DefaultValueSignal))
 
 		autoSetUp.ReadAndProcess(setup.IsBp, fmt.Sprintf("Do you want to start a bp node? (%s/%s) ", setup.Positive, setup.Negative))
@@ -33,7 +33,7 @@ func main(){
 
 		autoSetUp.ReadAndProcess(setup.SeedList, "Enter seed node list: (e.g. ip1:port1,ip2:port2) ")
 		autoSetUp.ReadAndProcess(setup.LogLevel,
-			fmt.Sprintf("Enter your log level ( %s/%s/%s/%s/%s/%s, use default level enter %s) ",
+			fmt.Sprintf("Enter your log level ( %s / %s / %s / %s / %s / %s, use default level enter %s) ",
 				mylog.DebugLevel, mylog.InfoLevel, mylog.WarnLevel, mylog.ErrorLevel, mylog.FatalLevel, mylog.PanicLevel, setup.DefaultValueSignal))
 		autoSetUp.ReadAndProcess(setup.DataDir, fmt.Sprintf("Enter your data directory, use default directory enter %s: ", setup.DefaultValueSignal))
 

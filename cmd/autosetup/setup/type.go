@@ -126,6 +126,14 @@ func (admin *SetupAdmin) ReadAndValidate(readType, displayInfo string) (readCont
 			bpName := &prototype.AccountName{Value:readContent}
 			err := bpName.Validate()
 			if err != nil {
+				fmt.Println("Account name illegal")
+				continue
+			}
+			return
+		case PriKey:
+			_, err := prototype.PrivateKeyFromWIF(readContent)
+			if err != nil {
+				fmt.Println("Private key illegal")
 				continue
 			}
 			return
