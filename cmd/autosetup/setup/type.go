@@ -76,9 +76,7 @@ func (admin *SetupAdmin) ReadAndProcess(readType, displayInfo string) {
 		seedListStr := strings.Split(readContent, Separator)
 		admin.cfg.P2P.Genesis.SeedList = seedListStr
 	case LogLevel:
-		if readContent == DefaultValueSignal {
-			admin.cfg.LogLevel = mylog.DebugLevel
-		} else {
+		if readContent != DefaultValueSignal {
 			admin.cfg.LogLevel = readContent
 		}
 	case DataDir:
@@ -94,6 +92,10 @@ func (admin *SetupAdmin) ReadAndProcess(readType, displayInfo string) {
 		if readContent == Positive {
 			StartNodeNow = true
 		}
+	case ClearData:
+		if readContent == Positive {
+			ClearLocalData = true
+		}
 	}
 }
 
@@ -103,6 +105,8 @@ func (admin *SetupAdmin) ReadAndValidate(readType, displayInfo string) (readCont
 		readContent = ReadCmdLine(displayInfo)
 
 		switch t := admin.readInfo.readType; t {
+		case ClearData:
+			fallthrough
 		case StartNode:
 			fallthrough
 		case IsBp:

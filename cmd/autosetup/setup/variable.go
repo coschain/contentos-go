@@ -10,6 +10,7 @@ const (
 
 // read type
 const (
+	ClearData  = "ClearData"
 	IsBp     = "IsBp"
 	YesOrNo  = "YesOrNo"
 	NodeName = "NodeName"
@@ -27,4 +28,5 @@ var (
 	InitNewConfig = true
 	NodeIsBp      = false
 	StartNodeNow  = false
+	ClearLocalData = false
 )
