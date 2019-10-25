@@ -10,7 +10,7 @@ Make sure all running cosd processes have been stopped
 pkill cosd
 ```
 
-Then execute the following commands in order
+Then execute the following commands under the current path in order
 ```
 go build
 ./autosetup
