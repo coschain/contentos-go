@@ -3,9 +3,17 @@ The whole process mainly consists of two parts: generating a config file and sta
 
 ## Precondition
 
+Install go environment and it requires [Go 1.11.4+](https://golang.org/dl/)
+
 Make sure all running cosd processes have been stopped
 ```
 pkill cosd
+```
+
+Then execute the following commands in order
+```
+go build
+./autosetup
 ```
 
 ## Step 1. Set node name
