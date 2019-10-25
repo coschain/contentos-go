@@ -21,9 +21,9 @@ func main(){
 	autoSetUp.ReadAndProcess(setup.NodeName, fmt.Sprintf("Enter your node name (If you want to use default name, enter %s) ", setup.DefaultValueSignal))
 
 	if setup.InitNewConfig {
-		autoSetUp.ReadAndProcess(setup.ChainId,
-			fmt.Sprintf("Which chain do you want to connect? ( %s / %s / %s, connect default chain enter %s) ",
-				common.ChainNameMainNet, common.ChainNameTestNet, common.ChainNameDevNet, setup.DefaultValueSignal))
+		//autoSetUp.ReadAndProcess(setup.ChainId,
+		//	fmt.Sprintf("Which chain do you want to connect? ( %s / %s / %s, connect default chain enter %s) ",
+		//		common.ChainNameMainNet, common.ChainNameTestNet, common.ChainNameDevNet, setup.DefaultValueSignal))
 
 		autoSetUp.ReadAndProcess(setup.IsBp, fmt.Sprintf("Do you want to start a bp node? (%s/%s) ", setup.Positive, setup.Negative))
 		if setup.NodeIsBp {
