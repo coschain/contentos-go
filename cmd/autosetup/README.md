@@ -36,7 +36,7 @@ First, you will be asked if you want to start a block producer node.
 ```
 Do you want to start a bp node? (yes/no)
 ```
-If you don't want to start a block producer node, please enter `no` and skip step 2 and 3. If you want, please enter your account name (You can use our [online wallet](https://wallet.contentos.io/) to create your Contentos mainnet account)
+If you don't want to start a block producer node, please enter `no` and skip step 2 and 3. If you want, please choose `yes` and enter your account name (You can use our [online wallet](https://wallet.contentos.io/) to create your Contentos mainnet account)
 ```
 Enter your account name:
 ```
@@ -76,7 +76,7 @@ Enter your data directory, use default directory enter d:
 
 ## Step 7. Start your node
 
-If you don't want to start your node, please skip step 7 and 8
+If you don't want to start your node, please choose `no` and skip step 7 and 8
 ```
 Do you want to start the node right now? (yes/no)
 ```
