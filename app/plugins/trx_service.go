@@ -136,3 +136,7 @@ func (t *TrxService) Stop() error {
 	t.unhookEvent()
 	return nil
 }
+
+func (t *TrxService) Reload() error {
+	return nil
+}

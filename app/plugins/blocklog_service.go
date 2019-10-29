@@ -44,6 +44,10 @@ func (s *BlockLogService) Stop() error {
 	return nil
 }
 
+func (s *BlockLogService) Reload() error {
+	return nil
+}
+
 func (s *BlockLogService) initDatabase() error {
 	connStr := fmt.Sprintf("%s:%s@/%s?charset=utf8mb4&parseTime=True&loc=Local", s.config.User, s.config.Password, s.config.Db)
 	if db, err := gorm.Open(s.config.Driver, connStr); err != nil {

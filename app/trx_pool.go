@@ -119,6 +119,10 @@ func (c *TrxPool) Stop() error {
 	return nil
 }
 
+func (c *TrxPool) Reload() error {
+	return nil
+}
+
 func (c *TrxPool) PushTrxToPending(trx *prototype.SignedTransaction) (err error) {
 	return c.tm.AddTrx(trx, nil)
 }

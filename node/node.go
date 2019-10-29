@@ -36,6 +36,17 @@ type NamedServiceConstructor struct {
 	constructor ServiceConstructor
 }
 
+func (n *Node) Reload(conf *Config) error {
+	n.config = conf
+	for _, kind := range n.serviceNames {
+		service := n.services[kind]
+		if err := service.Reload(); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func New(conf *Config) (*Node, error) {
 	// Copy config
 	confCopy := *conf

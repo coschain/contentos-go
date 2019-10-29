@@ -44,6 +44,9 @@ type Config struct {
 	HealthCheck service_configs.HCheck
 
 	Database *service_configs.DatabaseConfig
+
+	IpWhiteList      []string
+	IpBlackList      []string
 }
 
 // DB returns the path to the discovery database.

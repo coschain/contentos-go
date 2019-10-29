@@ -528,6 +528,10 @@ func (sabft *SABFT) Stop() error {
 	return nil
 }
 
+func (sabft *SABFT) Reload() error {
+	return nil
+}
+
 func (sabft *SABFT) generateAndApplyBlock() (common.ISignedBlock, error) {
 	sabft.log.Debug("start generateBlock.")
 	ts := sabft.getSlotTime(sabft.slot)

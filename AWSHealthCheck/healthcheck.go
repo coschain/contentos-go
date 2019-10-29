@@ -81,6 +81,10 @@ func (this *AWSHealthCheck) Stop() error {
 	return nil
 }
 
+func (this *AWSHealthCheck) Reload() error {
+	return nil
+}
+
 func (this *AWSHealthCheck) myHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "——hi aws ALB, I'm alive ——\n")
 }

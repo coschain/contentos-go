@@ -120,3 +120,7 @@ func (p *PostService) Stop() error {
 	p.unhookEvent()
 	return nil
 }
+
+func (p *PostService) Reload() error {
+	return nil
+}

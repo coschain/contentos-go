@@ -34,6 +34,8 @@ type Service interface {
 	// stop all goroutines belonging to the service,
 	// blocking until all of them are terminated.
 	Stop() error
+
+	Reload() error
 }
 
 func (ctx *ServiceContext) ResetConfig(cfg *Config) {

@@ -190,3 +190,7 @@ func (t *TrxMysqlService) Stop() error {
 	close(t.quit)
 	return nil
 }
+
+func (t *TrxMysqlService) Reload() error {
+	return nil
+}

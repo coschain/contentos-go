@@ -192,3 +192,7 @@ func (p *FollowService) Stop() error {
 	p.unhookEvent()
 	return nil
 }
+
+func (p *FollowService) Reload() error {
+	return nil
+}

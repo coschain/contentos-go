@@ -65,6 +65,10 @@ func (s *DailyStatisticService) Stop() error {
 	return nil
 }
 
+func (s *DailyStatisticService) Reload() error {
+	return nil
+}
+
 func (s *DailyStatisticService) scheduleNextJob() {
 	s.jobTimer = time.AfterFunc(24 * time.Hour, s.cron)
 }

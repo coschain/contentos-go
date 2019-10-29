@@ -102,6 +102,10 @@ func (this *P2PServer) Stop() error {
 	return nil
 }
 
+func (this *P2PServer) Reload() error {
+	return nil
+}
+
 
 //GetPort return two network port
 //func (this *P2PServer) GetPort() (uint32, uint32) {

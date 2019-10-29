@@ -126,6 +126,10 @@ func (gs *GRPCServer) Stop() error {
 	return nil
 }
 
+func (gs *GRPCServer) Reload() error {
+	return nil
+}
+
 func (gs *GRPCServer) startWebProxy() error {
 	go func() {
 		if err := RunWebProxy(gs.rpcServer, gs.config); err != nil {

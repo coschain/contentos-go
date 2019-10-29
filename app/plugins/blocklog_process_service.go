@@ -67,6 +67,10 @@ func (s *BlockLogProcessService) Stop() error  {
 	return nil
 }
 
+func (s *BlockLogProcessService) Reload() error {
+	return nil
+}
+
 func (s *BlockLogProcessService) addProcessors() {
 	s.processors = append(s.processors,
 		NewHolderProcessor(),

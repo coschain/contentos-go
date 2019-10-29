@@ -41,3 +41,6 @@ Name = "cosd"
   [P2P.ReservedCfg]
     MaskPeers = []
     ReservedPeers = []
+
+IpWhiteList = []
+IpBlackList = []

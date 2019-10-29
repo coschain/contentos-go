@@ -21,6 +21,7 @@ import (
 	"os/signal"
 	"path/filepath"
 	"syscall"
+	"github.com/fsnotify/fsnotify"
 )
 
 var pluginList []string
@@ -76,6 +77,21 @@ func makeNode() (*node.Node, node.Config) {
 		fmt.Println("Fatal: ", err)
 		os.Exit(1)
 	}
+	viper.WatchConfig()
+	// config call back
+	viper.OnConfigChange(func(e fsnotify.Event) {
+
+		err := viper.ReadInConfig()
+		if err == nil {
+			_ = viper.Unmarshal(&cfg)
+		} else {
+			fmt.Printf("fatal: not be initialized (do `init` first)\n")
+			os.Exit(1)
+		}
+		if err := app.Reload(&cfg);err != nil {
+			fmt.Printf("fatal: Reload config failed, err:%v",err)
+		}
+	})
 	return app, cfg
 
 }
@@ -156,6 +172,8 @@ func RegisterService(app *node.Node, cfg node.Config) {
 	})
 
 	pluginMgr.RegisterTrxPoolDependents(app, &cfg)
+
+	pluginMgr.RegisterIpRestrictService(app, &cfg)
 
 	_ = app.Register(iservices.ConsensusServerName, func(ctx *node.ServiceContext) (node.Service, error) {
 		return consensus.NewSABFT(ctx, app.Log), nil

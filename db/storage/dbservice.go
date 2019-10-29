@@ -87,6 +87,10 @@ func (s *DatabaseService) Stop() error {
 	return nil
 }
 
+func (s *DatabaseService) Reload() error {
+	return nil
+}
+
 //
 // implementation of TagRevertible interface
 //
