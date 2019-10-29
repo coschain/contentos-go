@@ -8,8 +8,6 @@ import (
 	"time"
 )
 
-var IpRestrictServiceName = "iprestrictsrv"
-
 const (
 	RequestCount = 1
 )

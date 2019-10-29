@@ -19,7 +19,10 @@ import (
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/golang/protobuf/proto"
+	"google.golang.org/grpc/peer"
 	"math"
+	"net"
+	"strings"
 	"time"
 )
 
@@ -38,6 +41,7 @@ type APIService struct {
 	log       *logrus.Logger
 	eBus      EventBus.Bus
 	ctx       *node.ServiceContext
+	ipRestrict iservices.IIpRestrict
 }
 
 func NewAPIService(con iservices.IConsensus, loop *eventloop.EventLoop, db iservices.IDatabaseService, log *logrus.Logger) *APIService {
@@ -415,6 +419,32 @@ func (as *APIService) EstimateStamina(ctx context.Context, req *grpcpb.EsimateRe
 }
 
 func (as *APIService) BroadcastTrx(ctx context.Context, req *grpcpb.BroadcastTrxRequest) (*grpcpb.BroadcastTrxResponse, error) {
+
+	// todo before check ip, get real ip if request from http
+	p,ok := peer.FromContext(ctx)
+	if !ok {
+		return nil,fmt.Errorf("get client ip failed")
+	}
+	if p.Addr == net.Addr(nil) {
+		return nil,fmt.Errorf("client ip is nil")
+	}
+	ipSlice := strings.Split(p.Addr.String(), ":")
+	if len(ipSlice) == 0 {
+		return nil,fmt.Errorf("client ip is empty")
+	}
+	clientIp := ipSlice[0]
+	if !as.ipRestrict.IsValidIp(clientIp) {
+		return nil,fmt.Errorf("client ip:%v invalid",clientIp)
+	}
+	if !as.ipRestrict.HitWhiteList(clientIp) {
+		as.ipRestrict.UpdateMonitor(clientIp)
+		if as.ipRestrict.HitBlackList(clientIp) {
+			return nil,fmt.Errorf("ip:%v is in the black list",clientIp)
+		}
+		if as.ipRestrict.HitMonitorList(clientIp) {
+			return nil,fmt.Errorf("ip:%v request too frequently",clientIp)
+		}
+	}
 
 	//var result chan *prototype.TransactionReceiptWithInfo
 	//result := make(chan *prototype.TransactionReceiptWithInfo)

@@ -49,6 +49,13 @@ func NewGRPCServer(ctx *node.ServiceContext, config service_configs.GRPCConfig, 
 
 func (gs *GRPCServer) Start(node *node.Node) error {
 
+	ipRestrict, err := gs.ctx.Service(iservices.IpRestrictServiceName)
+	if err != nil {
+		panic(err)
+	} else {
+		gs.api.ipRestrict = ipRestrict.(iservices.IIpRestrict)
+	}
+
 	consensus, err := gs.ctx.Service(iservices.ConsensusServerName)
 	if err != nil {
 		// TODO Mock Test

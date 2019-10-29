@@ -51,7 +51,12 @@ func (p *PluginMgt) RegisterSQLServices(app *node.Node, cfg *node.Config) {
 }
 
 func (p *PluginMgt) RegisterIpRestrictService(app *node.Node, cfg *node.Config) {
-	_ = app.Register(IpRestrictServiceName, func(ctx *node.ServiceContext) (node.Service, error) {
-		return NewIpRestrictService(ctx, app.Log)
-	})
+	for _, l := range p.list {
+		if l == iservices.IpRestrictServiceName {
+			_ = app.Register(iservices.IpRestrictServiceName, func(ctx *node.ServiceContext) (node.Service, error) {
+				return NewIpRestrictService(ctx, app.Log)
+			})
+			return
+		}
+	}
 }

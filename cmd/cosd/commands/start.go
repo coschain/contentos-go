@@ -35,7 +35,7 @@ var StartCmd = func() *cobra.Command {
 		Run:       startNode,
 	}
 	cmd.Flags().StringVarP(&cfgName, "name", "n", "", "node name (default is cosd)")
-	cmd.Flags().StringArrayVarP(&pluginList, "plugin", "", []string{}, "--plugin=[trxsqlservice, dailystatservice, statelogservice, tokeninfoservice]")
+	cmd.Flags().StringArrayVarP(&pluginList, "plugin", "", []string{}, "--plugin=[iprestrict, trxsqlservice, dailystatservice, statelogservice, tokeninfoservice]")
 	return cmd
 }
 
