@@ -46,6 +46,10 @@ func (p *PluginMgt) RegisterSQLServices(app *node.Node, cfg *node.Config) {
 			_ = app.Register(iservices.BlockLogProcessServiceName, func(ctx *node.ServiceContext) (service node.Service, e error) {
 				return NewBlockLogProcessService(ctx, cfg.Database, app.Log)
 			})
+		case iservices.IOTrxServiceName:
+			_ = app.Register(iservices.IOTrxServiceName, func(ctx *node.ServiceContext) (service node.Service, e error) {
+				return NewIOTrxService(ctx, cfg.Database, app.Log)
+			})
 		}
 	}
 }
