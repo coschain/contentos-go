@@ -5,6 +5,7 @@ import (
 	"github.com/improbable-eng/grpc-web/go/grpcweb"
 	"google.golang.org/grpc"
 	"net/http"
+	"strings"
 )
 
 const (
@@ -17,7 +18,7 @@ func makeHttpOriginFunc() func(origin string) bool {
 		return true
 	}}
 
-func RunWebProxy(grpcServer *grpc.Server, config *service_configs.GRPCConfig) error {
+func RunWebProxy(api *APIService, grpcServer *grpc.Server, config *service_configs.GRPCConfig) error {
 
 	options := []grpcweb.Option{
 		grpcweb.WithCorsForRegisteredEndpointsOnly(false),
@@ -35,6 +36,18 @@ func RunWebProxy(grpcServer *grpc.Server, config *service_configs.GRPCConfig) er
 	httpCh := make(chan bool, httpLimit)
 
 	mux.HandleFunc("/", http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
+		remote := req.Header.Get("X-Forwarded-For")
+		idx := strings.Index(remote, ",")
+		if remote != "" && idx > -1 {
+			remote = remote[:idx]
+		} else if remote == "" {
+			remote = req.Header.Get("X-Real-IP")
+		}
+
+		if err := api.CheckIp(remote); err != nil {
+			return
+		}
+
 		select {
 		case httpCh <- true:
 			defer func() { <-httpCh }()

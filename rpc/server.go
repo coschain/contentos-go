@@ -51,7 +51,7 @@ func (gs *GRPCServer) Start(node *node.Node) error {
 
 	ipRestrict, err := gs.ctx.Service(iservices.IpRestrictServiceName)
 	if err != nil {
-		panic(err)
+		gs.api.ipRestrict = nil
 	} else {
 		gs.api.ipRestrict = ipRestrict.(iservices.IIpRestrict)
 	}
@@ -139,7 +139,7 @@ func (gs *GRPCServer) Reload() error {
 
 func (gs *GRPCServer) startWebProxy() error {
 	go func() {
-		if err := RunWebProxy(gs.rpcServer, gs.config); err != nil {
+		if err := RunWebProxy(gs.api, gs.rpcServer, gs.config); err != nil {
 			gs.log.Error("rpc WebProxy start failure")
 		} else {
 			gs.log.Info("rpc WebProxy start success")

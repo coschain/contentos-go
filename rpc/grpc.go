@@ -418,31 +418,50 @@ func (as *APIService) EstimateStamina(ctx context.Context, req *grpcpb.EsimateRe
 	return estimateResponse,nil
 }
 
-func (as *APIService) BroadcastTrx(ctx context.Context, req *grpcpb.BroadcastTrxRequest) (*grpcpb.BroadcastTrxResponse, error) {
-
-	// todo before check ip, get real ip if request from http
-	p,ok := peer.FromContext(ctx)
+func (as *APIService) GetGrpcRemoteIp(ctx context.Context) (string,error) {
+	p, ok := peer.FromContext(ctx)
 	if !ok {
-		return nil,fmt.Errorf("get client ip failed")
+		return "",fmt.Errorf("get client ip failed")
 	}
 	if p.Addr == net.Addr(nil) {
-		return nil,fmt.Errorf("client ip is nil")
+		return "",fmt.Errorf("client ip is nil")
 	}
 	ipSlice := strings.Split(p.Addr.String(), ":")
 	if len(ipSlice) == 0 {
-		return nil,fmt.Errorf("client ip is empty")
+		return "",fmt.Errorf("client ip is empty")
 	}
 	clientIp := ipSlice[0]
 	if !as.ipRestrict.IsValidIp(clientIp) {
-		return nil,fmt.Errorf("client ip:%v invalid",clientIp)
+		return "",fmt.Errorf("client ip:%v invalid", clientIp)
 	}
-	if !as.ipRestrict.HitWhiteList(clientIp) {
-		as.ipRestrict.UpdateMonitor(clientIp)
-		if as.ipRestrict.HitBlackList(clientIp) {
-			return nil,fmt.Errorf("ip:%v is in the black list",clientIp)
+	return clientIp,nil
+}
+
+func (as *APIService) CheckIp(ip string) error {
+	if as.ipRestrict != nil {
+		if !as.ipRestrict.HitWhiteList(ip) {
+			as.ipRestrict.UpdateMonitor(ip)
+			if as.ipRestrict.HitBlackList(ip) {
+				return fmt.Errorf("ip:%v is in the black list", ip)
+			}
+			if as.ipRestrict.HitMonitorList(ip) {
+				return fmt.Errorf("ip:%v request too frequently", ip)
+			}
 		}
-		if as.ipRestrict.HitMonitorList(clientIp) {
-			return nil,fmt.Errorf("ip:%v request too frequently",clientIp)
+	}
+	return nil
+}
+
+func (as *APIService) BroadcastTrx(ctx context.Context, req *grpcpb.BroadcastTrxRequest) (*grpcpb.BroadcastTrxResponse, error) {
+
+	// todo before check ip, get real ip if request from http
+	if as.ipRestrict != nil {
+		ip,err := as.GetGrpcRemoteIp(ctx)
+		if err != nil {
+			return nil,err
+		}
+		if err := as.CheckIp(ip); err != nil {
+			return nil,err
 		}
 	}
 
