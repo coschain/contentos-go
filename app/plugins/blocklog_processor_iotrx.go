@@ -40,7 +40,11 @@ func NewIOTrxProcessor() *IOTrxProcessor{
 
 func (p *IOTrxProcessor) addOpProcessors() {
 	p.opProcessors = append(p.opProcessors, ProcessAccountCreateOperation, ProcessTransferOperation,
-		ProcessTransferVestOperation, ProcessStakeOperation, ProcessUnStakeOperation)
+		ProcessTransferVestOperation, ProcessStakeOperation, ProcessUnStakeOperation,
+		ProcessAccountUpdateOperation, ProcessVoteOperation, ProcessBpRegisterOperation, ProcessBpUpdateOperation,
+		ProcessBpEnableOperation, ProcessBpVoteOperation, ProcessContractDeployOperation, ProcessContractApplyOperation,
+		ProcessPostOperation, ProcessReplyOperation, ProcessConvertVestOperation, ProcessAcquireTicketOperation,
+		ProcessVoteByTicketOperation)
 }
 
 func (p *IOTrxProcessor) addChangeProcessor() {

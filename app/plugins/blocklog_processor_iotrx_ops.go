@@ -107,3 +107,263 @@ func ProcessUnStakeOperation(db *gorm.DB, blockLog *blocklog.BlockLog, opIdx, tr
 		Action:      opLog.Type,
 	}).Error
 }
+
+func ProcessAccountUpdateOperation(db *gorm.DB, blockLog *blocklog.BlockLog, opIdx, trxIdx int) error {
+	trxLog := blockLog.Transactions[trxIdx]
+	opLog := trxLog.Operations[opIdx]
+	if opLog.Type != "account_update" {
+		return nil
+	}
+	op, ok := prototype.GetBaseOperation(opLog.Data).(*prototype.AccountUpdateOperation)
+	if !ok {
+		return errors.New("failed conversion to AccountUpdateOperation")
+	}
+	return db.Create(&IOTrxRecord{
+		TrxHash:     trxLog.TrxId,
+		BlockHeight: blockLog.BlockNum,
+		BlockTime:   time.Unix(int64(blockLog.BlockTime), 0),
+		From:        op.GetOwner().GetValue(),
+		To:          "",
+		Action:      opLog.Type,
+	}).Error
+}
+
+func ProcessVoteOperation(db *gorm.DB, blockLog *blocklog.BlockLog, opIdx, trxIdx int) error {
+	trxLog := blockLog.Transactions[trxIdx]
+	opLog := trxLog.Operations[opIdx]
+	if opLog.Type != "vote" {
+		return nil
+	}
+	op, ok := prototype.GetBaseOperation(opLog.Data).(*prototype.VoteOperation)
+	if !ok {
+		return errors.New("failed conversion to VoteOperation")
+	}
+	return db.Create(&IOTrxRecord{
+		TrxHash:     trxLog.TrxId,
+		BlockHeight: blockLog.BlockNum,
+		BlockTime:   time.Unix(int64(blockLog.BlockTime), 0),
+		From:        op.GetVoter().GetValue(),
+		To:          "",
+		Action:      opLog.Type,
+	}).Error
+}
+
+func ProcessBpRegisterOperation(db *gorm.DB, blockLog *blocklog.BlockLog, opIdx, trxIdx int) error {
+	trxLog := blockLog.Transactions[trxIdx]
+	opLog := trxLog.Operations[opIdx]
+	if opLog.Type != "bp_register" {
+		return nil
+	}
+	op, ok := prototype.GetBaseOperation(opLog.Data).(*prototype.BpRegisterOperation)
+	if !ok {
+		return errors.New("failed conversion to BpRegisterOperation")
+	}
+	return db.Create(&IOTrxRecord{
+		TrxHash:     trxLog.TrxId,
+		BlockHeight: blockLog.BlockNum,
+		BlockTime:   time.Unix(int64(blockLog.BlockTime), 0),
+		From:        op.GetOwner().GetValue(),
+		To:          "",
+		Action:      opLog.Type,
+	}).Error
+}
+
+func ProcessBpUpdateOperation(db *gorm.DB, blockLog *blocklog.BlockLog, opIdx, trxIdx int) error {
+	trxLog := blockLog.Transactions[trxIdx]
+	opLog := trxLog.Operations[opIdx]
+	if opLog.Type != "bp_update" {
+		return nil
+	}
+	op, ok := prototype.GetBaseOperation(opLog.Data).(*prototype.BpUpdateOperation)
+	if !ok {
+		return errors.New("failed conversion to BpUpdateOperation")
+	}
+	return db.Create(&IOTrxRecord{
+		TrxHash:     trxLog.TrxId,
+		BlockHeight: blockLog.BlockNum,
+		BlockTime:   time.Unix(int64(blockLog.BlockTime), 0),
+		From:        op.GetOwner().GetValue(),
+		To:          "",
+		Action:      opLog.Type,
+	}).Error
+}
+
+func ProcessBpEnableOperation(db *gorm.DB, blockLog *blocklog.BlockLog, opIdx, trxIdx int) error {
+	trxLog := blockLog.Transactions[trxIdx]
+	opLog := trxLog.Operations[opIdx]
+	if opLog.Type != "bp_enable" {
+		return nil
+	}
+	op, ok := prototype.GetBaseOperation(opLog.Data).(*prototype.BpEnableOperation)
+	if !ok {
+		return errors.New("failed conversion to BpEnableOperation")
+	}
+	return db.Create(&IOTrxRecord{
+		TrxHash:     trxLog.TrxId,
+		BlockHeight: blockLog.BlockNum,
+		BlockTime:   time.Unix(int64(blockLog.BlockTime), 0),
+		From:        op.GetOwner().GetValue(),
+		To:          "",
+		Action:      opLog.Type,
+	}).Error
+}
+
+func ProcessBpVoteOperation(db *gorm.DB, blockLog *blocklog.BlockLog, opIdx, trxIdx int) error {
+	trxLog := blockLog.Transactions[trxIdx]
+	opLog := trxLog.Operations[opIdx]
+	if opLog.Type != "bp_vote" {
+		return nil
+	}
+	op, ok := prototype.GetBaseOperation(opLog.Data).(*prototype.BpVoteOperation)
+	if !ok {
+		return errors.New("failed conversion to BpVoteOperation")
+	}
+	return db.Create(&IOTrxRecord{
+		TrxHash:     trxLog.TrxId,
+		BlockHeight: blockLog.BlockNum,
+		BlockTime:   time.Unix(int64(blockLog.BlockTime), 0),
+		From:        op.GetVoter().GetValue(),
+		To:          "",
+		Action:      opLog.Type,
+	}).Error
+}
+
+func ProcessContractDeployOperation(db *gorm.DB, blockLog *blocklog.BlockLog, opIdx, trxIdx int) error {
+	trxLog := blockLog.Transactions[trxIdx]
+	opLog := trxLog.Operations[opIdx]
+	if opLog.Type != "contract_deploy" {
+		return nil
+	}
+	op, ok := prototype.GetBaseOperation(opLog.Data).(*prototype.ContractDeployOperation)
+	if !ok {
+		return errors.New("failed conversion to ContractDeployOperation")
+	}
+	return db.Create(&IOTrxRecord{
+		TrxHash:     trxLog.TrxId,
+		BlockHeight: blockLog.BlockNum,
+		BlockTime:   time.Unix(int64(blockLog.BlockTime), 0),
+		From:        op.GetOwner().GetValue(),
+		To:          "",
+		Action:      opLog.Type,
+	}).Error
+}
+
+func ProcessContractApplyOperation(db *gorm.DB, blockLog *blocklog.BlockLog, opIdx, trxIdx int) error {
+	trxLog := blockLog.Transactions[trxIdx]
+	opLog := trxLog.Operations[opIdx]
+	if opLog.Type != "contract_apply" {
+		return nil
+	}
+	op, ok := prototype.GetBaseOperation(opLog.Data).(*prototype.ContractApplyOperation)
+	if !ok {
+		return errors.New("failed conversion to ContractApplyOperation")
+	}
+	return db.Create(&IOTrxRecord{
+		TrxHash:     trxLog.TrxId,
+		BlockHeight: blockLog.BlockNum,
+		BlockTime:   time.Unix(int64(blockLog.BlockTime), 0),
+		From:        op.GetCaller().GetValue(),
+		To:          "",
+		Action:      opLog.Type,
+	}).Error
+}
+
+func ProcessPostOperation(db *gorm.DB, blockLog *blocklog.BlockLog, opIdx, trxIdx int) error {
+	trxLog := blockLog.Transactions[trxIdx]
+	opLog := trxLog.Operations[opIdx]
+	if opLog.Type != "post" {
+		return nil
+	}
+	op, ok := prototype.GetBaseOperation(opLog.Data).(*prototype.PostOperation)
+	if !ok {
+		return errors.New("failed conversion to PostOperation")
+	}
+	return db.Create(&IOTrxRecord{
+		TrxHash:     trxLog.TrxId,
+		BlockHeight: blockLog.BlockNum,
+		BlockTime:   time.Unix(int64(blockLog.BlockTime), 0),
+		From:        op.GetOwner().GetValue(),
+		To:          "",
+		Action:      opLog.Type,
+	}).Error
+}
+
+func ProcessReplyOperation(db *gorm.DB, blockLog *blocklog.BlockLog, opIdx, trxIdx int) error {
+	trxLog := blockLog.Transactions[trxIdx]
+	opLog := trxLog.Operations[opIdx]
+	if opLog.Type != "reply" {
+		return nil
+	}
+	op, ok := prototype.GetBaseOperation(opLog.Data).(*prototype.ReplyOperation)
+	if !ok {
+		return errors.New("failed conversion to ReplyOperation")
+	}
+	return db.Create(&IOTrxRecord{
+		TrxHash:     trxLog.TrxId,
+		BlockHeight: blockLog.BlockNum,
+		BlockTime:   time.Unix(int64(blockLog.BlockTime), 0),
+		From:        op.GetOwner().GetValue(),
+		To:          "",
+		Action:      opLog.Type,
+	}).Error
+}
+
+func ProcessConvertVestOperation(db *gorm.DB, blockLog *blocklog.BlockLog, opIdx, trxIdx int) error {
+	trxLog := blockLog.Transactions[trxIdx]
+	opLog := trxLog.Operations[opIdx]
+	if opLog.Type != "convert_vest" {
+		return nil
+	}
+	op, ok := prototype.GetBaseOperation(opLog.Data).(*prototype.ConvertVestOperation)
+	if !ok {
+		return errors.New("failed conversion to ConvertVestOperation")
+	}
+	return db.Create(&IOTrxRecord{
+		TrxHash:     trxLog.TrxId,
+		BlockHeight: blockLog.BlockNum,
+		BlockTime:   time.Unix(int64(blockLog.BlockTime), 0),
+		From:        op.GetFrom().GetValue(),
+		To:          "",
+		Action:      opLog.Type,
+	}).Error
+}
+
+func ProcessAcquireTicketOperation(db *gorm.DB, blockLog *blocklog.BlockLog, opIdx, trxIdx int) error {
+	trxLog := blockLog.Transactions[trxIdx]
+	opLog := trxLog.Operations[opIdx]
+	if opLog.Type != "acquire_ticket" {
+		return nil
+	}
+	op, ok := prototype.GetBaseOperation(opLog.Data).(*prototype.AcquireTicketOperation)
+	if !ok {
+		return errors.New("failed conversion to AcquireTicketOperation")
+	}
+	return db.Create(&IOTrxRecord{
+		TrxHash:     trxLog.TrxId,
+		BlockHeight: blockLog.BlockNum,
+		BlockTime:   time.Unix(int64(blockLog.BlockTime), 0),
+		From:        op.GetAccount().GetValue(),
+		To:          "",
+		Action:      opLog.Type,
+	}).Error
+}
+
+func ProcessVoteByTicketOperation(db *gorm.DB, blockLog *blocklog.BlockLog, opIdx, trxIdx int) error {
+	trxLog := blockLog.Transactions[trxIdx]
+	opLog := trxLog.Operations[opIdx]
+	if opLog.Type != "vote_by_ticket" {
+		return nil
+	}
+	op, ok := prototype.GetBaseOperation(opLog.Data).(*prototype.VoteByTicketOperation)
+	if !ok {
+		return errors.New("failed conversion to VoteByTicketOperation")
+	}
+	return db.Create(&IOTrxRecord{
+		TrxHash:     trxLog.TrxId,
+		BlockHeight: blockLog.BlockNum,
+		BlockTime:   time.Unix(int64(blockLog.BlockTime), 0),
+		From:        op.GetAccount().GetValue(),
+		To:          "",
+		Action:      opLog.Type,
+	}).Error
+}
