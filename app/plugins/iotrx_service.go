@@ -59,6 +59,7 @@ func (s *IOTrxService) Start(node *node.Node) error {
 		}
 		s.db.Create(progress)
 	}
+	s.addProcessors()
 	s.scheduleNextJob()
 	return nil
 }

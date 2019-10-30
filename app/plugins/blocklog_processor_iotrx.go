@@ -32,7 +32,10 @@ type IOTrxProcessor struct {
 }
 
 func NewIOTrxProcessor() *IOTrxProcessor{
-	return &IOTrxProcessor{}
+	p := &IOTrxProcessor{}
+	p.addOpProcessors()
+	p.addChangeProcessor()
+	return p
 }
 
 func (p *IOTrxProcessor) addOpProcessors() {
@@ -56,8 +59,6 @@ func (p *IOTrxProcessor) Prepare(db *gorm.DB, blockLog *blocklog.BlockLog) (err 
 			p.tableReady = true
 		}
 	}
-	p.addOpProcessors()
-	p.addChangeProcessor()
 	return
 }
 
