@@ -31,6 +31,7 @@ func NewIpRestrictService(ctx *node.ServiceContext, log *logrus.Logger) (*IpRest
 	ipsrv := &IpRestrictService{
 		ctx:ctx,
 		log:log,
+		monitorList:make(map[string]*TpsCounter),
 	}
 	return ipsrv,nil
 }

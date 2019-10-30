@@ -426,15 +426,39 @@ func (as *APIService) GetGrpcRemoteIp(ctx context.Context) (string,error) {
 	if p.Addr == net.Addr(nil) {
 		return "",fmt.Errorf("client ip is nil")
 	}
-	ipSlice := strings.Split(p.Addr.String(), ":")
-	if len(ipSlice) == 0 {
-		return "",fmt.Errorf("client ip is empty")
+	// todo use stronger judgement
+	if strings.Count(p.Addr.String(),":") <= 1 {  // ipv4
+		fmt.Println("raw ip:", p.Addr.String())
+		ipSlice := strings.Split(p.Addr.String(), ":")
+		if len(ipSlice) == 0 {
+			return "", fmt.Errorf("client ip is empty")
+		}
+		clientIp := ipSlice[0]
+		if !as.ipRestrict.IsValidIp(clientIp) {
+			return "", fmt.Errorf("client ip:%v invalid", clientIp)
+		}
+		return clientIp,nil
+	} else { // ipv6
+		fmt.Println("raw ip:", p.Addr.String())
+		lastColon := strings.LastIndex(p.Addr.String(),":")
+		if lastColon == -1 {
+			return "", fmt.Errorf("ipv6 ip invalid")
+		}
+		ipv6 := p.Addr.String()[0:lastColon]
+		leftBrakets := strings.Index(ipv6,"[")
+		if leftBrakets != -1 {
+			ipv6 = ipv6[leftBrakets+1:]
+		}
+		rightBrakets := strings.Index(ipv6,"]")
+		if rightBrakets != -1 {
+			ipv6 = ipv6[:rightBrakets]
+		}
+		fmt.Println("final ipv6:",ipv6)
+		if !as.ipRestrict.IsValidIp(ipv6) {
+			return "", fmt.Errorf("client ip:%v invalid", ipv6)
+		}
+		return ipv6,nil
 	}
-	clientIp := ipSlice[0]
-	if !as.ipRestrict.IsValidIp(clientIp) {
-		return "",fmt.Errorf("client ip:%v invalid", clientIp)
-	}
-	return clientIp,nil
 }
 
 func (as *APIService) CheckIp(ip string) error {
@@ -453,14 +477,15 @@ func (as *APIService) CheckIp(ip string) error {
 }
 
 func (as *APIService) BroadcastTrx(ctx context.Context, req *grpcpb.BroadcastTrxRequest) (*grpcpb.BroadcastTrxResponse, error) {
-
-	// todo before check ip, get real ip if request from http
 	if as.ipRestrict != nil {
 		ip,err := as.GetGrpcRemoteIp(ctx)
 		if err != nil {
+			fmt.Println("rpc get remote ip:",ip," error:",err.Error())
 			return nil,err
 		}
+
 		if err := as.CheckIp(ip); err != nil {
+			fmt.Println("rpc CheckIp error:",err.Error())
 			return nil,err
 		}
 	}

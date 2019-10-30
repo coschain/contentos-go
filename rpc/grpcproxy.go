@@ -36,6 +36,7 @@ func RunWebProxy(api *APIService, grpcServer *grpc.Server, config *service_confi
 	httpCh := make(chan bool, httpLimit)
 
 	mux.HandleFunc("/", http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
+		// todo how to restrict broadcast request only ?
 		remote := req.Header.Get("X-Forwarded-For")
 		idx := strings.Index(remote, ",")
 		if remote != "" && idx > -1 {
