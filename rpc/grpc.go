@@ -463,6 +463,9 @@ func (as *APIService) GetGrpcRemoteIp(ctx context.Context) (string,error) {
 
 func (as *APIService) CheckIp(ip string) error {
 	if as.ipRestrict != nil {
+		if !as.ipRestrict.IsValidIp(ip) {
+			return fmt.Errorf("ip:%v invalid", ip)
+		}
 		if !as.ipRestrict.HitWhiteList(ip) {
 			as.ipRestrict.UpdateMonitor(ip)
 			if as.ipRestrict.HitBlackList(ip) {
@@ -473,10 +476,12 @@ func (as *APIService) CheckIp(ip string) error {
 			}
 		}
 	}
+	fmt.Println("APIService CheckIp ok")
 	return nil
 }
 
 func (as *APIService) BroadcastTrx(ctx context.Context, req *grpcpb.BroadcastTrxRequest) (*grpcpb.BroadcastTrxResponse, error) {
+	fmt.Println("BroadcastTrx receive trx")
 	if as.ipRestrict != nil {
 		ip,err := as.GetGrpcRemoteIp(ctx)
 		if err != nil {

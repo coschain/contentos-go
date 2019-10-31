@@ -1,6 +1,7 @@
 package rpc
 
 import (
+	"fmt"
 	"github.com/coschain/contentos-go/iservices/service-configs"
 	"github.com/improbable-eng/grpc-web/go/grpcweb"
 	"google.golang.org/grpc"
@@ -36,17 +37,22 @@ func RunWebProxy(api *APIService, grpcServer *grpc.Server, config *service_confi
 	httpCh := make(chan bool, httpLimit)
 
 	mux.HandleFunc("/", http.HandlerFunc(func(resp http.ResponseWriter, req *http.Request) {
-		// todo how to restrict broadcast request only ?
-		remote := req.Header.Get("X-Forwarded-For")
-		idx := strings.Index(remote, ",")
-		if remote != "" && idx > -1 {
-			remote = remote[:idx]
-		} else if remote == "" {
-			remote = req.Header.Get("X-Real-IP")
-		}
-
-		if err := api.CheckIp(remote); err != nil {
-			return
+		fmt.Println("uri path:",req.URL.Path)
+		if strings.Compare(req.URL.Path,"/grpcpb.ApiService/BroadcastTrx") == 0 {
+			fmt.Println("http receive trx")
+			// todo how to restrict broadcast request only ?
+			remote := req.Header.Get("X-Forwarded-For")
+			idx := strings.Index(remote, ",")
+			if remote != "" && idx > -1 {
+				remote = remote[:idx]
+			} else if remote == "" {
+				remote = req.Header.Get("X-Real-IP")
+			}
+			fmt.Println("http remote ip:", remote)
+			if err := api.CheckIp(remote); err != nil {
+				fmt.Println(err)
+				return
+			}
 		}
 
 		select {
