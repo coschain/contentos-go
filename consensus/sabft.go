@@ -774,6 +774,10 @@ func (sabft *SABFT) gobftCatchUp(commit *message.Commit) bool {
 }
 
 func (sabft *SABFT) validateProducer(b common.ISignedBlock) bool {
+	if !sabft.readyToProduce {
+		return true
+	}
+
 	head := sabft.ForkDB.Head()
 	slotTime := sabft.getSlotTime(sabft.getSlotAtTime(time.Now()))
 	if head.Timestamp() >= b.Timestamp() || b.Timestamp() > slotTime {
@@ -834,12 +838,6 @@ func (sabft *SABFT) pushBlock(b common.ISignedBlock, applyStateDB bool) error {
 	newNum := newID.BlockNum()
 
 	if newNum > headNum+1 {
-
-		//if sabft.readyToProduce {
-		//	sabft.p2p.FetchUnlinkedBlock(b.Previous())
-		//	sabft.log.Debug("[SABFT TriggerSync]: out-of range from ", b.Previous().BlockNum())
-		//}
-
 		if sabft.readyToProduce {
 			if !sabft.checkSync() {
 				//sabft.readyToProduce = false
@@ -849,11 +847,9 @@ func (sabft *SABFT) pushBlock(b common.ISignedBlock, applyStateDB bool) error {
 					headID = sabft.ForkDB.Head().Id()
 				}
 				sabft.p2p.FetchOutOfRange(headID, b.Id())
-
 				sabft.log.Debug("[SABFT TriggerSync]: out-of range from ", headID.BlockNum())
 			}
 		}
-
 		return ErrBlockOutOfScope
 	}
 
