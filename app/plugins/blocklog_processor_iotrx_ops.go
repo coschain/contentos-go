@@ -147,8 +147,7 @@ func ProcessAccountUpdateOperation(db *gorm.DB, blockLog *blocklog.BlockLog, opI
 		TrxHash:     trxLog.TrxId,
 		BlockHeight: blockLog.BlockNum,
 		BlockTime:   time.Unix(int64(blockLog.BlockTime), 0),
-		From:        op.GetOwner().GetValue(),
-		To:          "",
+		Account:        op.GetOwner().GetValue(),
 		Action:      opLog.Type,
 	}).Error
 }
@@ -167,8 +166,7 @@ func ProcessVoteOperation(db *gorm.DB, blockLog *blocklog.BlockLog, opIdx, trxId
 		TrxHash:     trxLog.TrxId,
 		BlockHeight: blockLog.BlockNum,
 		BlockTime:   time.Unix(int64(blockLog.BlockTime), 0),
-		From:        op.GetVoter().GetValue(),
-		To:          "",
+		Account:        op.GetVoter().GetValue(),
 		Action:      opLog.Type,
 	}).Error
 }
@@ -187,8 +185,7 @@ func ProcessBpRegisterOperation(db *gorm.DB, blockLog *blocklog.BlockLog, opIdx,
 		TrxHash:     trxLog.TrxId,
 		BlockHeight: blockLog.BlockNum,
 		BlockTime:   time.Unix(int64(blockLog.BlockTime), 0),
-		From:        op.GetOwner().GetValue(),
-		To:          "",
+		Account:        op.GetOwner().GetValue(),
 		Action:      opLog.Type,
 	}).Error
 }
@@ -207,8 +204,7 @@ func ProcessBpUpdateOperation(db *gorm.DB, blockLog *blocklog.BlockLog, opIdx, t
 		TrxHash:     trxLog.TrxId,
 		BlockHeight: blockLog.BlockNum,
 		BlockTime:   time.Unix(int64(blockLog.BlockTime), 0),
-		From:        op.GetOwner().GetValue(),
-		To:          "",
+		Account:        op.GetOwner().GetValue(),
 		Action:      opLog.Type,
 	}).Error
 }
@@ -227,8 +223,7 @@ func ProcessBpEnableOperation(db *gorm.DB, blockLog *blocklog.BlockLog, opIdx, t
 		TrxHash:     trxLog.TrxId,
 		BlockHeight: blockLog.BlockNum,
 		BlockTime:   time.Unix(int64(blockLog.BlockTime), 0),
-		From:        op.GetOwner().GetValue(),
-		To:          "",
+		Account:        op.GetOwner().GetValue(),
 		Action:      opLog.Type,
 	}).Error
 }
@@ -247,8 +242,7 @@ func ProcessBpVoteOperation(db *gorm.DB, blockLog *blocklog.BlockLog, opIdx, trx
 		TrxHash:     trxLog.TrxId,
 		BlockHeight: blockLog.BlockNum,
 		BlockTime:   time.Unix(int64(blockLog.BlockTime), 0),
-		From:        op.GetVoter().GetValue(),
-		To:          "",
+		Account:        op.GetVoter().GetValue(),
 		Action:      opLog.Type,
 	}).Error
 }
@@ -267,8 +261,7 @@ func ProcessContractDeployOperation(db *gorm.DB, blockLog *blocklog.BlockLog, op
 		TrxHash:     trxLog.TrxId,
 		BlockHeight: blockLog.BlockNum,
 		BlockTime:   time.Unix(int64(blockLog.BlockTime), 0),
-		From:        op.GetOwner().GetValue(),
-		To:          "",
+		Account:        op.GetOwner().GetValue(),
 		Action:      opLog.Type,
 	}).Error
 }
@@ -287,8 +280,7 @@ func ProcessContractApplyOperation(db *gorm.DB, blockLog *blocklog.BlockLog, opI
 		TrxHash:     trxLog.TrxId,
 		BlockHeight: blockLog.BlockNum,
 		BlockTime:   time.Unix(int64(blockLog.BlockTime), 0),
-		From:        op.GetCaller().GetValue(),
-		To:          "",
+		Account:        op.GetCaller().GetValue(),
 		Action:      opLog.Type,
 	}).Error
 }
@@ -307,8 +299,7 @@ func ProcessPostOperation(db *gorm.DB, blockLog *blocklog.BlockLog, opIdx, trxId
 		TrxHash:     trxLog.TrxId,
 		BlockHeight: blockLog.BlockNum,
 		BlockTime:   time.Unix(int64(blockLog.BlockTime), 0),
-		From:        op.GetOwner().GetValue(),
-		To:          "",
+		Account:        op.GetOwner().GetValue(),
 		Action:      opLog.Type,
 	}).Error
 }
@@ -327,8 +318,7 @@ func ProcessReplyOperation(db *gorm.DB, blockLog *blocklog.BlockLog, opIdx, trxI
 		TrxHash:     trxLog.TrxId,
 		BlockHeight: blockLog.BlockNum,
 		BlockTime:   time.Unix(int64(blockLog.BlockTime), 0),
-		From:        op.GetOwner().GetValue(),
-		To:          "",
+		Account:        op.GetOwner().GetValue(),
 		Action:      opLog.Type,
 	}).Error
 }
@@ -347,8 +337,7 @@ func ProcessConvertVestOperation(db *gorm.DB, blockLog *blocklog.BlockLog, opIdx
 		TrxHash:     trxLog.TrxId,
 		BlockHeight: blockLog.BlockNum,
 		BlockTime:   time.Unix(int64(blockLog.BlockTime), 0),
-		From:        op.GetFrom().GetValue(),
-		To:          "",
+		Account:        op.GetFrom().GetValue(),
 		Action:      opLog.Type,
 	}).Error
 }
@@ -367,8 +356,7 @@ func ProcessAcquireTicketOperation(db *gorm.DB, blockLog *blocklog.BlockLog, opI
 		TrxHash:     trxLog.TrxId,
 		BlockHeight: blockLog.BlockNum,
 		BlockTime:   time.Unix(int64(blockLog.BlockTime), 0),
-		From:        op.GetAccount().GetValue(),
-		To:          "",
+		Account:        op.GetAccount().GetValue(),
 		Action:      opLog.Type,
 	}).Error
 }
@@ -387,8 +375,7 @@ func ProcessVoteByTicketOperation(db *gorm.DB, blockLog *blocklog.BlockLog, opId
 		TrxHash:     trxLog.TrxId,
 		BlockHeight: blockLog.BlockNum,
 		BlockTime:   time.Unix(int64(blockLog.BlockTime), 0),
-		From:        op.GetAccount().GetValue(),
-		To:          "",
+		Account:        op.GetAccount().GetValue(),
 		Action:      opLog.Type,
 	}).Error
 }

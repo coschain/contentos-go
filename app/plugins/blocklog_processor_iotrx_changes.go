@@ -54,7 +54,7 @@ func ProcessUserToContractChangeProcessor(db *gorm.DB, change *blocklog.StateCha
 	if !ok {
 		return errors.New("failed conversion to ContractApplyOperation")
 	}
-	if change.Cause == "contract_apply.utc"{
+	if change.Cause == "contract_apply.u2c"{
 		owner := op.GetOwner().GetValue()
 		contract := op.GetContract()
 		contractName := owner + "@" + contract
