@@ -15,8 +15,7 @@ type IOTrxRecord struct {
 	TrxHash string      `gorm:"index"`
 	BlockHeight uint64
 	BlockTime time.Time
-	From string			`gorm:"index"`
-	To string			`gorm:"index"`
+	Account string			`gorm:"index"`
 	Action string       `gorm:"index"`
 }
 
