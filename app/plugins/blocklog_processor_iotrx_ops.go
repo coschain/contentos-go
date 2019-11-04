@@ -8,6 +8,16 @@ import (
 	"time"
 )
 
+func makeIOTrx(trxHash string, blockHeight uint64, blockTime time.Time, account string, action string) *IOTrxRecord {
+	return &IOTrxRecord{
+		TrxHash:     trxHash,
+		BlockHeight: blockHeight,
+		BlockTime:  blockTime,
+		Account:     account,
+		Action:      account,
+	}
+}
+
 func ProcessAccountCreateOperation(db *gorm.DB, blockLog *blocklog.BlockLog, opIdx, trxIdx int) error {
 	trxLog := blockLog.Transactions[trxIdx]
 	opLog := trxLog.Operations[opIdx]
@@ -18,14 +28,17 @@ func ProcessAccountCreateOperation(db *gorm.DB, blockLog *blocklog.BlockLog, opI
 	if !ok {
 		return errors.New("failed conversion to AccountCreateOperation")
 	}
-	return db.Create(&IOTrxRecord{
-		TrxHash:     trxLog.TrxId,
-		BlockHeight: blockLog.BlockNum,
-		BlockTime:   time.Unix(int64(blockLog.BlockTime), 0),
-		From:        op.GetCreator().GetValue(),
-		To:          op.GetNewAccountName().GetValue(),
-		Action:      opLog.Type,
-	}).Error
+	ioTrxFrom := makeIOTrx(trxLog.TrxId, blockLog.BlockNum, time.Unix(int64(blockLog.BlockTime), 0),
+		op.GetCreator().GetValue(), opLog.Type)
+	ioTrxTo := makeIOTrx(trxLog.TrxId, blockLog.BlockNum, time.Unix(int64(blockLog.BlockTime), 0),
+		op.GetNewAccountName().GetValue(), opLog.Type)
+	if err := db.Create(ioTrxFrom).Error; err != nil {
+		return err
+	}
+	if err := db.Create(ioTrxTo).Error; err != nil {
+		return err
+	}
+	return nil
 }
 
 func ProcessTransferOperation(db *gorm.DB, blockLog *blocklog.BlockLog, opIdx, trxIdx int) error {
@@ -38,14 +51,17 @@ func ProcessTransferOperation(db *gorm.DB, blockLog *blocklog.BlockLog, opIdx, t
 	if !ok {
 		return errors.New("failed conversion to TransferOperation")
 	}
-	return db.Create(&IOTrxRecord{
-		TrxHash: trxLog.TrxId,
-		BlockHeight: blockLog.BlockNum,
-		BlockTime: time.Unix(int64(blockLog.BlockTime), 0),
-		From: op.GetFrom().GetValue(),
-		To: op.GetTo().GetValue(),
-		Action: opLog.Type,
-	}).Error
+	ioTrxFrom := makeIOTrx(trxLog.TrxId, blockLog.BlockNum, time.Unix(int64(blockLog.BlockTime), 0),
+		op.GetFrom().GetValue(), opLog.Type)
+	ioTrxTo := makeIOTrx(trxLog.TrxId, blockLog.BlockNum, time.Unix(int64(blockLog.BlockTime), 0),
+		op.GetTo().GetValue(), opLog.Type)
+	if err := db.Create(ioTrxFrom).Error; err != nil {
+		return err
+	}
+	if err := db.Create(ioTrxTo).Error; err != nil {
+		return err
+	}
+	return nil
 }
 
 func ProcessTransferVestOperation(db *gorm.DB, blockLog *blocklog.BlockLog, opIdx, trxIdx int) error {
@@ -58,14 +74,17 @@ func ProcessTransferVestOperation(db *gorm.DB, blockLog *blocklog.BlockLog, opId
 	if !ok {
 		return errors.New("failed conversion to TransferToVestOperation")
 	}
-	return db.Create(&IOTrxRecord{
-		TrxHash:     trxLog.TrxId,
-		BlockHeight: blockLog.BlockNum,
-		BlockTime:   time.Unix(int64(blockLog.BlockTime), 0),
-		From:        op.GetFrom().GetValue(),
-		To:          op.GetTo().GetValue(),
-		Action:      opLog.Type,
-	}).Error
+	ioTrxFrom := makeIOTrx(trxLog.TrxId, blockLog.BlockNum, time.Unix(int64(blockLog.BlockTime), 0),
+		op.GetFrom().GetValue(), opLog.Type)
+	ioTrxTo := makeIOTrx(trxLog.TrxId, blockLog.BlockNum, time.Unix(int64(blockLog.BlockTime), 0),
+		op.GetTo().GetValue(), opLog.Type)
+	if err := db.Create(ioTrxFrom).Error; err != nil {
+		return err
+	}
+	if err := db.Create(ioTrxTo).Error; err != nil {
+		return err
+	}
+	return nil
 }
 
 func ProcessStakeOperation(db *gorm.DB, blockLog *blocklog.BlockLog, opIdx, trxIdx int) error {
@@ -78,14 +97,17 @@ func ProcessStakeOperation(db *gorm.DB, blockLog *blocklog.BlockLog, opIdx, trxI
 	if !ok {
 		return errors.New("failed conversion to StakeOperation")
 	}
-	return db.Create(&IOTrxRecord{
-		TrxHash:     trxLog.TrxId,
-		BlockHeight: blockLog.BlockNum,
-		BlockTime:   time.Unix(int64(blockLog.BlockTime), 0),
-		From:        op.GetFrom().GetValue(),
-		To:          op.GetTo().GetValue(),
-		Action:      opLog.Type,
-	}).Error
+	ioTrxFrom := makeIOTrx(trxLog.TrxId, blockLog.BlockNum, time.Unix(int64(blockLog.BlockTime), 0),
+		op.GetFrom().GetValue(), opLog.Type)
+	ioTrxTo := makeIOTrx(trxLog.TrxId, blockLog.BlockNum, time.Unix(int64(blockLog.BlockTime), 0),
+		op.GetTo().GetValue(), opLog.Type)
+	if err := db.Create(ioTrxFrom).Error; err != nil {
+		return err
+	}
+	if err := db.Create(ioTrxTo).Error; err != nil {
+		return err
+	}
+	return nil
 }
 
 func ProcessUnStakeOperation(db *gorm.DB, blockLog *blocklog.BlockLog, opIdx, trxIdx int) error {
@@ -98,14 +120,17 @@ func ProcessUnStakeOperation(db *gorm.DB, blockLog *blocklog.BlockLog, opIdx, tr
 	if !ok {
 		return errors.New("failed conversion to UnStakeOperation")
 	}
-	return db.Create(&IOTrxRecord{
-		TrxHash:     trxLog.TrxId,
-		BlockHeight: blockLog.BlockNum,
-		BlockTime:   time.Unix(int64(blockLog.BlockTime), 0),
-		From:        op.GetCreditor().GetValue(),
-		To:          op.GetDebtor().GetValue(),
-		Action:      opLog.Type,
-	}).Error
+	ioTrxFrom := makeIOTrx(trxLog.TrxId, blockLog.BlockNum, time.Unix(int64(blockLog.BlockTime), 0),
+		op.GetCreditor().GetValue(), opLog.Type)
+	ioTrxTo := makeIOTrx(trxLog.TrxId, blockLog.BlockNum, time.Unix(int64(blockLog.BlockTime), 0),
+		op.GetDebtor().GetValue(), opLog.Type)
+	if err := db.Create(ioTrxFrom).Error; err != nil {
+		return err
+	}
+	if err := db.Create(ioTrxTo).Error; err != nil {
+		return err
+	}
+	return nil
 }
 
 func ProcessAccountUpdateOperation(db *gorm.DB, blockLog *blocklog.BlockLog, opIdx, trxIdx int) error {
