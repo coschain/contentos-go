@@ -18,6 +18,9 @@ type Config struct {
 	// Name refers the name of node's instance
 	Name string
 
+	// MinDiskSpaceInGB refers the minimum disk space requirement in GB
+	MinDiskSpaceInGB int
+
 	// Version should be set to the version number of the program.
 	Version string `toml:"-"`
 

@@ -16,6 +16,10 @@ import (
 )
 
 const (
+	DefaultMinDiskSpaceInGB = 200
+)
+
+const (
 	DefaultRPCEndPoint  = "0.0.0.0:8888"
 	DefaultHTTPEndPoint = "0.0.0.0:8080"
 )
@@ -48,6 +52,7 @@ var DefaultNodeConfig = node.Config{
 	ChainId: common.ChainNameMainNet,
 	DataDir: DefaultDataDir(),
 	LogLevel:         mylog.DebugLevel,
+	MinDiskSpaceInGB: DefaultMinDiskSpaceInGB,
 	P2P: service_configs.P2PConfig{
 		Genesis:                   MainNetConfig,
 		EnableConsensus:           true,

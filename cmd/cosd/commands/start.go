@@ -16,7 +16,9 @@ import (
 	"github.com/coschain/contentos-go/node"
 	"github.com/coschain/contentos-go/p2p"
 	"github.com/coschain/contentos-go/rpc"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
+	"errors"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -41,6 +43,8 @@ var StartCmd = func() *cobra.Command {
 var NodeName string
 const (
 	ClientTag  = "v1.0.2"
+
+	spacePrecision = 1024 * 1024 * 1024  // 1 GB in Bytes
 )
 
 
@@ -86,6 +90,18 @@ func startNode(cmd *cobra.Command, args []string) {
 
 	_, _ = cmd, args
 	app, cfg := makeNode()
+	app.Log = mylog.Init(cfg.ResolvePath("logs"), cfg.LogLevel, 3600 * 24 * 7)
+	app.Log.Info("Cosd running version: ", NodeName)
+
+	all, err := CheckDiskSpace(filepath.Join(cfg.DataDir, cfg.Name), app.Log)
+	if err != nil {
+		app.Log.Errorf("check disk space failed, err: %v\n", err)
+		return
+	}
+	if all <= uint64(cfg.MinDiskSpaceInGB) {
+		app.Log.Errorf("disk space too small need more than %d GB, you have %d GB", cfg.MinDiskSpaceInGB, all)
+		return
+	}
 
 	replaying := len(args) > 0 && args[0] == "replay"
 	if replaying {
@@ -100,9 +116,6 @@ func startNode(cmd *cobra.Command, args []string) {
 			}
 		}
 	}
-
-	app.Log = mylog.Init(cfg.ResolvePath("logs"), cfg.LogLevel, 3600 * 24 * 7)
-	app.Log.Info("Cosd running version: ", NodeName)
 
 	//pprof.StartPprof()
 
@@ -172,4 +185,51 @@ func RegisterService(app *node.Node, cfg node.Config) {
 	_ = app.Register(AWSHealthCheck.HealthCheckName, func(ctx *node.ServiceContext) (node.Service, error) {
 		return AWSHealthCheck.NewAWSHealthCheck(ctx, app.Log)
 	})
+}
+
+func CheckDiskSpace(path string, log *logrus.Logger) (all uint64, err error) {
+	freeDiskInGB, err := getDiskFreeSpace(path)
+	if err != nil {
+		return 0, err
+	}
+
+	nodeUsedSpace, err := getNodeUsedSpace(path)
+	if err != nil {
+		return 0, err
+	}
+
+	log.Infof("Disk free space %d GB, node used space %d GB", freeDiskInGB, nodeUsedSpace)
+	return nodeUsedSpace + freeDiskInGB, nil
+}
+
+func getDiskFreeSpace(path string) (free uint64, err error) {
+	fs := syscall.Statfs_t{}
+	err = syscall.Statfs(path, &fs)
+	if err != nil {
+		return 0, err
+	}
+	//allInBytes := fs.Blocks * uint64(fs.Bsize)
+	freeInBytes := fs.Bfree * uint64(fs.Bsize)
+	//usedInBytes := allInBytes - freeInBytes
+
+	//allInGB := allInBytes / spacePrecision
+	freeInGB := freeInBytes / spacePrecision
+	//usedInGB := usedInBytes / spacePrecision
+
+	return freeInGB, nil
+}
+
+func getNodeUsedSpace(path string) (used uint64, err error) {
+	var size int64
+	err = filepath.Walk(path, func(_ string, info os.FileInfo, err error) error {
+		if !info.IsDir() {
+			size += info.Size()
+		}
+		return err
+	})
+	if err != nil {
+		return 0, errors.New(fmt.Sprintf("Get node used space error %s", err))
+	}
+	used = uint64(size) / spacePrecision
+	return used, err
 }
