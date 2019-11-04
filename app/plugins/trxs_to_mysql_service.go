@@ -191,6 +191,6 @@ func (t *TrxMysqlService) Stop() error {
 	return nil
 }
 
-func (t *TrxMysqlService) Reload() error {
+func (t *TrxMysqlService) Reload(config *node.Config) error {
 	return nil
 }

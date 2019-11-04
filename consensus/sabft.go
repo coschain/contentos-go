@@ -528,7 +528,7 @@ func (sabft *SABFT) Stop() error {
 	return nil
 }
 
-func (sabft *SABFT) Reload() error {
+func (sabft *SABFT) Reload(config *node.Config) error {
 	return nil
 }
 

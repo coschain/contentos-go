@@ -87,7 +87,7 @@ func (s *DatabaseService) Stop() error {
 	return nil
 }
 
-func (s *DatabaseService) Reload() error {
+func (s *DatabaseService) Reload(config *node.Config) error {
 	return nil
 }
 

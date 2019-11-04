@@ -67,7 +67,7 @@ func (s *BlockLogProcessService) Stop() error  {
 	return nil
 }
 
-func (s *BlockLogProcessService) Reload() error {
+func (s *BlockLogProcessService) Reload(config *node.Config) error {
 	return nil
 }
 

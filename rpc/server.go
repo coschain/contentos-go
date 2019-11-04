@@ -133,7 +133,7 @@ func (gs *GRPCServer) Stop() error {
 	return nil
 }
 
-func (gs *GRPCServer) Reload() error {
+func (gs *GRPCServer) Reload(config *node.Config) error {
 	return nil
 }
 

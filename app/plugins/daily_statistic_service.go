@@ -65,7 +65,7 @@ func (s *DailyStatisticService) Stop() error {
 	return nil
 }
 
-func (s *DailyStatisticService) Reload() error {
+func (s *DailyStatisticService) Reload(config *node.Config) error {
 	return nil
 }
 

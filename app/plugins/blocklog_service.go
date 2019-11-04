@@ -44,7 +44,7 @@ func (s *BlockLogService) Stop() error {
 	return nil
 }
 
-func (s *BlockLogService) Reload() error {
+func (s *BlockLogService) Reload(config *node.Config) error {
 	return nil
 }
 

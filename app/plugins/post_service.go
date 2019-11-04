@@ -121,6 +121,6 @@ func (p *PostService) Stop() error {
 	return nil
 }
 
-func (p *PostService) Reload() error {
+func (p *PostService) Reload(config *node.Config) error {
 	return nil
 }

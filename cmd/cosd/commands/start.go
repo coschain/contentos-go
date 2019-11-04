@@ -80,15 +80,14 @@ func makeNode() (*node.Node, node.Config) {
 	viper.WatchConfig()
 	// config call back
 	viper.OnConfigChange(func(e fsnotify.Event) {
-
+		var cfgReload node.Config
 		err := viper.ReadInConfig()
 		if err == nil {
-			_ = viper.Unmarshal(&cfg)
+			_ = viper.Unmarshal(&cfgReload)
 		} else {
 			fmt.Printf("fatal: not be initialized (do `init` first)\n")
-			os.Exit(1)
 		}
-		if err := app.Reload(&cfg);err != nil {
+		if err := app.Reload(&cfgReload);err != nil {
 			fmt.Printf("fatal: Reload config failed, err:%v",err)
 		}
 	})

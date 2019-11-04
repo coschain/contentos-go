@@ -119,7 +119,7 @@ func (c *TrxPool) Stop() error {
 	return nil
 }
 
-func (c *TrxPool) Reload() error {
+func (c *TrxPool) Reload(config *node.Config) error {
 	return nil
 }
 

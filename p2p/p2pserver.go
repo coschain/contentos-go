@@ -102,7 +102,7 @@ func (this *P2PServer) Stop() error {
 	return nil
 }
 
-func (this *P2PServer) Reload() error {
+func (this *P2PServer) Reload(config *node.Config) error {
 	return nil
 }
 

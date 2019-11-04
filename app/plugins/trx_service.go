@@ -137,6 +137,6 @@ func (t *TrxService) Stop() error {
 	return nil
 }
 
-func (t *TrxService) Reload() error {
+func (t *TrxService) Reload(config *node.Config) error {
 	return nil
 }

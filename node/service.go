@@ -35,7 +35,7 @@ type Service interface {
 	// blocking until all of them are terminated.
 	Stop() error
 
-	Reload() error
+	Reload(config *Config) error
 }
 
 func (ctx *ServiceContext) ResetConfig(cfg *Config) {

@@ -81,7 +81,7 @@ func (this *AWSHealthCheck) Stop() error {
 	return nil
 }
 
-func (this *AWSHealthCheck) Reload() error {
+func (this *AWSHealthCheck) Reload(config *node.Config) error {
 	return nil
 }
 

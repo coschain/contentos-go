@@ -40,7 +40,7 @@ func (n *Node) Reload(conf *Config) error {
 	n.config = conf
 	for _, kind := range n.serviceNames {
 		service := n.services[kind]
-		if err := service.Reload(); err != nil {
+		if err := service.Reload(conf); err != nil {
 			return err
 		}
 	}

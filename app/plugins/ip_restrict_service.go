@@ -8,10 +8,6 @@ import (
 	"time"
 )
 
-const (
-	RequestCount = 1
-)
-
 type TpsCounter struct {
 	LastUpdate int64  // UTC seconds elapsed
 	Count uint32
@@ -25,6 +21,7 @@ type IpRestrictService struct {
 	lock                   sync.RWMutex
 	ctx *node.ServiceContext
 	log *logrus.Logger
+	requestThreshold uint32
 }
 
 func NewIpRestrictService(ctx *node.ServiceContext, log *logrus.Logger) (*IpRestrictService,error) {
@@ -45,7 +42,8 @@ func (s *IpRestrictService) Stop() error {
 	return nil
 }
 
-func (s *IpRestrictService) Reload() error {
+func (s *IpRestrictService) Reload(config *node.Config) error {
+	s.ctx.ResetConfig(config)
 	s.LoadConfig()
 	return nil
 }
@@ -65,6 +63,8 @@ func (s *IpRestrictService) LoadConfig() {
 	for _, ip := range s.ctx.Config().IpBlackList {
 		s.blackList[ip] = true
 	}
+
+	s.requestThreshold = s.ctx.Config().RequestThreshold
 }
 
 func (s *IpRestrictService) AddToWhiteList(ip string) {
@@ -125,7 +125,7 @@ func (s *IpRestrictService) HitMonitorList(ip string) bool {
 
 	// dynamic change list
 	if tc,ok := s.monitorList[ip];ok {
-		if tc.Count > RequestCount {
+		if tc.Count > s.requestThreshold {
 			return true
 		}
 	}

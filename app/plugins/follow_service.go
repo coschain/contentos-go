@@ -193,6 +193,6 @@ func (p *FollowService) Stop() error {
 	return nil
 }
 
-func (p *FollowService) Reload() error {
+func (p *FollowService) Reload(config *node.Config) error {
 	return nil
 }

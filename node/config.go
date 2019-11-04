@@ -47,6 +47,8 @@ type Config struct {
 
 	IpWhiteList      []string
 	IpBlackList      []string
+
+	RequestThreshold uint32
 }
 
 // DB returns the path to the discovery database.
