@@ -89,12 +89,12 @@ func NewSABFT(ctx *node.ServiceContext, lg *logrus.Logger) *SABFT {
 		prodTimer:      time.NewTimer(1 * time.Millisecond),
 		trxCh:          make(chan func()),
 		pendingCh:      make(chan func()),
-		blkCh:          make(chan common.ISignedBlock, 1000),
+		blkCh:          make(chan common.ISignedBlock, 250),
 		ctx:            ctx,
 		stopCh:         make(chan struct{}),
 		extLog:         lg,
 		log:            lg.WithField("sabft", "on"),
-		commitCh:       make(chan message.Commit, 100),
+		commitCh:       make(chan message.Commit, 1000),
 		Ticker:         &Timer{},
 		hook:           make(map[string]func(args ...interface{})),
 		maliciousBlock: make(map[common.BlockID]common.ISignedBlock),
@@ -402,9 +402,9 @@ func (sabft *SABFT) revertToLastCheckPoint() {
 func (sabft *SABFT) resetResource() {
 	sabft.trxCh = make(chan func())
 	sabft.pendingCh = make(chan func())
-	sabft.blkCh = make(chan common.ISignedBlock, 100)
+	sabft.blkCh = make(chan common.ISignedBlock, 250)
 	sabft.stopCh = make(chan struct{})
-	sabft.commitCh = make(chan message.Commit, 100)
+	sabft.commitCh = make(chan message.Commit, 1000)
 }
 
 func (sabft *SABFT) start() {
