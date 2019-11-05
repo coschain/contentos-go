@@ -27,9 +27,9 @@ func ProcessContractTransferToUserChangeProcessor(db *gorm.DB, change *blocklog.
 		contractName := owner + "@" + contract
 		userName := change.Change.Id.(string)
 		ioTrxRecordContract := makeIOTrx(trxLog.TrxId, blockLog.BlockNum, time.Unix(int64(blockLog.BlockTime), 0),
-			contractName, opLog.Type)
+			contractName, "contract_transfer_to_user")
 		ioTrxRecordUser := makeIOTrx(trxLog.TrxId, blockLog.BlockNum, time.Unix(int64(blockLog.BlockTime), 0),
-			userName, opLog.Type)
+			userName, "contract_transfer_to_user")
 		if err := db.Create(ioTrxRecordContract).Error; err != nil {
 			return err
 		}
@@ -60,9 +60,9 @@ func ProcessUserToContractChangeProcessor(db *gorm.DB, change *blocklog.StateCha
 		contractName := owner + "@" + contract
 		userName := change.Change.Id.(string)
 		ioTrxRecordContract := makeIOTrx(trxLog.TrxId, blockLog.BlockNum, time.Unix(int64(blockLog.BlockTime), 0),
-			contractName, opLog.Type)
+			contractName, "user_transfer_to_contract")
 		ioTrxRecordUser := makeIOTrx(trxLog.TrxId, blockLog.BlockNum, time.Unix(int64(blockLog.BlockTime), 0),
-			userName, opLog.Type)
+			userName, "user_transfer_to_contract")
 		if err := db.Create(ioTrxRecordContract).Error; err != nil {
 			return err
 		}
@@ -95,9 +95,9 @@ func ProcessContractTransferToContractChangeProcessor(db *gorm.DB, change *block
 
 		if fromContractName != toContractName {
 			ioTrxRecordContractFrom := makeIOTrx(trxLog.TrxId, blockLog.BlockNum, time.Unix(int64(blockLog.BlockTime), 0),
-				fromContractName, opLog.Type)
+				fromContractName, "contract_transfer_to_contract")
 			ioTrxRecordUserTo := makeIOTrx(trxLog.TrxId, blockLog.BlockNum, time.Unix(int64(blockLog.BlockTime), 0),
-				toContractName, opLog.Type)
+				toContractName, "contract_transfer_to_contract")
 			if err := db.Create(ioTrxRecordContractFrom).Error; err != nil {
 				return err
 			}

@@ -49,6 +49,7 @@ func (p *IOTrxProcessor) addOpProcessors() {
 func (p *IOTrxProcessor) addChangeProcessor() {
 	p.changeProcessors = append(p.changeProcessors,
 		ProcessContractTransferToUserChangeProcessor,
+		ProcessUserToContractChangeProcessor,
 		ProcessContractTransferToContractChangeProcessor)
 }
 

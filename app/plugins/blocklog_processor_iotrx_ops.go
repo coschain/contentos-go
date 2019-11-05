@@ -14,7 +14,7 @@ func makeIOTrx(trxHash string, blockHeight uint64, blockTime time.Time, account 
 		BlockHeight: blockHeight,
 		BlockTime:  blockTime,
 		Account:     account,
-		Action:      account,
+		Action:      action,
 	}
 }
 
@@ -74,15 +74,19 @@ func ProcessTransferVestOperation(db *gorm.DB, blockLog *blocklog.BlockLog, opId
 	if !ok {
 		return errors.New("failed conversion to TransferToVestOperation")
 	}
+	fromUser := op.GetFrom().GetValue()
+	toUser := op.GetTo().GetValue()
 	ioTrxFrom := makeIOTrx(trxLog.TrxId, blockLog.BlockNum, time.Unix(int64(blockLog.BlockTime), 0),
 		op.GetFrom().GetValue(), opLog.Type)
-	ioTrxTo := makeIOTrx(trxLog.TrxId, blockLog.BlockNum, time.Unix(int64(blockLog.BlockTime), 0),
-		op.GetTo().GetValue(), opLog.Type)
 	if err := db.Create(ioTrxFrom).Error; err != nil {
 		return err
 	}
-	if err := db.Create(ioTrxTo).Error; err != nil {
-		return err
+	if fromUser != toUser {
+		ioTrxTo := makeIOTrx(trxLog.TrxId, blockLog.BlockNum, time.Unix(int64(blockLog.BlockTime), 0),
+			op.GetTo().GetValue(), opLog.Type)
+		if err := db.Create(ioTrxTo).Error; err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -97,15 +101,20 @@ func ProcessStakeOperation(db *gorm.DB, blockLog *blocklog.BlockLog, opIdx, trxI
 	if !ok {
 		return errors.New("failed conversion to StakeOperation")
 	}
+	fromUser := op.GetFrom().GetValue()
+	toUser := op.GetTo().GetValue()
 	ioTrxFrom := makeIOTrx(trxLog.TrxId, blockLog.BlockNum, time.Unix(int64(blockLog.BlockTime), 0),
 		op.GetFrom().GetValue(), opLog.Type)
-	ioTrxTo := makeIOTrx(trxLog.TrxId, blockLog.BlockNum, time.Unix(int64(blockLog.BlockTime), 0),
-		op.GetTo().GetValue(), opLog.Type)
 	if err := db.Create(ioTrxFrom).Error; err != nil {
 		return err
 	}
-	if err := db.Create(ioTrxTo).Error; err != nil {
-		return err
+	if fromUser != toUser {
+		ioTrxTo := makeIOTrx(trxLog.TrxId, blockLog.BlockNum, time.Unix(int64(blockLog.BlockTime), 0),
+			op.GetTo().GetValue(), opLog.Type)
+
+		if err := db.Create(ioTrxTo).Error; err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -120,15 +129,20 @@ func ProcessUnStakeOperation(db *gorm.DB, blockLog *blocklog.BlockLog, opIdx, tr
 	if !ok {
 		return errors.New("failed conversion to UnStakeOperation")
 	}
-	ioTrxFrom := makeIOTrx(trxLog.TrxId, blockLog.BlockNum, time.Unix(int64(blockLog.BlockTime), 0),
+	creditor := op.GetCreditor().GetValue()
+	debtor := op.GetDebtor().GetValue()
+	ioTrxCreditor := makeIOTrx(trxLog.TrxId, blockLog.BlockNum, time.Unix(int64(blockLog.BlockTime), 0),
 		op.GetCreditor().GetValue(), opLog.Type)
-	ioTrxTo := makeIOTrx(trxLog.TrxId, blockLog.BlockNum, time.Unix(int64(blockLog.BlockTime), 0),
-		op.GetDebtor().GetValue(), opLog.Type)
-	if err := db.Create(ioTrxFrom).Error; err != nil {
+	if err := db.Create(ioTrxCreditor).Error; err != nil {
 		return err
 	}
-	if err := db.Create(ioTrxTo).Error; err != nil {
-		return err
+	if creditor != debtor {
+		ioTrxDebtor := makeIOTrx(trxLog.TrxId, blockLog.BlockNum, time.Unix(int64(blockLog.BlockTime), 0),
+			op.GetDebtor().GetValue(), opLog.Type)
+
+		if err := db.Create(ioTrxDebtor).Error; err != nil {
+			return err
+		}
 	}
 	return nil
 }
