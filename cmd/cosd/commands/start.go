@@ -23,9 +23,11 @@ import (
 	"os/signal"
 	"path/filepath"
 	"syscall"
+	"time"
 )
 
 var pluginList []string
+var globalFile *os.File
 
 var StartCmd = func() *cobra.Command {
 	cmd := &cobra.Command{
@@ -84,6 +86,18 @@ func makeNode() (*node.Node, node.Config) {
 
 }
 
+func InitCrashFile(fName string) error {
+	file, err := os.OpenFile(fName, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	globalFile = file
+	if err != nil {
+		return err
+	}
+	if err = syscall.Dup2(int(globalFile.Fd()), int(os.Stderr.Fd())); err != nil {
+		return err
+	}
+	return nil
+}
+
 // NO OTHER CONFIGS HERE EXCEPT NODE CONFIG
 func startNode(cmd *cobra.Command, args []string) {
 	// _ is cfg as below process has't used
@@ -92,6 +106,15 @@ func startNode(cmd *cobra.Command, args []string) {
 	app, cfg := makeNode()
 	app.Log = mylog.Init(cfg.ResolvePath("logs"), cfg.LogLevel, 3600 * 24 * 7)
 	app.Log.Info("Cosd running version: ", NodeName)
+
+
+	tStr := time.Unix(time.Now().Unix(),0).Format("2006-01-02-15-04-05")
+	crashFileName := cfg.ResolvePath("logs") + "/" + "crash-log-" + tStr
+	fmt.Println("crash log:",crashFileName)
+	err := InitCrashFile(crashFileName)
+	if err != nil {
+		panic(fmt.Errorf("init crash file failed, error:%v",err))
+	}
 
 	all, err := CheckDiskSpace(filepath.Join(cfg.DataDir, cfg.Name), app.Log)
 	if err != nil {
