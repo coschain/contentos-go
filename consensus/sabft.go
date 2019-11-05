@@ -364,7 +364,7 @@ func (sabft *SABFT) scheduleProduce() bool {
 			if !sabft.ForkDB.Empty() {
 				headID = sabft.ForkDB.Head().Id()
 			}
-			if headID.BlockNum() > sabft.ForkDB.LastCommitted().BlockNum() + constants.MaxUncommittedBlockNum/2 {
+			if headID.BlockNum() < sabft.ForkDB.LastCommitted().BlockNum() + constants.MaxUncommittedBlockNum/2 {
 				sabft.p2p.TriggerSync(headID)
 				// TODO:  if we are not on the main branch, pop until the head is on main branch
 				sabft.log.Debug("[SABFT TriggerSync]: start from ", headID.BlockNum())
