@@ -859,6 +859,7 @@ func (p *MsgHandler) ReqIdHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ..
 
 	var ids []common.BlockID
 	batchStart := start
+	// TODO: fix overlapped index
 	for {
 		if batchStart > end {
 			break
@@ -885,6 +886,9 @@ func (p *MsgHandler) ReqIdHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ..
 			ids = append(ids, blockList[i].Id())
 		}
 		batchStart = batchEnd + 1
+		if batchStart - start > msgCommon.BATCH_LENGTH {
+			break
+		}
 	}
 
 	if len(ids) == 0 {

@@ -475,37 +475,37 @@ func (this *P2PServer) TriggerSync(current_head_blk_id coomn.BlockID) {
 	}
 }
 
-func (this *P2PServer) FetchUnlinkedBlock(prevId coomn.BlockID) {
-	if !this.Network.CheckStartUpFinished() {
-		return
-	}
-	var reqmsg msgtypes.TransferMsg
-	reqdata := new(msgtypes.IdMsg)
-	reqdata.Msgtype = msgtypes.IdMsg_request_sigblk_by_id
-
-	reqdata.Value = append(reqdata.Value, prevId.Data[:])
-	reqmsg.Msg = &msgtypes.TransferMsg_Msg2{Msg2:reqdata}
-
-	currentHeadNum := prevId.BlockNum()
-	//this.log.Info("enter TriggerSync func")
-	np := this.Network.GetNp()
-	np.RLock()
-	defer np.RUnlock()
-
-	for _, p := range np.List {
-		//this.log.Info("[p2p] cons call TriggerSync func, head id :  ", reqmsg.HeadBlockId)
-		num := p.GetLastSeenBlkNum()
-		if currentHeadNum < num {
-			go p.Send(&reqmsg, false, this.Network.GetMagic())
-			return
-		}
-	}
-
-	for _, p := range np.List {
-		go p.Send(&reqmsg, false, this.Network.GetMagic())
-		return
-	}
-}
+//func (this *P2PServer) FetchUnlinkedBlock(prevId coomn.BlockID) {
+//	if !this.Network.CheckStartUpFinished() {
+//		return
+//	}
+//	var reqmsg msgtypes.TransferMsg
+//	reqdata := new(msgtypes.IdMsg)
+//	reqdata.Msgtype = msgtypes.IdMsg_request_sigblk_by_id
+//
+//	reqdata.Value = append(reqdata.Value, prevId.Data[:])
+//	reqmsg.Msg = &msgtypes.TransferMsg_Msg2{Msg2:reqdata}
+//
+//	currentHeadNum := prevId.BlockNum()
+//	//this.log.Info("enter TriggerSync func")
+//	np := this.Network.GetNp()
+//	np.RLock()
+//	defer np.RUnlock()
+//
+//	for _, p := range np.List {
+//		//this.log.Info("[p2p] cons call TriggerSync func, head id :  ", reqmsg.HeadBlockId)
+//		num := p.GetLastSeenBlkNum()
+//		if currentHeadNum < num {
+//			go p.Send(&reqmsg, false, this.Network.GetMagic())
+//			return
+//		}
+//	}
+//
+//	for _, p := range np.List {
+//		go p.Send(&reqmsg, false, this.Network.GetMagic())
+//		return
+//	}
+//}
 
 func (this *P2PServer) RequestCheckpoint(startNum, endNum uint64) {
 	if !this.Network.CheckStartUpFinished() {
@@ -533,7 +533,7 @@ func (this *P2PServer) RequestCheckpoint(startNum, endNum uint64) {
 	}
 }
 
-func (this *P2PServer) FetchOutOfRange(localHeadID, targetID coomn.BlockID) {
+func (this *P2PServer) FetchMissingBlock(localHeadID, targetID coomn.BlockID) {
 	if !this.Network.CheckStartUpFinished() {
 		return
 	}

@@ -364,9 +364,11 @@ func (sabft *SABFT) scheduleProduce() bool {
 			if !sabft.ForkDB.Empty() {
 				headID = sabft.ForkDB.Head().Id()
 			}
-			sabft.p2p.TriggerSync(headID)
-			// TODO:  if we are not on the main branch, pop until the head is on main branch
-			sabft.log.Debug("[SABFT TriggerSync]: start from ", headID.BlockNum())
+			if headID.BlockNum() > sabft.ForkDB.LastCommitted().BlockNum() + constants.MaxUncommittedBlockNum/2 {
+				sabft.p2p.TriggerSync(headID)
+				// TODO:  if we are not on the main branch, pop until the head is on main branch
+				sabft.log.Debug("[SABFT TriggerSync]: start from ", headID.BlockNum())
+			}
 			return false
 		}
 	}
@@ -831,43 +833,9 @@ func (sabft *SABFT) pushMaliciousBlock(b common.ISignedBlock) {
 
 func (sabft *SABFT) pushBlock(b common.ISignedBlock, applyStateDB bool) error {
 	sabft.log.Debug("[SABFT] start pushBlock #", b.Id().BlockNum())
-	// TODO: check signee & merkle
-
-	//if b.Timestamp() < sabft.getSlotTime(1) {
-	//	// sabft.log.Debugf("the timestamp of the new block is less than that of the head block.")
-	//}
-
-	var headNum uint64
 	head := sabft.ForkDB.Head()
-	if head != nil {
-		headNum = head.Id().BlockNum()
-	}
 	newID := b.Id()
 	newNum := newID.BlockNum()
-
-	if newNum > headNum+1 {
-
-		//if sabft.readyToProduce {
-		//	sabft.p2p.FetchUnlinkedBlock(b.Previous())
-		//	sabft.log.Debug("[SABFT TriggerSync]: out-of range from ", b.Previous().BlockNum())
-		//}
-
-		if sabft.readyToProduce {
-			if !sabft.checkSync() {
-				//sabft.readyToProduce = false
-
-				var headID common.BlockID
-				if !sabft.ForkDB.Empty() {
-					headID = sabft.ForkDB.Head().Id()
-				}
-				sabft.p2p.FetchOutOfRange(headID, b.Id())
-
-				sabft.log.Debug("[SABFT TriggerSync]: out-of range from ", headID.BlockNum())
-			}
-		}
-
-		return ErrBlockOutOfScope
-	}
 
 	if head != nil && b.Previous() == head.Id() && applyStateDB {
 		if !sabft.validateProducer(b) {
@@ -885,26 +853,22 @@ func (sabft *SABFT) pushBlock(b common.ISignedBlock, applyStateDB bool) error {
 	switch rc {
 	case forkdb.RTDetached:
 		sabft.log.Debugf("[SABFT][pushBlock]possibly detached block. prev: got %v, want %v", b.Previous(), head.Id())
-		tailId, errTail := sabft.ForkDB.FetchUnlinkBlockTail()
-		if sabft.HasBlock(*tailId) {
-			panic("GOT unlinked but exist")
+		var headID common.BlockID
+		if !sabft.ForkDB.Empty() {
+			headID = sabft.ForkDB.Head().Id()
 		}
-
-		if errTail == nil {
-			sabft.p2p.FetchUnlinkedBlock(*tailId)
-			sabft.log.Debug("[SABFT TriggerSync]: pre-start from ", tailId.BlockNum())
-		} else {
-			sabft.log.Debug("[SABFT TriggerSync]: not found:", errTail)
-		}
+		sabft.p2p.FetchMissingBlock(headID, b.Id())
 		return nil
 	case forkdb.RTOutOfRange:
-		if b.Id().BlockNum() <= sabft.ForkDB.LastCommitted().BlockNum() {
-			sabft.log.Warnf("[SABFT]: RTOutOfRange: %v, committed: %v", b.Previous(),
-				sabft.ForkDB.LastCommitted())
-			return nil
+		var headID common.BlockID
+		if !sabft.ForkDB.Empty() {
+			headID = sabft.ForkDB.Head().Id()
 		}
-		sabft.p2p.FetchUnlinkedBlock(b.Previous())
-		sabft.log.Debug("[SABFT TriggerSync]: out-of range2 from ", b.Previous().BlockNum())
+		if sabft.readyToProduce && !sabft.checkSync() {
+			if newNum > headID.BlockNum()+1 && b.Timestamp() < uint64(time.Now().Unix()) {
+				sabft.p2p.FetchMissingBlock(headID, b.Id())
+			}
+		}
 		return ErrBlockOutOfScope
 	case forkdb.RTInvalid:
 		return ErrInvalidBlock

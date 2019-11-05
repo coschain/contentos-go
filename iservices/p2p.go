@@ -15,8 +15,8 @@ type IP2P interface {
 	// trigger sync request remote peer the block hashes we do not have
 	TriggerSync(HeadId comn.BlockID)
 
-	// when got one unlinked block, to fetch its previous block
-	FetchUnlinkedBlock(prevId comn.BlockID)
+	// (localHeadID, targetID]
+	FetchMissingBlock(from, to comn.BlockID)
 
 	// Send message to a specific peer
 	SendToPeer(p *peer.Peer, message interface{})
@@ -26,9 +26,6 @@ type IP2P interface {
 
 	// Request checkpoint batch [startNum, endNum)
 	RequestCheckpoint(startNum, endNum uint64)
-
-	// if receive a out-of-range signed block, call this method to fetch the gap signed blocks (localHeadID, targetID]
-	FetchOutOfRange(localHeadID, targetID comn.BlockID)
 
 	GetNodeNeighbours() string
 
