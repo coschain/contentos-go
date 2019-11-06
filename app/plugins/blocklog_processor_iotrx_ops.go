@@ -3,13 +3,14 @@ package plugins
 import (
 	"errors"
 	"github.com/coschain/contentos-go/app/blocklog"
+	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/jinzhu/gorm"
 	"time"
 )
 
-func makeIOTrx(trxHash string, blockHeight uint64, blockTime time.Time, account string, action string) *IOTrxRecord {
-	return &IOTrxRecord{
+func makeIOTrx(trxHash string, blockHeight uint64, blockTime time.Time, account string, action string) *iservices.IOTrxRecord {
+	return &iservices.IOTrxRecord{
 		TrxHash:     trxHash,
 		BlockHeight: blockHeight,
 		BlockTime:  blockTime,
@@ -157,7 +158,7 @@ func ProcessAccountUpdateOperation(db *gorm.DB, blockLog *blocklog.BlockLog, opI
 	if !ok {
 		return errors.New("failed conversion to AccountUpdateOperation")
 	}
-	return db.Create(&IOTrxRecord{
+	return db.Create(&iservices.IOTrxRecord{
 		TrxHash:     trxLog.TrxId,
 		BlockHeight: blockLog.BlockNum,
 		BlockTime:   time.Unix(int64(blockLog.BlockTime), 0),
@@ -176,7 +177,7 @@ func ProcessVoteOperation(db *gorm.DB, blockLog *blocklog.BlockLog, opIdx, trxId
 	if !ok {
 		return errors.New("failed conversion to VoteOperation")
 	}
-	return db.Create(&IOTrxRecord{
+	return db.Create(&iservices.IOTrxRecord{
 		TrxHash:     trxLog.TrxId,
 		BlockHeight: blockLog.BlockNum,
 		BlockTime:   time.Unix(int64(blockLog.BlockTime), 0),
@@ -195,7 +196,7 @@ func ProcessBpRegisterOperation(db *gorm.DB, blockLog *blocklog.BlockLog, opIdx,
 	if !ok {
 		return errors.New("failed conversion to BpRegisterOperation")
 	}
-	return db.Create(&IOTrxRecord{
+	return db.Create(&iservices.IOTrxRecord{
 		TrxHash:     trxLog.TrxId,
 		BlockHeight: blockLog.BlockNum,
 		BlockTime:   time.Unix(int64(blockLog.BlockTime), 0),
@@ -214,7 +215,7 @@ func ProcessBpUpdateOperation(db *gorm.DB, blockLog *blocklog.BlockLog, opIdx, t
 	if !ok {
 		return errors.New("failed conversion to BpUpdateOperation")
 	}
-	return db.Create(&IOTrxRecord{
+	return db.Create(&iservices.IOTrxRecord{
 		TrxHash:     trxLog.TrxId,
 		BlockHeight: blockLog.BlockNum,
 		BlockTime:   time.Unix(int64(blockLog.BlockTime), 0),
@@ -233,7 +234,7 @@ func ProcessBpEnableOperation(db *gorm.DB, blockLog *blocklog.BlockLog, opIdx, t
 	if !ok {
 		return errors.New("failed conversion to BpEnableOperation")
 	}
-	return db.Create(&IOTrxRecord{
+	return db.Create(&iservices.IOTrxRecord{
 		TrxHash:     trxLog.TrxId,
 		BlockHeight: blockLog.BlockNum,
 		BlockTime:   time.Unix(int64(blockLog.BlockTime), 0),
@@ -252,7 +253,7 @@ func ProcessBpVoteOperation(db *gorm.DB, blockLog *blocklog.BlockLog, opIdx, trx
 	if !ok {
 		return errors.New("failed conversion to BpVoteOperation")
 	}
-	return db.Create(&IOTrxRecord{
+	return db.Create(&iservices.IOTrxRecord{
 		TrxHash:     trxLog.TrxId,
 		BlockHeight: blockLog.BlockNum,
 		BlockTime:   time.Unix(int64(blockLog.BlockTime), 0),
@@ -271,7 +272,7 @@ func ProcessContractDeployOperation(db *gorm.DB, blockLog *blocklog.BlockLog, op
 	if !ok {
 		return errors.New("failed conversion to ContractDeployOperation")
 	}
-	return db.Create(&IOTrxRecord{
+	return db.Create(&iservices.IOTrxRecord{
 		TrxHash:     trxLog.TrxId,
 		BlockHeight: blockLog.BlockNum,
 		BlockTime:   time.Unix(int64(blockLog.BlockTime), 0),
@@ -290,7 +291,7 @@ func ProcessContractApplyOperation(db *gorm.DB, blockLog *blocklog.BlockLog, opI
 	if !ok {
 		return errors.New("failed conversion to ContractApplyOperation")
 	}
-	return db.Create(&IOTrxRecord{
+	return db.Create(&iservices.IOTrxRecord{
 		TrxHash:     trxLog.TrxId,
 		BlockHeight: blockLog.BlockNum,
 		BlockTime:   time.Unix(int64(blockLog.BlockTime), 0),
@@ -309,7 +310,7 @@ func ProcessPostOperation(db *gorm.DB, blockLog *blocklog.BlockLog, opIdx, trxId
 	if !ok {
 		return errors.New("failed conversion to PostOperation")
 	}
-	return db.Create(&IOTrxRecord{
+	return db.Create(&iservices.IOTrxRecord{
 		TrxHash:     trxLog.TrxId,
 		BlockHeight: blockLog.BlockNum,
 		BlockTime:   time.Unix(int64(blockLog.BlockTime), 0),
@@ -328,7 +329,7 @@ func ProcessReplyOperation(db *gorm.DB, blockLog *blocklog.BlockLog, opIdx, trxI
 	if !ok {
 		return errors.New("failed conversion to ReplyOperation")
 	}
-	return db.Create(&IOTrxRecord{
+	return db.Create(&iservices.IOTrxRecord{
 		TrxHash:     trxLog.TrxId,
 		BlockHeight: blockLog.BlockNum,
 		BlockTime:   time.Unix(int64(blockLog.BlockTime), 0),
@@ -347,7 +348,7 @@ func ProcessConvertVestOperation(db *gorm.DB, blockLog *blocklog.BlockLog, opIdx
 	if !ok {
 		return errors.New("failed conversion to ConvertVestOperation")
 	}
-	return db.Create(&IOTrxRecord{
+	return db.Create(&iservices.IOTrxRecord{
 		TrxHash:     trxLog.TrxId,
 		BlockHeight: blockLog.BlockNum,
 		BlockTime:   time.Unix(int64(blockLog.BlockTime), 0),
@@ -366,7 +367,7 @@ func ProcessAcquireTicketOperation(db *gorm.DB, blockLog *blocklog.BlockLog, opI
 	if !ok {
 		return errors.New("failed conversion to AcquireTicketOperation")
 	}
-	return db.Create(&IOTrxRecord{
+	return db.Create(&iservices.IOTrxRecord{
 		TrxHash:     trxLog.TrxId,
 		BlockHeight: blockLog.BlockNum,
 		BlockTime:   time.Unix(int64(blockLog.BlockTime), 0),
@@ -385,7 +386,7 @@ func ProcessVoteByTicketOperation(db *gorm.DB, blockLog *blocklog.BlockLog, opId
 	if !ok {
 		return errors.New("failed conversion to VoteByTicketOperation")
 	}
-	return db.Create(&IOTrxRecord{
+	return db.Create(&iservices.IOTrxRecord{
 		TrxHash:     trxLog.TrxId,
 		BlockHeight: blockLog.BlockNum,
 		BlockTime:   time.Unix(int64(blockLog.BlockTime), 0),

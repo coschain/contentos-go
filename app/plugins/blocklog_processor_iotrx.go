@@ -2,26 +2,14 @@ package plugins
 
 import (
 	"github.com/coschain/contentos-go/app/blocklog"
+	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/jinzhu/gorm"
-	"time"
 )
 
 type OpProcessor func(db *gorm.DB, blockLog *blocklog.BlockLog, opIdx, trxIdx int) error
 type ChangeProcessor func(db *gorm.DB, change *blocklog.StateChange, blockLog *blocklog.BlockLog, changeIdx, opIdx, trxIdx int) error
 
-type IOTrxRecord struct {
-	ID uint64			`gorm:"primary_key;auto_increment"`
-	TrxHash string      `gorm:"index"`
-	BlockHeight uint64
-	BlockTime time.Time
-	Account string			`gorm:"index"`
-	Action string       `gorm:"index"`
-}
-
-func (IOTrxRecord) TableName() string {
-	return "iotrx_record"
-}
 
 
 type IOTrxProcessor struct {
@@ -55,8 +43,8 @@ func (p *IOTrxProcessor) addChangeProcessor() {
 
 func (p *IOTrxProcessor) Prepare(db *gorm.DB, blockLog *blocklog.BlockLog) (err error) {
 	if !p.tableReady {
-		if !db.HasTable(&IOTrxRecord{}) {
-			if err = db.CreateTable(&IOTrxRecord{}).Error; err == nil {
+		if !db.HasTable(&iservices.IOTrxRecord{}) {
+			if err = db.CreateTable(&iservices.IOTrxRecord{}).Error; err == nil {
 				p.tableReady = true
 			}
 		} else {
