@@ -8,6 +8,7 @@ import (
 	"github.com/coschain/contentos-go/app/plugins"
 	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/common/constants"
+	"github.com/coschain/contentos-go/common/pprof"
 	"github.com/coschain/contentos-go/config"
 	"github.com/coschain/contentos-go/consensus"
 	"github.com/coschain/contentos-go/db/storage"
@@ -101,6 +102,8 @@ func InitCrashFile(fName string) error {
 // NO OTHER CONFIGS HERE EXCEPT NODE CONFIG
 func startNode(cmd *cobra.Command, args []string) {
 	// _ is cfg as below process has't used
+
+	pprof.StartPprof()
 
 	_, _ = cmd, args
 	app, cfg := makeNode()
