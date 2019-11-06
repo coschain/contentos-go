@@ -589,7 +589,7 @@ func (p *MsgHandler) DisconnectHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, ar
 
 	p2p.RemoveFromInConnRecord(data.Addr)
 	p2p.RemoveFromOutConnRecord(data.Addr)
-	remotePeer := p2p.GetPeer(data.Id)
+	remotePeer := p2p.GetPeerFromAddr(data.Addr)
 	if remotePeer == nil {
 		log.Warn("[p2p] disconnect peer is nil")
 		return
