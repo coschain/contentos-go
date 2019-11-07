@@ -48,6 +48,7 @@ func NewBlockLogProcessService(ctx *node.ServiceContext, config *service_configs
 		NewEcosysProcessor(),
 		NewProducerVoteProcessor(),
 		NewPowerUpDownProcessor(),
+		NewEcosysPowerDownProcessor(),
 	)
 	return &BlockLogProcessService{BlockLogProcessBaseService: baseService}, err
 }
