@@ -44,6 +44,7 @@ type SABFT struct {
 	lastCommitted atomic.Value
 	appState      *message.AppState
 	commitCh      chan message.Commit
+	commitChLock  sync.Mutex
 	cp            *BFTCheckPoint
 	noticer       EventBus.Bus
 
@@ -88,12 +89,12 @@ func NewSABFT(ctx *node.ServiceContext, lg *logrus.Logger) *SABFT {
 		prodTimer:      time.NewTimer(1 * time.Millisecond),
 		trxCh:          make(chan func()),
 		pendingCh:      make(chan func()),
-		blkCh:          make(chan common.ISignedBlock, 1000),
+		blkCh:          make(chan common.ISignedBlock, 250),
 		ctx:            ctx,
 		stopCh:         make(chan struct{}),
 		extLog:         lg,
 		log:            lg.WithField("sabft", "on"),
-		commitCh:       make(chan message.Commit, 100),
+		commitCh:       make(chan message.Commit, 1000),
 		Ticker:         &Timer{},
 		hook:           make(map[string]func(args ...interface{})),
 		maliciousBlock: make(map[common.BlockID]common.ISignedBlock),
@@ -403,9 +404,9 @@ func (sabft *SABFT) revertToLastCheckPoint() {
 func (sabft *SABFT) resetResource() {
 	sabft.trxCh = make(chan func())
 	sabft.pendingCh = make(chan func())
-	sabft.blkCh = make(chan common.ISignedBlock, 100)
+	sabft.blkCh = make(chan common.ISignedBlock, 250)
 	sabft.stopCh = make(chan struct{})
-	sabft.commitCh = make(chan message.Commit, 100)
+	sabft.commitCh = make(chan message.Commit, 1000)
 }
 
 func (sabft *SABFT) start() {
@@ -631,6 +632,10 @@ func (sabft *SABFT) getSlotAtTime(t time.Time) uint64 {
 
 func (sabft *SABFT) PushBlock(b common.ISignedBlock) {
 	sabft.log.Debug("[SABFT] recv block from p2p: ", b.Id().BlockNum())
+	if len(sabft.blkCh) == cap(sabft.blkCh) {
+		sabft.log.Debug("[SABFT] blkCh is full")
+		return
+	}
 	sabft.blkCh <- b
 }
 
@@ -643,6 +648,13 @@ func (sabft *SABFT) Push(msg interface{}, p common.IPeer) {
 	case *message.FetchVotesRsp:
 		sabft.bft.RecvMsg(m, p.(*peer.Peer))
 	case *message.Commit:
+		sabft.commitChLock.Lock()
+		defer sabft.commitChLock.Unlock()
+
+		if len(sabft.commitCh) == cap(sabft.commitCh) {
+			sabft.log.Debug("[SABFT] commitCh is full")
+			return
+		}
 		sabft.commitCh <- *m
 	default:
 	}

@@ -124,6 +124,9 @@ service ApiService {
 
     rpc GetAppTableRecord (GetAppTableRecordRequest) returns (GetAppTableRecordResponse) {
     }
+
+    rpc GetBlockProducerVoterList(GetBlockProducerVoterListRequest) returns (GetBlockProducerVoterListResponse) {
+    }
 }
 
 
@@ -692,4 +695,19 @@ message GetAppTableRecordResponse {
     bool    success = 1;
     string  error_msg = 2;
     string  record = 3;
+}
+
+message GetBlockProducerVoterListRequest {
+    prototype.account_name       block_producer   = 1;
+    uint32 limit = 2;
+    prototype.account_name last_voter = 3;
+}
+
+message BlockProducerVoterResponse {
+    prototype.account_name account_name = 1;
+    prototype.vest vest = 2;
+}
+
+message GetBlockProducerVoterListResponse {
+    repeated BlockProducerVoterResponse voter = 1;
 }
