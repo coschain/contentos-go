@@ -56,7 +56,6 @@ func (TrxInfo) TableName() string {
 }
 
 type LibInfo struct {
-	ID 				uint64			`gorm:"primary_key;auto_increment"`
 	Lib uint64
 	LastCheckTime  int64
 }
