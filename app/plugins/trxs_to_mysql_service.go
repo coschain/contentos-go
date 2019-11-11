@@ -168,7 +168,7 @@ func (t *TrxMysqlService) pollLIB() error {
 		}
 		process.Lib = block
 		process.LastCheckTime = time.Now().UTC().Unix()
-		if err := tx.Save(process).Error; err != nil {
+		if err := tx.Model(&LibInfo{}).Update(process).Error; err != nil {
 			tx.Rollback()
 			t.log.Errorf("[trx db] when committed block %d, error occurred: %v", block , err)
 		} else {
