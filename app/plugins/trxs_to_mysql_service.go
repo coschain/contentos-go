@@ -45,8 +45,8 @@ type TrxInfo struct {
 	TrxId string `gorm:"unique_index;not null"`
 	BlockHeight uint64			`gorm:"index;not null"`
 	BlockTime uint64 `gorm:"index;not null"`
-	Invoice string `gorm:"type:longtext"`
-	Operations string `gorm:"type:longtext"`
+	Invoice json.RawMessage `sql:"type:json"`
+	Operations json.RawMessage `sql:"type:json"`
 	BlockId string `gorm:"not null"`
 	Creator string `gorm:"index;not null"`
 }
@@ -57,8 +57,7 @@ func (TrxInfo) TableName() string {
 
 type LibInfo struct {
 	ID 				uint64			`gorm:"primary_key;auto_increment"`
-	BlockHeight 	uint64
-	//LastCheckTime 		time.Time
+	Lib uint64
 	LastCheckTime  int64
 }
 
@@ -104,7 +103,7 @@ func (t *TrxMysqlService) Start(node *node.Node) error {
 		}
 	}
 	progress := &LibInfo{
-		BlockHeight: 0,
+		Lib: 0,
 		LastCheckTime:  0,
 	}
 	if !t.outDb.HasTable(progress) {
@@ -140,7 +139,7 @@ func (t *TrxMysqlService) pollLIB() error {
 	process := &LibInfo{}
 	t.outDb.First(process)
 	// begin from lastLib + 1, thus each time update libinfo should be atomic
-	lastLib := process.BlockHeight + 1
+	lastLib := process.Lib + 1
 	// be carefully, no where condition there !!
 	// the reason is only one row in the table
 	// if introduce the mechanism that record checkpoint, the where closure should be added
@@ -168,7 +167,7 @@ func (t *TrxMysqlService) pollLIB() error {
 				}
 			}
 		}
-		process.BlockHeight = block
+		process.Lib = block
 		process.LastCheckTime = time.Now().UTC().Unix()
 		if err := tx.Save(process).Error; err != nil {
 			tx.Rollback()
@@ -209,8 +208,8 @@ func (t *TrxMysqlService) handleLibNotification(lib uint64) ([]*TrxInfo, error) 
 				BlockHeight:blockHeight,
 				BlockId: blockId,
 				BlockTime:blockTime,
-				Invoice:string(invoice),
-				Operations:string(operationsJson),
+				Invoice:invoice,
+				Operations:operationsJson,
 				Creator:creator})
 	}
 	return trxInfoList, nil
