@@ -9,7 +9,7 @@ import (
 
 
 func ProcessContractTransferToUserChangeProcessor(opType string, operation prototype.BaseOperation, change *blocklog.StateChange, baseRecord interface{}) ([]interface{}, error) {
-	if opType != "contract_apply" && change.What != "Account.Balance" {
+	if opType != "contract_apply" || change.What != "Account.Balance" {
 		return nil, nil
 	}
 	op, ok := operation.(*prototype.ContractApplyOperation)
@@ -33,7 +33,7 @@ func ProcessContractTransferToUserChangeProcessor(opType string, operation proto
 }
 
 func ProcessUserToContractChangeProcessor(opType string, operation prototype.BaseOperation, change *blocklog.StateChange, baseRecord interface{}) ([]interface{}, error) {
-	if opType != "contract_apply" && change.What != "Account.Balance" {
+	if opType != "contract_apply" || change.What != "Account.Balance" {
 		return nil, nil
 	}
 	op, ok := operation.(*prototype.ContractApplyOperation)
@@ -57,7 +57,7 @@ func ProcessUserToContractChangeProcessor(opType string, operation prototype.Bas
 }
 
 func ProcessContractTransferToContractChangeProcessor(opType string, operation prototype.BaseOperation, change *blocklog.StateChange, baseRecord interface{}) ([]interface{}, error) {
-	if opType != "contract_apply" && change.What != "Contract.Balance" {
+	if opType != "contract_apply" || change.What != "Contract.Balance" {
 		return nil, nil
 	}
 	op, ok := operation.(*prototype.ContractApplyOperation)

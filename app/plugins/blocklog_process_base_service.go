@@ -135,10 +135,12 @@ func (s *BlockLogProcessBaseService) work() {
 			if err = tx.Save(progress).Error; err == nil {
 				tx.Commit()
 			} else {
+				s.logger.Errorf("save service progress failed and rolled back, error: %v", err)
 				tx.Rollback()
 				break
 			}
 		} else {
+			s.logger.Errorf("process log failed and rolled back, error: %v", err)
 			tx.Rollback()
 			break
 		}

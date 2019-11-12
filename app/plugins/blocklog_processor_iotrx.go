@@ -15,6 +15,10 @@ type OpProcessorManager struct {
 	opProcessors map[string]OpProcessor
 }
 
+func NewOpProcessorManager() *OpProcessorManager {
+	return &OpProcessorManager{opProcessors: make(map[string]OpProcessor)}
+}
+
 func (m *OpProcessorManager) Register(opType string, processor OpProcessor) {
 	m.opProcessors[opType] = processor
 }
@@ -31,7 +35,7 @@ type IOTrxProcessor struct {
 }
 
 func NewIOTrxProcessor() *IOTrxProcessor{
-	p := &IOTrxProcessor{opProcessorManager: &OpProcessorManager{}}
+	p := &IOTrxProcessor{opProcessorManager: NewOpProcessorManager()}
 	p.registerOpProcessor()
 	p.registerChangeProcessor()
 	return p
@@ -79,23 +83,28 @@ func (p *IOTrxProcessor) Prepare(db *gorm.DB, blockLog *blocklog.BlockLog) (err 
 }
 
 func (p *IOTrxProcessor) ProcessChange(db *gorm.DB, change *blocklog.StateChange, blockLog *blocklog.BlockLog, changeIdx, opIdx, trxIdx int) error {
+	// ignore block changes
+	if trxIdx == -1 && opIdx == -1 {
+		return nil
+	}
 	trxLog := blockLog.Transactions[trxIdx]
 	opLog := trxLog.Operations[opIdx]
 	opType := opLog.Type
 	op := prototype.GetBaseOperation(opLog.Data)
-	record := iservices.IOTrxRecord{
+	opRecord := iservices.IOTrxRecord{
 		TrxHash:     trxLog.TrxId,
 		BlockHeight: blockLog.BlockNum,
 		BlockTime:   time.Unix(int64(blockLog.BlockTime), 0),
 		Action:      opLog.Type,
 	}
 	for _, changeProcessor := range p.changeProcessors {
-		records, err := changeProcessor(opType, op, change, record)
+		records, err := changeProcessor(opType, op, change, opRecord)
 		if err != nil {
 			return err
 		}
 		for _, record := range records {
-			err := db.Create(record).Error
+			r := record.(iservices.IOTrxRecord)
+			err := db.Create(&r).Error
 			if err != nil {
 				return err
 			}
@@ -121,7 +130,8 @@ func (p *IOTrxProcessor) ProcessOperation(db *gorm.DB, blockLog *blocklog.BlockL
 			return err
 		}
 		for _, record := range records {
-			err := db.Create(record).Error
+			r := record.(iservices.IOTrxRecord)
+			err := db.Create(&r).Error
 			if err != nil {
 				return err
 			}
