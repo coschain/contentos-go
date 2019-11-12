@@ -737,6 +737,9 @@ func (sabft *SABFT) handleCommitRecords(records *message.Commit) {
 
 func (sabft *SABFT) loopCommit(commit *message.Commit) {
 	checkPoint := commit
+	sabft.log.Debug("locpCommit ", commit)
+	defer sabft.log.Debug("loopCommit end")
+
 	for checkPoint != nil {
 		newID := ExtractBlockID(checkPoint)
 		if !sabft.cp.IsNextCheckPoint(checkPoint) {
@@ -759,7 +762,7 @@ func (sabft *SABFT) loopCommit(commit *message.Commit) {
 			if err = sabft.commit(checkPoint); err == nil {
 				checkPoint = sabft.cp.NextUncommitted()
 				if checkPoint != nil {
-					sabft.log.Debug("loop checkpoint at ", checkPoint.ProposedData)
+					sabft.log.Debugf("loop checkpoint at %v, prev = %v", checkPoint.ProposedData, checkPoint.Prev)
 				} else {
 					sabft.log.Warn("NextUncommitted is nil")
 				}
@@ -778,7 +781,7 @@ func (sabft *SABFT) gobftCatchUp(commit *message.Commit) bool {
 	if atomic.LoadUint32(&sabft.inStartOrStop) == 0 &&
 		!sabft.dynasties.Empty() &&
 		sabft.isValidatorName(sabft.Name) &&
-		sabft.appState.LastProposedData == commit.Prev {
+		sabft.appState.LastProposedData == commit.Prev && sabft.readyToProduce {
 		sabft.log.Warn("pass commits to gobft ", commit.ProposedData)
 		if err := sabft.bft.RecvMsg(commit, nil); err == nil {
 			return true
@@ -874,8 +877,12 @@ func (sabft *SABFT) pushBlock(b common.ISignedBlock, applyStateDB bool) error {
 		if !sabft.ForkDB.Empty() {
 			headID = sabft.ForkDB.Head().Id()
 		}
+		sabft.log.Warnf("block %d out of range, head = %d, lib = %d",
+			b.Id().BlockNum(), headID.BlockNum(), sabft.ForkDB.LastCommitted().BlockNum())
 		if sabft.readyToProduce && !sabft.checkSync() {
+			sabft.log.Warn("node is readyToProduce but out of sync")
 			if newNum > headID.BlockNum()+1 && b.Timestamp() < uint64(time.Now().Unix()) {
+				sabft.log.Warnf("fetch from %d to %d", headID.BlockNum(), b.Id().BlockNum())
 				sabft.p2p.FetchMissingBlock(headID, b.Id())
 			}
 		}
@@ -972,7 +979,7 @@ func (sabft *SABFT) Commit(commitRecords *message.Commit) error {
 	sabft.Lock()
 	defer sabft.Unlock()
 
-	sabft.log.Info("[SABFT] try to commit ", commitRecords)
+	sabft.log.Info("[SABFT] start Commit ", commitRecords)
 	if !sabft.verifyCommitSig(commitRecords) {
 		sabft.updateAppState(commitRecords)
 		return ErrInvalidCheckPoint
@@ -1052,7 +1059,6 @@ func (sabft *SABFT) commit(commitRecords *message.Commit) error {
 			return ErrSwitchFork
 		}
 		sabft.log.Debug("fork switch success during commit. new head ", blockID)
-		return nil
 	}
 
 	blks, _, err := sabft.ForkDB.FetchBlocksSince(sabft.ForkDB.LastCommitted())

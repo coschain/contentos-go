@@ -161,7 +161,8 @@ func (cp *BFTCheckPoint) Add(commit *message.Commit) error {
 	if cp.lastCommitted == prev {
 		cp.nextCP = blockID
 	}
-	cp.sabft.log.Info("CheckPoint added", commit.ProposedData)
+	cp.sabft.log.Infof("CheckPoint added %v %d, prev = %v, lib = %d",
+		blockID, blockID.BlockNum(), commit.Prev, cp.sabft.ForkDB.LastCommitted().BlockNum())
 	return nil
 }
 
