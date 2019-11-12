@@ -737,7 +737,7 @@ func (sabft *SABFT) handleCommitRecords(records *message.Commit) {
 
 func (sabft *SABFT) loopCommit(commit *message.Commit) {
 	checkPoint := commit
-	sabft.log.Debug("locpCommit ", commit)
+	sabft.log.Debug("loopCommit begin: ", commit)
 	defer sabft.log.Debug("loopCommit end")
 
 	for checkPoint != nil {
@@ -746,7 +746,7 @@ func (sabft *SABFT) loopCommit(commit *message.Commit) {
 			sabft.log.Warn("cp check IsNextCheckPoint failed")
 			return
 		}
-		sabft.log.Debug("reach checkpoint at ", checkPoint)
+		sabft.log.Debug("loop checkpoint at ", checkPoint)
 
 		// if we're a validator, pass it to gobft so that it can catch up
 		if sabft.gobftCatchUp(checkPoint) {
@@ -1018,14 +1018,13 @@ func (sabft *SABFT) updateAppState(commit *message.Commit) {
 		sabft.appState.LastHeight++
 		sabft.appState.LastProposedData = commit.ProposedData
 		sabft.log.Debugf("[SABFT] gobft LastHeight %d", sabft.appState.LastHeight)
+		sabft.log.Debug("current dyn ", sabft.dynasties.Front().String())
 	}
 }
 
 func (sabft *SABFT) commit(commitRecords *message.Commit) error {
 	defer func() {
 		sabft.updateAppState(commitRecords)
-		sabft.log.Debug("current dyn ", sabft.dynasties.Front().String())
-
 		// TODO: check if checkpoint has been skipped
 	}()
 
@@ -1059,6 +1058,7 @@ func (sabft *SABFT) commit(commitRecords *message.Commit) error {
 			return ErrSwitchFork
 		}
 		sabft.log.Debug("fork switch success during commit. new head ", blockID)
+		return nil
 	}
 
 	blks, _, err := sabft.ForkDB.FetchBlocksSince(sabft.ForkDB.LastCommitted())
@@ -1275,7 +1275,7 @@ func (sabft *SABFT) switchFork(old, new common.BlockID) bool {
 	poppedNum := len(branches[0]) - 1
 	sabft.popBlock(branches[0][poppedNum-1].BlockNum())
 	rw := sabft.ForkDB.RewindBranch(branches[0][poppedNum])
-	sabft.log.Debugf("rewind to block #%d, %v", branches[0][poppedNum].BlockNum(), branches[0][poppedNum])
+	sabft.log.Debugf("[switchFork] rewind to block #%d, %v", branches[0][poppedNum].BlockNum(), branches[0][poppedNum])
 
 	appendedNum := len(branches[1]) - 1
 	errWhileSwitch := false
@@ -1293,7 +1293,7 @@ func (sabft *SABFT) switchFork(old, new common.BlockID) bool {
 		if !sabft.validateProducer(b) {
 			if head != nil {
 				slotTime := sabft.getSlotTime(sabft.getSlotAtTime(time.Now()))
-				s := fmt.Sprintf("%s block validation failed: head %d timestamp %d, new block %d ts %d, slottime %d",
+				s := fmt.Sprintf("[switchFork] %s block validation failed: head %d timestamp %d, new block %d ts %d, slottime %d",
 					sabft.Name, head.Id().BlockNum(), head.Timestamp(), b.Id().BlockNum(), b.Timestamp(), slotTime)
 				sabft.log.Error(s)
 			}
@@ -1332,10 +1332,15 @@ func (sabft *SABFT) switchFork(old, new common.BlockID) bool {
 	// also need to reset new head in case new branch is shorter
 	rw.Done()
 	sabft.ForkDB.PurgeBranch()
+	sabft.log.Debug("[switchFork] OK, rewind Done")
 
 	// handle checkpoints on new branch
 	if next := sabft.cp.NextUncommitted(); next != nil {
+		sabft.log.Debug("[switchFork] start to commit block on this branch: ", next)
 		sabft.loopCommit(next)
+		sabft.log.Debug("[switchFork] commit done")
+	} else {
+		sabft.log.Debug("[switchFork] no checkpoint found on this branch")
 	}
 
 	if f, exist := sabft.hook["switch_fork"]; exist {
