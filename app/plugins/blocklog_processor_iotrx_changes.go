@@ -3,110 +3,83 @@ package plugins
 import (
 	"errors"
 	"github.com/coschain/contentos-go/app/blocklog"
+	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/prototype"
-	"github.com/jinzhu/gorm"
-	"time"
 )
 
-func ProcessContractTransferToUserChangeProcessor(db *gorm.DB, change *blocklog.StateChange, blockLog *blocklog.BlockLog, changeIdx, opIdx, trxIdx int) error {
-	if change.What != "Account.Balance" {
-		return nil
+
+func ProcessContractTransferToUserChangeProcessor(opType string, operation prototype.BaseOperation, change *blocklog.StateChange, baseRecord interface{}) ([]interface{}, error) {
+	if opType != "contract_apply" && change.What != "Account.Balance" {
+		return nil, nil
 	}
-	trxLog := blockLog.Transactions[trxIdx]
-	opLog := trxLog.Operations[opIdx]
-	if opLog.Type != "contract_apply" {
-		return nil
-	}
-	op, ok := prototype.GetBaseOperation(opLog.Data).(*prototype.ContractApplyOperation)
+	op, ok := operation.(*prototype.ContractApplyOperation)
 	if !ok {
-		return errors.New("failed conversion to ContractApplyOperation")
+		return nil, errors.New("failed conversion to ContractApplyOperation")
 	}
 	if change.Cause == "contract_apply.vm_native.transfer_to_user"{
 		owner := op.GetOwner().GetValue()
 		contract := op.GetContract()
 		contractName := owner + "@" + contract
 		userName := change.Change.Id.(string)
-		ioTrxRecordContract := makeIOTrx(trxLog.TrxId, blockLog.BlockNum, time.Unix(int64(blockLog.BlockTime), 0),
-			contractName, "contract_transfer_to_user")
-		ioTrxRecordUser := makeIOTrx(trxLog.TrxId, blockLog.BlockNum, time.Unix(int64(blockLog.BlockTime), 0),
-			userName, "contract_transfer_to_user")
-		if err := db.Create(ioTrxRecordContract).Error; err != nil {
-			return err
-		}
-		if err := db.Create(ioTrxRecordUser).Error; err != nil {
-			return err
-		}
-		return nil
+		ioTrxRecordContract := baseRecord.(iservices.IOTrxRecord)
+		ioTrxRecordContract.Account = contractName
+		ioTrxRecordContract.Action = "contract_transfer_to_user"
+		ioTrxRecordUser := baseRecord.(iservices.IOTrxRecord)
+		ioTrxRecordUser.Account = userName
+		ioTrxRecordUser.Account = "contract_transfer_to_user"
+		return []interface{}{ioTrxRecordContract, ioTrxRecordUser}, nil
 	}
-	return nil
+	return nil, nil
 }
 
-func ProcessUserToContractChangeProcessor(db *gorm.DB, change *blocklog.StateChange, blockLog *blocklog.BlockLog, changeIdx, opIdx, trxIdx int) error {
-	if change.What != "Account.Balance" {
-		return nil
+func ProcessUserToContractChangeProcessor(opType string, operation prototype.BaseOperation, change *blocklog.StateChange, baseRecord interface{}) ([]interface{}, error) {
+	if opType != "contract_apply" && change.What != "Account.Balance" {
+		return nil, nil
 	}
-	trxLog := blockLog.Transactions[trxIdx]
-	opLog := trxLog.Operations[opIdx]
-	if opLog.Type != "contract_apply" {
-		return nil
-	}
-	op, ok := prototype.GetBaseOperation(opLog.Data).(*prototype.ContractApplyOperation)
+	op, ok := operation.(*prototype.ContractApplyOperation)
 	if !ok {
-		return errors.New("failed conversion to ContractApplyOperation")
+		return nil, errors.New("failed conversion to ContractApplyOperation")
 	}
 	if change.Cause == "contract_apply.u2c"{
 		owner := op.GetOwner().GetValue()
 		contract := op.GetContract()
 		contractName := owner + "@" + contract
 		userName := change.Change.Id.(string)
-		ioTrxRecordContract := makeIOTrx(trxLog.TrxId, blockLog.BlockNum, time.Unix(int64(blockLog.BlockTime), 0),
-			contractName, "user_transfer_to_contract")
-		ioTrxRecordUser := makeIOTrx(trxLog.TrxId, blockLog.BlockNum, time.Unix(int64(blockLog.BlockTime), 0),
-			userName, "user_transfer_to_contract")
-		if err := db.Create(ioTrxRecordContract).Error; err != nil {
-			return err
-		}
-		if err := db.Create(ioTrxRecordUser).Error; err != nil {
-			return err
-		}
-		return nil
+		ioTrxRecordContract := baseRecord.(iservices.IOTrxRecord)
+		ioTrxRecordContract.Account = contractName
+		ioTrxRecordContract.Action = "user_transfer_to_contract"
+		ioTrxRecordUser := baseRecord.(iservices.IOTrxRecord)
+		ioTrxRecordUser.Account = userName
+		ioTrxRecordUser.Account = "user_transfer_to_contract"
+		return []interface{}{ioTrxRecordUser, ioTrxRecordContract}, nil
 	}
-	return nil
+	return nil, nil
 }
 
-func ProcessContractTransferToContractChangeProcessor(db *gorm.DB, change *blocklog.StateChange, blockLog *blocklog.BlockLog, changeIdx, opIdx, trxIdx int) error {
-	if change.What != "Contract.Balance" {
-		return nil
+func ProcessContractTransferToContractChangeProcessor(opType string, operation prototype.BaseOperation, change *blocklog.StateChange, baseRecord interface{}) ([]interface{}, error) {
+	if opType != "contract_apply" && change.What != "Contract.Balance" {
+		return nil, nil
 	}
-	trxLog := blockLog.Transactions[trxIdx]
-	opLog := trxLog.Operations[opIdx]
-	if opLog.Type != "contract_apply" {
-		return nil
+	op, ok := operation.(*prototype.ContractApplyOperation)
+	if !ok {
+		return nil, errors.New("failed conversion to ContractApplyOperation")
 	}
 	if change.Cause == "contract_apply.vm_native.transfer_to_contract"{
-		op, ok := prototype.GetBaseOperation(opLog.Data).(*prototype.ContractApplyOperation)
-		if !ok {
-			return errors.New("failed conversion to ContractApplyOperation")
-		}
 		owner := op.GetOwner().GetValue()
 		contract := op.GetContract()
 		fromContractName := owner + "@" + contract
 		toContractName := change.Change.Id.(string)
 
 		if fromContractName != toContractName {
-			ioTrxRecordContractFrom := makeIOTrx(trxLog.TrxId, blockLog.BlockNum, time.Unix(int64(blockLog.BlockTime), 0),
-				fromContractName, "contract_transfer_to_contract")
-			ioTrxRecordUserTo := makeIOTrx(trxLog.TrxId, blockLog.BlockNum, time.Unix(int64(blockLog.BlockTime), 0),
-				toContractName, "contract_transfer_to_contract")
-			if err := db.Create(ioTrxRecordContractFrom).Error; err != nil {
-				return err
-			}
-			if err := db.Create(ioTrxRecordUserTo).Error; err != nil {
-				return err
-			}
-			return nil
+			ioTrxRecordContractFrom := baseRecord.(iservices.IOTrxRecord)
+			ioTrxRecordContractFrom.Account = fromContractName
+			ioTrxRecordContractFrom.Action = "contract_transfer_to_contract"
+			ioTrxRecordContractTo := baseRecord.(iservices.IOTrxRecord)
+			ioTrxRecordContractTo.Account = toContractName
+			ioTrxRecordContractTo.Action = "contract_transfer_to_contract"
+			return []interface{}{ioTrxRecordContractFrom, ioTrxRecordContractTo}, nil
 		}
-		return nil
+		return nil, nil
 	}
-	return nil
+	return nil, nil
 }
