@@ -262,6 +262,18 @@ func (p *TrxContext) TransferFromContractToUser(contract, owner, to string, amou
 	return
 }
 
+func (p *TrxContext) TransferFromContractToUserVest(contract, owner, to string, amount uint64) {
+	c := table.NewSoContractWrap(p.db, &prototype.ContractId{Owner: &prototype.AccountName{Value: owner}, Cname: contract})
+	balance := c.GetBalance().Value
+	if balance < amount {
+		panic(fmt.Sprintf("Endanger Transfer Operation: %s, %s, %s, %d", contract, owner, to, amount))
+	}
+	acc := table.NewSoAccountWrap(p.db, &prototype.AccountName{Value: to})
+
+	c.SetBalance(&prototype.Coin{Value: c.GetBalance().Value - amount})
+	acc.SetVest(&prototype.Vest{Value: acc.GetVest().Value + amount})
+}
+
 func (p *TrxContext) TransferFromUserToContract(from, contract, owner string, amount uint64) {
 	//opAssert(false, "function not opened")
 	opAssertE(p.RequireAuth( from ), fmt.Sprintf("requireAuth('%s') failed", from))
