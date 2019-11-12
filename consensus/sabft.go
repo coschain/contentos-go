@@ -764,7 +764,7 @@ func (sabft *SABFT) loopCommit(commit *message.Commit) {
 				if checkPoint != nil {
 					sabft.log.Debugf("loop checkpoint at %v, prev = %v", checkPoint.ProposedData, checkPoint.Prev)
 				} else {
-					sabft.log.Warn("NextUncommitted is nil")
+					sabft.log.Warn("loopCommit interrupted, NextUncommitted is nil, cp.lib = ", sabft.cp.lastCommitted)
 				}
 				continue
 			} else {

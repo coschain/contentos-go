@@ -119,14 +119,7 @@ func (cp *BFTCheckPoint) Flush(bid common.BlockID) error {
 			cp.nextCP = ConvertToBlockID(v.ProposedData)
 		}
 		if cp.lastCommitted == bid {
-			newCache := make(map[common.BlockID]*message.Commit)
-			if cp.nextCP != common.EmptyBlockID {
-				newCache[cp.lastCommitted] = cp.cache[cp.lastCommitted]
-			}
-			if cp.lastCommitted.BlockNum() % 1000 == 0 {
-				cp.cache = newCache // clean cache in case there're too many malformed Commit
-			}
-
+			// TODO: purge garbage Commit in cache
 			return nil
 		}
 		if cp.nextCP == common.EmptyBlockID {
