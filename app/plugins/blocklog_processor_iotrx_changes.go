@@ -26,7 +26,7 @@ func ProcessContractTransferToUserChangeProcessor(opType string, operation proto
 		ioTrxRecordContract.Action = "contract_transfer_to_user"
 		ioTrxRecordUser := baseRecord.(iservices.IOTrxRecord)
 		ioTrxRecordUser.Account = userName
-		ioTrxRecordUser.Account = "contract_transfer_to_user"
+		ioTrxRecordUser.Action = "contract_transfer_to_user"
 		return []interface{}{ioTrxRecordContract, ioTrxRecordUser}, nil
 	}
 	return nil, nil
@@ -50,7 +50,7 @@ func ProcessUserToContractChangeProcessor(opType string, operation prototype.Bas
 		ioTrxRecordContract.Action = "user_transfer_to_contract"
 		ioTrxRecordUser := baseRecord.(iservices.IOTrxRecord)
 		ioTrxRecordUser.Account = userName
-		ioTrxRecordUser.Account = "user_transfer_to_contract"
+		ioTrxRecordUser.Action = "user_transfer_to_contract"
 		return []interface{}{ioTrxRecordUser, ioTrxRecordContract}, nil
 	}
 	return nil, nil
