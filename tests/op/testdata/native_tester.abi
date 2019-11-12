@@ -77,6 +77,10 @@
             "type": "transfer_to_user"
         },
         {
+            "name": "transfer_to_user_vest",
+            "type": "transfer_to_user_vest"
+        },
+        {
             "name": "transfer_to_contract",
             "type": "transfer_to_contract"
         },
@@ -369,6 +373,20 @@
                 }
             ],
             "name": "transfer_to_user"
+        },
+        {
+            "base": "",
+            "fields": [
+                {
+                    "name": "name",
+                    "type": "std::string"
+                },
+                {
+                    "name": "amount",
+                    "type": "uint64"
+                }
+            ],
+            "name": "transfer_to_user_vest"
         },
         {
             "base": "",
