@@ -270,8 +270,13 @@ func (p *TrxContext) TransferFromContractToUserVest(contract, owner, to string, 
 	}
 	acc := table.NewSoAccountWrap(p.db, &prototype.AccountName{Value: to})
 
-	c.SetBalance(&prototype.Coin{Value: c.GetBalance().Value - amount})
-	acc.SetVest(&prototype.Vest{Value: acc.GetVest().Value + amount})
+	coin := prototype.NewCoin(c.GetBalance().Value).Sub(prototype.NewCoin(amount))
+	c.SetBalance(coin)
+
+	vest := prototype.NewVest(acc.GetVest().Value).Add(prototype.NewVest(amount))
+	acc.SetVest(vest)
+
+	p.GlobalProp().TransferToVest(&prototype.Coin{Value:amount})
 }
 
 func (p *TrxContext) TransferFromUserToContract(from, contract, owner string, amount uint64) {
