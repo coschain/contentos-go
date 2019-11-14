@@ -20,6 +20,8 @@ var rootCmd = &cobra.Command{
 	Short: "wallet-cli is a key-pair storage",
 }
 
+var datadir string
+
 func pcFromCommands(parent readline.PrefixCompleterInterface, c *cobra.Command) {
 	pc := readline.PcItem(c.Use)
 	parent.SetChildren(append(parent.GetChildren(), pc))
@@ -54,7 +56,6 @@ func runShell() {
 	defer func() {
 		if err := recover(); err != nil {
 			fmt.Println(err)
-			runShell()
 		}
 	}()
 
@@ -172,21 +173,28 @@ func addCommands() {
 }
 
 func init() {
+	rootCmd.PersistentFlags().StringVar(&datadir, "datadir", DefaultDataDir(), "--datadir path")
 	addCommands()
 	rootCmd.Run = func(cmd *cobra.Command, args []string) {
+		if _, ok := rootCmd.Context["wallet"]; !ok {
+			localWallet := wallet.NewBaseHDWallet("default", datadir)
+			_ = localWallet.LoadAll()
+			_ = localWallet.Start()
+			rootCmd.SetContext("wallet", localWallet)
+		}
 		runShell()
 	}
 }
 
 func main() {
 	//localWallet := wallet.NewBaseWallet("default", DefaultDataDir())
-	localWallet := wallet.NewBaseHDWallet("default", DefaultDataDir())
+	//localWallet := wallet.NewBaseHDWallet("default", path)
+	//_ = localWallet.LoadAll()
+	//_ = localWallet.Start()
+	//rootCmd.SetContext("wallet", localWallet)
+	//defer localWallet.Close()
 	preader := utils.MyPasswordReader{}
-	_ = localWallet.LoadAll()
-	_ = localWallet.Start()
-	rootCmd.SetContext("wallet", localWallet)
 	rootCmd.SetContext("preader", preader)
-	defer localWallet.Close()
 
 	conn, err := rpc.Dial("localhost:8888")
 	defer conn.Close()

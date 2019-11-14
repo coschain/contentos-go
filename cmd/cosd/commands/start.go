@@ -8,6 +8,7 @@ import (
 	"github.com/coschain/contentos-go/app/plugins"
 	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/common/constants"
+	"github.com/coschain/contentos-go/common/pprof"
 	"github.com/coschain/contentos-go/config"
 	"github.com/coschain/contentos-go/consensus"
 	"github.com/coschain/contentos-go/db/storage"
@@ -16,14 +17,18 @@ import (
 	"github.com/coschain/contentos-go/node"
 	"github.com/coschain/contentos-go/p2p"
 	"github.com/coschain/contentos-go/rpc"
+	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
+	"errors"
 	"os"
 	"os/signal"
 	"path/filepath"
 	"syscall"
+	"time"
 )
 
 var pluginList []string
+var globalFile *os.File
 
 var StartCmd = func() *cobra.Command {
 	cmd := &cobra.Command{
@@ -40,7 +45,9 @@ var StartCmd = func() *cobra.Command {
 
 var NodeName string
 const (
-	ClientTag  = "v1.0.2"
+	ClientTag  = "v1.0.3"
+
+	spacePrecision = 1024 * 1024 * 1024  // 1 GB in Bytes
 )
 
 
@@ -80,12 +87,47 @@ func makeNode() (*node.Node, node.Config) {
 
 }
 
+func InitCrashFile(fName string) error {
+	file, err := os.OpenFile(fName, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0666)
+	globalFile = file
+	if err != nil {
+		return err
+	}
+	if err = syscall.Dup2(int(globalFile.Fd()), int(os.Stderr.Fd())); err != nil {
+		return err
+	}
+	return nil
+}
+
 // NO OTHER CONFIGS HERE EXCEPT NODE CONFIG
 func startNode(cmd *cobra.Command, args []string) {
 	// _ is cfg as below process has't used
 
+	pprof.StartPprof()
+
 	_, _ = cmd, args
 	app, cfg := makeNode()
+	app.Log = mylog.Init(cfg.ResolvePath("logs"), cfg.LogLevel, 3600 * 24 * 7)
+	app.Log.Info("Cosd running version: ", NodeName)
+
+
+	tStr := time.Unix(time.Now().Unix(),0).Format("2006-01-02-15-04-05")
+	crashFileName := cfg.ResolvePath("logs") + "/" + "crash-log-" + tStr
+	fmt.Println("crash log:",crashFileName)
+	err := InitCrashFile(crashFileName)
+	if err != nil {
+		panic(fmt.Errorf("init crash file failed, error:%v",err))
+	}
+
+	all, err := CheckDiskSpace(filepath.Join(cfg.DataDir, cfg.Name), app.Log)
+	if err != nil {
+		app.Log.Errorf("check disk space failed, err: %v\n", err)
+		return
+	}
+	if all <= uint64(cfg.MinDiskSpaceInGB) {
+		app.Log.Errorf("disk space too small need more than %d GB, you have %d GB", cfg.MinDiskSpaceInGB, all)
+		return
+	}
 
 	replaying := len(args) > 0 && args[0] == "replay"
 	if replaying {
@@ -100,9 +142,6 @@ func startNode(cmd *cobra.Command, args []string) {
 			}
 		}
 	}
-
-	app.Log = mylog.Init(cfg.ResolvePath("logs"), cfg.LogLevel, 3600 * 24 * 7)
-	app.Log.Info("Cosd running version: ", NodeName)
 
 	//pprof.StartPprof()
 
@@ -172,4 +211,51 @@ func RegisterService(app *node.Node, cfg node.Config) {
 	_ = app.Register(AWSHealthCheck.HealthCheckName, func(ctx *node.ServiceContext) (node.Service, error) {
 		return AWSHealthCheck.NewAWSHealthCheck(ctx, app.Log)
 	})
+}
+
+func CheckDiskSpace(path string, log *logrus.Logger) (all uint64, err error) {
+	freeDiskInGB, err := getDiskFreeSpace(path)
+	if err != nil {
+		return 0, err
+	}
+
+	nodeUsedSpace, err := getNodeUsedSpace(path)
+	if err != nil {
+		return 0, err
+	}
+
+	log.Infof("Disk free space %d GB, node used space %d GB", freeDiskInGB, nodeUsedSpace)
+	return nodeUsedSpace + freeDiskInGB, nil
+}
+
+func getDiskFreeSpace(path string) (free uint64, err error) {
+	fs := syscall.Statfs_t{}
+	err = syscall.Statfs(path, &fs)
+	if err != nil {
+		return 0, err
+	}
+	//allInBytes := fs.Blocks * uint64(fs.Bsize)
+	freeInBytes := fs.Bfree * uint64(fs.Bsize)
+	//usedInBytes := allInBytes - freeInBytes
+
+	//allInGB := allInBytes / spacePrecision
+	freeInGB := freeInBytes / spacePrecision
+	//usedInGB := usedInBytes / spacePrecision
+
+	return freeInGB, nil
+}
+
+func getNodeUsedSpace(path string) (used uint64, err error) {
+	var size int64
+	err = filepath.Walk(path, func(_ string, info os.FileInfo, err error) error {
+		if !info.IsDir() {
+			size += info.Size()
+		}
+		return err
+	})
+	if err != nil {
+		return 0, errors.New(fmt.Sprintf("Get node used space error %s", err))
+	}
+	used = uint64(size) / spacePrecision
+	return used, err
 }

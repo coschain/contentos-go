@@ -11,6 +11,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"sync"
 	"sync/atomic"
+	"time"
 )
 
 // TrxCallback is the type of callback function reporting transaction process results.
@@ -138,7 +139,16 @@ func (e *TrxEntry) GetTrxSigningKey() *prototype.PublicKeyType {
 const (
 	// maximum count of transactions that are waiting to be packed to blocks.
 	// if this limit is reached, any incoming transaction will be refused directly.
-	sMaxWaitingCount  = constants.TrxMaxExpirationTime * 20000
+	sMaxWaitingCount  = constants.TrxMaxExpirationTime * 2000
+
+	// threshold over which cleanings are necessary
+	sWaitingCountWaterMark  = sMaxWaitingCount / 10
+
+	// minimal interval between cleanings
+	sMinCleanupInterval = 10 * time.Second
+
+	// shrink the waiting/fetched pools every 100K transactions
+	sShrinkCountWaterMark = 100000
 )
 
 // ITrxMgrPlugin is an interface of manager plugins.
@@ -162,6 +172,8 @@ type TrxMgr struct {
 	tapos 			*TaposChecker						// checker of transaction tapos
 	history 		*InBlockTrxChecker					// checker of transaction duplication
 	plugins         []ITrxMgrPlugin						// manager plugins, consisting of above checkers
+	lastCleanTime	time.Time							// last time we clean up expired waiting transactions
+	shrinkCounter   uint64								// a counter to determine when to shrink pools
 }
 
 // NewTrxMgr creates an instance of TrxMgr.
@@ -180,6 +192,7 @@ func NewTrxMgr(chainId prototype.ChainId, db iservices.IDatabaseRW, logger *logr
 		tapos: tapos,
 		history: history,
 		plugins: []ITrxMgrPlugin{ auth, tapos, history },
+		lastCleanTime: time.Now(),
 	}
 }
 
@@ -402,6 +415,13 @@ func (m *TrxMgr) BlockApplied(b *prototype.SignedBlock) {
 			delete(m.waiting, s)
 		}
 	}
+
+	// clean expired waiting trxs if necessary
+	m.cleanExpiredWaiting()
+
+	// shrink pool memory if necessary
+	m.shrinkPoolMemories()
+
 	timing.Mark()
 
 	m.fetchedLock.Unlock()
@@ -441,6 +461,9 @@ func (m *TrxMgr) BlockReverted(blockNum uint64) {
 
 // addToWaiting adds given transaction entries to the waiting pool, and returns the actual number added.
 func (m *TrxMgr) addToWaiting(entries...*TrxEntry) (count int) {
+	// clean expired waiting trxs if necessary
+	m.cleanExpiredWaiting()
+
 	for _, e := range entries {
 		// check the max waiting count limit
 		if len(m.waiting) > sMaxWaitingCount {
@@ -457,6 +480,8 @@ func (m *TrxMgr) addToWaiting(entries...*TrxEntry) (count int) {
 		m.waiting[e.sig] = e
 		count++
 	}
+
+	atomic.AddUint64(&m.shrinkCounter, uint64(count))
 	return
 }
 
@@ -521,4 +546,47 @@ func (m *TrxMgr) callPlugins(f func(plugin ITrxMgrPlugin)) {
 
 func (m *TrxMgr) DiscardAccountCache(name string) {
 	m.auth.Discard(name)
+}
+
+//
+// clean expired transactions from waiting pool if waiting pool is large enough.
+//
+// We need a cleaning procedure, especially for non-producer nodes.
+// A non-producer node checks each block it applied and removes in-block transactions from the waiting pool.
+// Without waiting pool cleaning, erroneous transactions will remain in the pool forever because they will never
+// be packed into blocks. This can eventually fill up the waiting pool, leading to huge memory consumption and
+// DoS for new transactions.
+//
+func (m *TrxMgr) cleanExpiredWaiting() {
+	// when the waiting pool is small, we don't need cleaning
+	if len(m.waiting) < sWaitingCountWaterMark {
+		return
+	}
+	// we avoid frequent cleaning
+	if headBlockTime := atomic.LoadUint32(&m.headTime); headBlockTime > 0 && time.Since(m.lastCleanTime) > sMinCleanupInterval {
+		m.lastCleanTime = time.Now()
+		for k, e := range m.waiting {
+			if err := e.CheckExpiration(headBlockTime); err != nil {
+				m.deliverEntry(e)
+			}
+			delete(m.waiting, k)
+		}
+	}
+}
+
+// delete(map, key) won't release any memory occupied by a map.
+// so we need to re-copy our pools from time to time, otherwise they're eating memory slowly but forever.
+func (m *TrxMgr) shrinkPoolMemories() {
+	if atomic.LoadUint64(&m.shrinkCounter) > sShrinkCountWaterMark {
+		atomic.StoreUint64(&m.shrinkCounter, 0)
+
+		waiting, fetched := make(map[string]*TrxEntry), make(map[string]*TrxEntry)
+		for k, e := range m.waiting {
+			waiting[k] = e
+		}
+		for k, e := range m.fetched {
+			fetched[k] = e
+		}
+		m.waiting, m.fetched = waiting, fetched
+	}
 }

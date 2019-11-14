@@ -306,7 +306,12 @@ func conductBatch(cmd *cobra.Command, args []string) {
 		if err != nil {
 			fmt.Println(err)
 		} else {
-			fmt.Println(fmt.Sprintf("Result: %v", resp))
+			var hashStr string
+			trxHash, err := signTx.Id()
+			if err == nil {
+				hashStr = trxHash.ToString()
+			}
+			fmt.Println(fmt.Sprintf("Transaction hash: %s Result: %v", hashStr, resp))
 		}
 	}
 }

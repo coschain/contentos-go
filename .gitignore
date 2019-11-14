@@ -24,6 +24,7 @@ cmd/databackup/databackup
 cmd/pressuretest/pressuretest
 cmd/nodedetector/nodedetector
 cmd/readtest/readtest
+cmd/autosetup/autosetup
 
 coverage.*
 build
