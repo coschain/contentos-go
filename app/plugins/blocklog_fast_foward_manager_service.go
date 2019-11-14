@@ -31,15 +31,15 @@ func (cp FastForwardManagerCheckpoint) HasNeedSyncProcessors() bool {
 
 func (cp FastForwardManagerCheckpoint) ProgressesOfNeedSyncProcessors() []*Progress {
 	var progresses []*Progress
-	cp.db.Where(&Progress{FastForward:true}).Find(progresses)
+	cp.db.Where(&Progress{FastForward:true}).Find(&progresses)
 	return progresses
 }
 
 func (cp FastForwardManagerCheckpoint) TryToTransferProcessorManager(progress *Progress) error {
 	blogLog := &iservices.BlockLogRecord{}
-	cp.db.Where(&iservices.BlockLogRecord{}).Last(blogLog)
+	cp.db.Last(blogLog)
 	if progress.FastForward == true {
-		if blogLog.BlockHeight-progress.BlockHeight < 1000 {
+		if blogLog.BlockHeight - progress.BlockHeight < 1000 {
 			progress.FastForward = false
 			tx := cp.db.Begin()
 			if err := tx.Save(progress).Error; err == nil {

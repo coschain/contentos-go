@@ -44,7 +44,7 @@ func (p *PluginMgt) RegisterSQLServices(app *node.Node, cfg *node.Config) {
 			})
 		case iservices.BlockLogProcessServiceName:
 			_ = app.Register(iservices.BlockLogProcessServiceName, func(ctx *node.ServiceContext) (service node.Service, e error) {
-				return NewBlockLogBootstrapService(ctx, cfg.Database, app.Log)
+				return NewBlockLogProcessService(ctx, cfg.Database, app.Log)
 			})
 		}
 	}
