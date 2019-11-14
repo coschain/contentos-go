@@ -1,46 +1,17 @@
 package plugins
 
 import (
-	"github.com/coschain/contentos-go/iservices/service-configs"
-	"github.com/coschain/contentos-go/node"
-	"github.com/sirupsen/logrus"
-	"time"
+	"github.com/coschain/contentos-go/app/blocklog"
+	"github.com/jinzhu/gorm"
 )
 
-type BlockLogProcess struct {
-	ID 				uint64			`gorm:"primary_key;auto_increment"`
-	BlockHeight 	uint64
-	FinishAt 		time.Time
+type BlockLogProcessor struct {
+	processors []IBlockLogProcessor
 }
 
-func (BlockLogProcess) TableName() string {
-	return "blocklog_process"
-}
-
-func (p BlockLogProcess) GetBlockHeight() uint64 {
-	return p.BlockHeight
-}
-
-func (p *BlockLogProcess) SetBlockHeight(blockHeight uint64) {
-	p.BlockHeight = blockHeight
-}
-
-func (p *BlockLogProcess) SetFinishAt(finishAt time.Time) {
-	p.FinishAt = finishAt
-}
-
-type BlockLogProcessService struct {
-	*BlockLogProcessBaseService
-}
-
-func NewBlockLogProcessService(ctx *node.ServiceContext, config *service_configs.DatabaseConfig, logger *logrus.Logger) (*BlockLogProcessService, error) {
-	baseService, err := NewBlockLogProcessBaseService(ctx, config, logger, func() IProcess {
-		return &BlockLogProcess{}
-	})
-	if err != nil {
-		return nil, err
-	}
-	baseService.processors = append(baseService.processors,
+func NewBlockLogProcessor() *BlockLogProcessor {
+	blockLogProcessor := &BlockLogProcessor{}
+	blockLogProcessor.processors = append(blockLogProcessor.processors,
 		NewHolderProcessor(),
 		NewStakeProcessor(),
 		NewTransferProcessor(),
@@ -50,9 +21,42 @@ func NewBlockLogProcessService(ctx *node.ServiceContext, config *service_configs
 		NewPowerUpDownProcessor(),
 		NewEcosysPowerDownProcessor(),
 	)
-	return &BlockLogProcessService{BlockLogProcessBaseService: baseService}, err
+	return blockLogProcessor
 }
 
-func init() {
-	RegisterSQLTableNamePattern("blocklog_process")
+func (p *BlockLogProcessor) Prepare(db *gorm.DB, blockLog *blocklog.BlockLog) error {
+	for _, processor := range p.processors {
+		if err := processor.Prepare(db, blockLog); err != nil {
+			return err
+		}
+	}
+	return nil
 }
+
+func (p *BlockLogProcessor) ProcessChange(db *gorm.DB, change *blocklog.StateChange, blockLog *blocklog.BlockLog, changeIdx, opIdx, trxIdx int) error {
+	for _, processor := range p.processors {
+		if err := processor.ProcessChange(db, change, blockLog, changeIdx, opIdx, trxIdx); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (p *BlockLogProcessor) ProcessOperation(db *gorm.DB, blockLog *blocklog.BlockLog, opIdx, trxIdx int) error {
+	for _, processor := range p.processors {
+		if err := processor.ProcessOperation(db, blockLog, opIdx, trxIdx); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (p *BlockLogProcessor) Finalize(db *gorm.DB, blockLog *blocklog.BlockLog) error {
+	for _, processor := range p.processors {
+		if err := processor.Finalize(db, blockLog); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
