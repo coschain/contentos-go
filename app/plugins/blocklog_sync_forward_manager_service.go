@@ -27,7 +27,7 @@ func (cp SyncForwardMangerCheckpoint) HasNeedSyncProcessors() bool {
 func (cp SyncForwardMangerCheckpoint) ProgressesOfNeedSyncProcessors() []*iservices.Progress{
 	var progresses []*iservices.Progress
 	fastForward := false
-	cp.db.Debug().Where(&iservices.Progress{FastForward: &fastForward}).Find(&progresses)
+	cp.db.Where(&iservices.Progress{FastForward: &fastForward}).Find(&progresses)
 	return progresses
 }
 
