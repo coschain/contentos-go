@@ -12,12 +12,7 @@ type FastForwardManagerService struct {
 
 func NewFastForwardManagerService(logger *logrus.Logger, db *gorm.DB, processors map[string]IBlockLogProcessor) *FastForwardManagerService {
 	return &FastForwardManagerService{
-		&ForwardManagerService{
-			logger:logger,
-			db:db,
-			mainProcessors:processors,
-			point: &FastForwardManagerCheckpoint{db: db},
-		},
+		NewForwardManagerService(logger, db, processors, &FastForwardManagerCheckpoint{db:db}),
 	}
 }
 
@@ -26,20 +21,21 @@ type FastForwardManagerCheckpoint struct {
 }
 
 func (cp FastForwardManagerCheckpoint) HasNeedSyncProcessors() bool {
-	return cp.db.Where(&Progress{FastForward:true}).RecordNotFound()
+	var progresses []*iservices.Progress
+	return cp.db.Where(&iservices.Progress{FastForward:true}).Find(&progresses).RecordNotFound()
 }
 
-func (cp FastForwardManagerCheckpoint) ProgressesOfNeedSyncProcessors() []*Progress {
-	var progresses []*Progress
-	cp.db.Where(&Progress{FastForward:true}).Find(&progresses)
+func (cp FastForwardManagerCheckpoint) ProgressesOfNeedSyncProcessors() []*iservices.Progress {
+	var progresses []*iservices.Progress
+	cp.db.Where(&iservices.Progress{FastForward:true}).Find(&progresses)
 	return progresses
 }
 
-func (cp FastForwardManagerCheckpoint) TryToTransferProcessorManager(progress *Progress) error {
+func (cp FastForwardManagerCheckpoint) TryToTransferProcessorManager(progress *iservices.Progress) error {
 	blogLog := &iservices.BlockLogRecord{}
 	cp.db.Last(blogLog)
 	if progress.FastForward == true {
-		if blogLog.BlockHeight - progress.BlockHeight < 1000 {
+		if blogLog.BlockHeight - progress.BlockHeight < iservices.ThresholdForFastConvertToSync {
 			progress.FastForward = false
 			tx := cp.db.Begin()
 			if err := tx.Save(progress).Error; err == nil {

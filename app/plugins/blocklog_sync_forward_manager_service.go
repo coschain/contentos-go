@@ -1,6 +1,7 @@
 package plugins
 
 import (
+	"github.com/coschain/contentos-go/iservices"
 	"github.com/jinzhu/gorm"
 	"github.com/sirupsen/logrus"
 )
@@ -11,12 +12,7 @@ type SyncForwardManagerService struct {
 
 func NewSyncForwardManagerService(logger *logrus.Logger, db *gorm.DB, processors map[string]IBlockLogProcessor) *SyncForwardManagerService {
 	return &SyncForwardManagerService{
-		&ForwardManagerService{
-			logger:logger,
-			db:db,
-			mainProcessors:processors,
-			point: &SyncForwardMangerCheckpoint{db:db},
-		},
+		NewForwardManagerService(logger, db, processors, &SyncForwardMangerCheckpoint{db:db}),
 	}
 }
 
@@ -28,12 +24,12 @@ func (cp SyncForwardMangerCheckpoint) HasNeedSyncProcessors() bool {
 	return true
 }
 
-func (cp SyncForwardMangerCheckpoint) ProgressesOfNeedSyncProcessors() []*Progress {
-	var progresses []*Progress
-	cp.db.Where(&Progress{FastForward:false}).Find(&progresses)
+func (cp SyncForwardMangerCheckpoint) ProgressesOfNeedSyncProcessors() []*iservices.Progress{
+	var progresses []*iservices.Progress
+	cp.db.Where(&iservices.Progress{FastForward:false}).Find(&progresses)
 	return progresses
 }
 
-func (cp SyncForwardMangerCheckpoint) TryToTransferProcessorManager(progress *Progress) error {
+func (cp SyncForwardMangerCheckpoint) TryToTransferProcessorManager(progress *iservices.Progress) error {
 	return nil
 }

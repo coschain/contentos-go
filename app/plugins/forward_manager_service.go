@@ -11,19 +11,10 @@ import (
 	"time"
 )
 
-
-
-type IBlockLogProcessor interface {
-	Prepare(db *gorm.DB, blockLog *blocklog.BlockLog) error
-	ProcessChange(db *gorm.DB, change *blocklog.StateChange, blockLog *blocklog.BlockLog, changeIdx, opIdx, trxIdx int) error
-	ProcessOperation(db *gorm.DB, blockLog *blocklog.BlockLog, opIdx, trxIdx int) error
-	Finalize(db *gorm.DB, blockLog *blocklog.BlockLog) error
-}
-
 type Checkpoint interface {
 	HasNeedSyncProcessors() bool
-	ProgressesOfNeedSyncProcessors() []*Progress
-	TryToTransferProcessorManager(progress *Progress) error
+	ProgressesOfNeedSyncProcessors() []*iservices.Progress
+	TryToTransferProcessorManager(progress *iservices.Progress) error
 }
 
 type ForwardManagerService struct {
@@ -38,10 +29,10 @@ type ForwardManagerService struct {
 	point Checkpoint
 }
 
-func NewForwardManagerService(logger *logrus.Logger, processors map[string]IBlockLogProcessor, point Checkpoint) (*ForwardManagerService, error) {
-	s := &ForwardManagerService{logger:logger, mainProcessors:processors, point: point}
+func NewForwardManagerService(logger *logrus.Logger, db *gorm.DB, processors map[string]IBlockLogProcessor, point Checkpoint) *ForwardManagerService {
+	s := &ForwardManagerService{logger:logger, db: db, mainProcessors:processors, point: point}
 	s.workStop = sync.NewCond(&s.Mutex)
-	return s, nil
+	return s
 }
 
 func (s *ForwardManagerService) Start(node *node.Node) error  {

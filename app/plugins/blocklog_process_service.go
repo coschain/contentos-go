@@ -2,7 +2,9 @@ package plugins
 
 import (
 	"fmt"
+	"github.com/coschain/contentos-go/app/blocklog"
 	"github.com/coschain/contentos-go/common/constants"
+	"github.com/coschain/contentos-go/iservices"
 	service_configs "github.com/coschain/contentos-go/iservices/service-configs"
 	"github.com/coschain/contentos-go/node"
 	"github.com/jinzhu/gorm"
@@ -11,12 +13,11 @@ import (
 	"time"
 )
 
-type Progress struct {
-	ID 				uint64	`gorm:"primary_key;auto_increment"`
-	Processor       string  `gorm:"index"`
-	BlockHeight 	uint64
-	FastForward     bool
-	FinishAt 		time.Time
+type IBlockLogProcessor interface {
+	Prepare(db *gorm.DB, blockLog *blocklog.BlockLog) error
+	ProcessChange(db *gorm.DB, change *blocklog.StateChange, blockLog *blocklog.BlockLog, changeIdx, opIdx, trxIdx int) error
+	ProcessOperation(db *gorm.DB, blockLog *blocklog.BlockLog, opIdx, trxIdx int) error
+	Finalize(db *gorm.DB, blockLog *blocklog.BlockLog) error
 }
 
 type BlockLogProcessService struct {
@@ -31,15 +32,16 @@ type BlockLogProcessService struct {
 }
 
 func NewBlockLogProcessService(ctx *node.ServiceContext, config *service_configs.DatabaseConfig, log *logrus.Logger) (*BlockLogProcessService, error) {
-	return &BlockLogProcessService{ctx: ctx, logger: log, config: config}, nil
+	processors := make(map[string]IBlockLogProcessor)
+	return &BlockLogProcessService{ctx: ctx, logger: log, config: config, processors:processors}, nil
 }
 
 func (s *BlockLogProcessService) Start(node *node.Node) error {
+	s.register("blocklog", NewBlockLogProcessor())
+	s.register("iotrx", NewIOTrxProcessor())
 	if err := s.initDatabase(); err != nil {
 		return fmt.Errorf("invalid database: %s", err)
 	}
-	s.register("blocklog", NewBlockLogProcessor())
-	s.register("iotrx", NewIOTrxProcessor())
 	s.fastForwardService = NewFastForwardManagerService(s.logger, s.db, s.processors)
 	s.syncForwardService = NewSyncForwardManagerService(s.logger, s.db, s.processors)
 	go s.fastForwardService.Start(node)
@@ -67,15 +69,15 @@ func (s *BlockLogProcessService) initDatabase() error {
 	} else {
 		s.db = db
 	}
-	if !s.db.HasTable(&Progress{}) {
-		if err := s.db.CreateTable(&Progress{}).Error; err != nil {
+	if !s.db.HasTable(&iservices.Progress{}) {
+		if err := s.db.CreateTable(&iservices.Progress{}).Error; err != nil {
 			_ = s.db.Close()
 			return err
 		}
 	}
 	for k := range s.processors {
-		progress := &Progress{}
-		if s.db.Where(&Progress{Processor: k}).RecordNotFound() {
+		progress := &iservices.Progress{}
+		if s.db.Where(&iservices.Progress{Processor: k}).First(progress).RecordNotFound() {
 			progress.Processor = k
 			progress.BlockHeight = 0
 			progress.FastForward = true
