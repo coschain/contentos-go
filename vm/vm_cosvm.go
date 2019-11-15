@@ -62,6 +62,7 @@ func (w *CosVM) initNativeFuncs() {
 	w.register("read_calling_contract_owner", e_readCallingContractOwner, 100)
 	w.register("read_calling_contract_name", e_readCallingContractName, 100)
 	w.register("transfer_to_user", e_contractTransferToUser, 800)
+	w.register("transfer_to_user_vest", e_contractTransferToUserVest, 800)
 	w.register("transfer_to_contract", e_contractTransferToContract, 800)
 	w.register("table_get_record", e_tableGetRecord, 800)
 	w.register("table_new_record", e_tableNewRecord, 1200)

@@ -158,6 +158,12 @@ func e_contractTransferToUser(proc *exec.Process, pTo, pToLen int32, amount int6
 	w.ContractTransferToUser(string(w.cosVM.read(proc, pTo, pToLen, "contractTransferToUser().to")), uint64(amount))
 }
 
+func e_contractTransferToUserVest(proc *exec.Process, pTo, pToLen int32, amount int64, pMemo, pMemoLen int32) {
+	w := proc.GetTag().(*CosVMNative)
+
+	w.ContractTransferToUserVest(string(w.cosVM.read(proc, pTo, pToLen, "contractTransferToUserVest().to")), uint64(amount))
+}
+
 func e_contractTransferToContract(proc *exec.Process, pToOwner, pToOwnerLen, pToContract, pToContractLen int32, amount int64, pMemo, pMemoLen int32) {
 	w := proc.GetTag().(*CosVMNative)
 

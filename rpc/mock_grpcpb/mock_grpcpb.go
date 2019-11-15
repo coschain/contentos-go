@@ -815,6 +815,26 @@ func (mr *MockApiServiceClientMockRecorder) GetAppTableRecord(ctx, in interface{
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAppTableRecord", reflect.TypeOf((*MockApiServiceClient)(nil).GetAppTableRecord), varargs...)
 }
 
+// GetBlockProducerVoterList mocks base method
+func (m *MockApiServiceClient) GetBlockProducerVoterList(ctx context.Context, in *pb.GetBlockProducerVoterListRequest, opts ...grpc.CallOption) (*pb.GetBlockProducerVoterListResponse, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{ctx, in}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "GetBlockProducerVoterList", varargs...)
+	ret0, _ := ret[0].(*pb.GetBlockProducerVoterListResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetBlockProducerVoterList indicates an expected call of GetBlockProducerVoterList
+func (mr *MockApiServiceClientMockRecorder) GetBlockProducerVoterList(ctx, in interface{}, opts ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{ctx, in}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBlockProducerVoterList", reflect.TypeOf((*MockApiServiceClient)(nil).GetBlockProducerVoterList), varargs...)
+}
+
 // MockApiServiceServer is a mock of ApiServiceServer interface
 type MockApiServiceServer struct {
 	ctrl     *gomock.Controller
@@ -1421,4 +1441,19 @@ func (m *MockApiServiceServer) GetAppTableRecord(arg0 context.Context, arg1 *pb.
 func (mr *MockApiServiceServerMockRecorder) GetAppTableRecord(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAppTableRecord", reflect.TypeOf((*MockApiServiceServer)(nil).GetAppTableRecord), arg0, arg1)
+}
+
+// GetBlockProducerVoterList mocks base method
+func (m *MockApiServiceServer) GetBlockProducerVoterList(arg0 context.Context, arg1 *pb.GetBlockProducerVoterListRequest) (*pb.GetBlockProducerVoterListResponse, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetBlockProducerVoterList", arg0, arg1)
+	ret0, _ := ret[0].(*pb.GetBlockProducerVoterListResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetBlockProducerVoterList indicates an expected call of GetBlockProducerVoterList
+func (mr *MockApiServiceServerMockRecorder) GetBlockProducerVoterList(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBlockProducerVoterList", reflect.TypeOf((*MockApiServiceServer)(nil).GetBlockProducerVoterList), arg0, arg1)
 }
