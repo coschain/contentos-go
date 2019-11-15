@@ -12,7 +12,8 @@ type Progress struct {
 	ID 				uint64	`gorm:"primary_key;auto_increment"`
 	Processor       string  `gorm:"index"`
 	BlockHeight 	uint64
-	FastForward     bool
+	// restrict from gorm
+	FastForward     *bool
 	FinishAt 		time.Time
 }
 
