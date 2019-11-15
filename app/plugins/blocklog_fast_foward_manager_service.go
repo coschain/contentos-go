@@ -21,8 +21,9 @@ type FastForwardManagerCheckpoint struct {
 }
 
 func (cp FastForwardManagerCheckpoint) HasNeedSyncProcessors() bool {
-	var progresses []*iservices.Progress
-	return cp.db.Where(&iservices.Progress{FastForward:true}).Find(&progresses).RecordNotFound()
+	progress := &iservices.Progress{}
+	notFound := cp.db.Where(&iservices.Progress{FastForward:true}).First(progress).RecordNotFound()
+	return !notFound
 }
 
 func (cp FastForwardManagerCheckpoint) ProgressesOfNeedSyncProcessors() []*iservices.Progress {
@@ -35,7 +36,7 @@ func (cp FastForwardManagerCheckpoint) TryToTransferProcessorManager(progress *i
 	blogLog := &iservices.BlockLogRecord{}
 	cp.db.Last(blogLog)
 	if progress.FastForward == true {
-		if blogLog.BlockHeight - progress.BlockHeight < iservices.ThresholdForFastConvertToSync {
+		if blogLog.BlockHeight - progress.BlockHeight < uint64(iservices.ThresholdForFastConvertToSync) {
 			progress.FastForward = false
 			tx := cp.db.Begin()
 			if err := tx.Save(progress).Error; err == nil {
