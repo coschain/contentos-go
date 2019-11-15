@@ -606,6 +606,7 @@ func (p *MsgHandler) DisconnectHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, ar
 		p2p.RemovePeerConsAddress(data.Addr)
 		remotePeer.CloseCons()
 	}
+	p2p.DelNbrNode(remotePeer)
 }
 
 func (p *MsgHandler) IdMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
