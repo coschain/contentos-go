@@ -66,14 +66,15 @@ func (s *BlockLogProcessService) register(name string, processor IBlockLogProces
 // hard code is ok there.
 func (s *BlockLogProcessService) migrateDeprecatedProgress() {
 	deprecatedProgress := &iservices.DeprecatedBlockLogProgress{}
-	if !s.db.First(deprecatedProgress).RecordNotFound() {
-		progress := &iservices.Progress{Processor: "blocklog"}
-		s.db.Where(progress).First(progress)
-		fmt.Println(progress)
-		if deprecatedProgress.BlockHeight > progress.BlockHeight {
-			progress.BlockHeight = deprecatedProgress.BlockHeight
-			progress.FinishAt = deprecatedProgress.FinishAt
-			s.db.Save(progress)
+	if s.db.HasTable(deprecatedProgress) {
+		if !s.db.First(deprecatedProgress).RecordNotFound() {
+			progress := &iservices.Progress{}
+			s.db.Where(&iservices.Progress{Processor: "blocklog"}).First(progress)
+			if deprecatedProgress.BlockHeight > progress.BlockHeight {
+				progress.BlockHeight = deprecatedProgress.BlockHeight
+				progress.FinishAt = deprecatedProgress.FinishAt
+				s.db.Save(progress)
+			}
 		}
 	}
 }
