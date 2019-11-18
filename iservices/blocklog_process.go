@@ -17,3 +17,12 @@ type Progress struct {
 	FinishAt 		time.Time
 }
 
+type DeprecatedBlockLogProgress struct {
+	ID 				uint64			`gorm:"primary_key;auto_increment"`
+	BlockHeight 	uint64
+	FinishAt 		time.Time
+}
+
+func (DeprecatedBlockLogProgress) TableName() string {
+	return "blocklog_process"
+}

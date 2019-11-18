@@ -39,6 +39,7 @@ func NewBlockLogProcessService(ctx *node.ServiceContext, config *service_configs
 func (s *BlockLogProcessService) Start(node *node.Node) error {
 	s.register("blocklog", NewBlockLogProcessor())
 	s.register("iotrx", NewIOTrxProcessor())
+	s.register("ecosys_powerdown", NewEcosysPowerDownProcessor())
 	if err := s.initDatabase(); err != nil {
 		return fmt.Errorf("invalid database: %s", err)
 	}
@@ -60,6 +61,21 @@ func (s *BlockLogProcessService) Stop() error {
 
 func (s *BlockLogProcessService) register(name string, processor IBlockLogProcessor) {
 	s.processors[name] = processor
+}
+
+// hard code is ok there.
+func (s *BlockLogProcessService) migrateDeprecatedProgress() {
+	deprecatedProgress := &iservices.DeprecatedBlockLogProgress{}
+	if !s.db.First(deprecatedProgress).RecordNotFound() {
+		progress := &iservices.Progress{Processor: "blocklog"}
+		s.db.Where(progress).First(progress)
+		fmt.Println(progress)
+		if deprecatedProgress.BlockHeight > progress.BlockHeight {
+			progress.BlockHeight = deprecatedProgress.BlockHeight
+			progress.FinishAt = deprecatedProgress.FinishAt
+			s.db.Save(progress)
+		}
+	}
 }
 
 func (s *BlockLogProcessService) initDatabase() error {
@@ -88,6 +104,7 @@ func (s *BlockLogProcessService) initDatabase() error {
 			}
 		}
 	}
+	s.migrateDeprecatedProgress()
 	return nil
 }
 
