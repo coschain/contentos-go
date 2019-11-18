@@ -154,6 +154,10 @@ func (w *CosVMNative) ContractTransferToUser(to string, amount uint64) {
 	w.cosVM.ctx.Injector.TransferFromContractToUser(w.cosVM.ctx.Contract, w.cosVM.ctx.Owner.Value, to, amount)
 }
 
+func (w *CosVMNative) ContractTransferToUserVest(to string, amount uint64) {
+	w.cosVM.ctx.Injector.TransferFromContractToUserVest(w.cosVM.ctx.Contract, w.cosVM.ctx.Owner.Value, to, amount)
+}
+
 func (w *CosVMNative) ContractTransferToContract(owner, contract string, amount uint64) {
 	w.cosVM.ctx.Injector.TransferFromContractToContract(w.cosVM.ctx.Contract, w.cosVM.ctx.Owner.Value, contract, owner, amount)
 }
