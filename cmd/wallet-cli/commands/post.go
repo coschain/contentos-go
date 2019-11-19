@@ -6,6 +6,7 @@ import (
 	"github.com/coschain/cobra"
 	"github.com/coschain/contentos-go/cmd/wallet-cli/commands/utils"
 	"github.com/coschain/contentos-go/cmd/wallet-cli/wallet"
+	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/coschain/contentos-go/rpc/pb"
 	"strings"
@@ -56,13 +57,13 @@ func post(cmd *cobra.Command, args []string) {
 			return
 		}
 
-		if v > 10 {
-			fmt.Println("either beneficiary route should not greater than 10%")
+		if v > constants.PERCENT  {
+			fmt.Println("either beneficiary route should not greater than 100%")
 			return
 		}
 
-		if accumulateWeight > 10 {
-			fmt.Println("accumulated weight should not greater than 10%")
+		if accumulateWeight > constants.PERCENT {
+			fmt.Println("accumulated weight should not greater than 100%")
 			return
 		}
 
