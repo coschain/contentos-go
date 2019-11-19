@@ -866,11 +866,17 @@ func (sabft *SABFT) pushBlock(b common.ISignedBlock, applyStateDB bool) error {
 	switch rc {
 	case forkdb.RTDetached:
 		sabft.log.Debugf("[SABFT][pushBlock]possibly detached block. prev: got %v, want %v", b.Previous(), head.Id())
-		var headID common.BlockID
-		if !sabft.ForkDB.Empty() {
-			headID = sabft.ForkDB.Head().Id()
+		tailId, errTail := sabft.ForkDB.FetchUnlinkBlockTail()
+		if sabft.HasBlock(*tailId) {
+			panic("GOT unlinked but exist")
 		}
-		sabft.p2p.FetchMissingBlock(headID, b.Id())
+
+		if errTail == nil {
+			sabft.p2p.FetchUnlinkedBlock(*tailId)
+			sabft.log.Debug("[SABFT TriggerSync]: pre-start from ", tailId.BlockNum())
+		} else {
+			sabft.log.Debug("[SABFT TriggerSync]: not found:", errTail)
+		}
 		return nil
 	case forkdb.RTOutOfRange:
 		var headID common.BlockID
@@ -881,7 +887,7 @@ func (sabft *SABFT) pushBlock(b common.ISignedBlock, applyStateDB bool) error {
 			b.Id().BlockNum(), headID.BlockNum(), sabft.ForkDB.LastCommitted().BlockNum())
 		if sabft.readyToProduce && !sabft.checkSync() {
 			sabft.log.Warn("node is readyToProduce but out of sync")
-			if newNum > headID.BlockNum()+1 && b.Timestamp() < uint64(time.Now().Unix()) {
+			if newNum > headID.BlockNum()+1 && b.Timestamp() <= uint64(time.Now().Unix()) {
 				sabft.log.Warnf("fetch from %d to %d", headID.BlockNum(), b.Id().BlockNum())
 				sabft.p2p.FetchMissingBlock(headID, b.Id())
 			}
