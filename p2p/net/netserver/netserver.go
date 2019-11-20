@@ -268,14 +268,25 @@ func (this *NetServer) IsPeerEstablished(p *peer.Peer) bool {
 
 //Connect used to connect net address under sync or cons mode
 func (this *NetServer) Connect(addr string, isConsensus bool) error {
+	this.connectLock.Lock()
+	if added := this.AddOutConnectingList(addr); added == false {
+		this.log.Debug("[p2p] node exist in connecting list ", addr)
+		this.connectLock.Unlock()
+		return nil
+	}
+	this.connectLock.Unlock()
+
 	if this.IsAddrInOutConnRecord(addr) {
+		this.RemoveFromConnectingList(addr)
 		this.log.Debugf("[p2p] Address: %s Consensus: %v is in OutConnectionRecord,", addr, isConsensus)
 		return nil
 	}
 	if this.IsOwnAddress(addr) {
+		this.RemoveFromConnectingList(addr)
 		return nil
 	}
 	if !this.AddrValid(addr) {
+		this.RemoveFromConnectingList(addr)
 		return nil
 	}
 
@@ -284,21 +295,23 @@ func (this *NetServer) Connect(addr string, isConsensus bool) error {
 	if connCount >= this.ctx.Config().P2P.MaxConnOutBound {
 		this.log.Warnf("[p2p] Connect: out connections(%d) reach the max limit(%d)", connCount,
 			this.ctx.Config().P2P.MaxConnOutBound)
+		this.RemoveFromConnectingList(addr)
 		this.connectLock.Unlock()
 		return errors.New("[p2p] connect: out connections reach the max limit")
 	}
 	this.connectLock.Unlock()
 
 	if this.IsNbrPeerAddr(addr, isConsensus) {
+		this.RemoveFromConnectingList(addr)
 		return nil
 	}
-	this.connectLock.Lock()
-	if added := this.AddOutConnectingList(addr); added == false {
-		this.log.Debug("[p2p] node exist in connecting list ", addr)
-		this.connectLock.Unlock()
-		return nil
-	}
-	this.connectLock.Unlock()
+	//this.connectLock.Lock()
+	//if added := this.AddOutConnectingList(addr); added == false {
+	//	this.log.Debug("[p2p] node exist in connecting list ", addr)
+	//	this.connectLock.Unlock()
+	//	return nil
+	//}
+	//this.connectLock.Unlock()
 
 	isTls := this.ctx.Config().P2P.IsTLS
 	var conn net.Conn

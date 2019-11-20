@@ -438,6 +438,9 @@ func (p *MsgHandler) VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args 
 					log.Infof("[p2p] peer reconnect %d, %s ", version.Nonce, data.Addr)
 					// Close the connection and release the node source
 					p2p.RemoveFromInConnRecord(n.GetAddr())
+					p2p.RemoveFromOutConnRecord(n.GetAddr())
+					p2p.RemoveFromConnectingList(n.GetAddr())
+					p2p.RemovePeerSyncAddress(n.GetAddr())
 					n.CloseSync()
 					n.CloseCons()
 				}
@@ -504,7 +507,7 @@ func (p *MsgHandler) VerAckHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args .
 		}
 
 		remotePeer.SetConsState(msgCommon.ESTABLISH)
-		p2p.RemoveFromConnectingList(data.Addr)
+		//p2p.RemoveFromConnectingList(data.Addr)
 		remotePeer.SetConsConn(remotePeer.GetConsConn())
 
 		if s == msgCommon.HAND_SHAKE {
@@ -519,7 +522,7 @@ func (p *MsgHandler) VerAckHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args .
 		}
 
 		remotePeer.SetSyncState(msgCommon.ESTABLISH)
-		p2p.RemoveFromConnectingList(data.Addr)
+		//p2p.RemoveFromConnectingList(data.Addr)
 		remotePeer.DumpInfo(log)
 
 		//addr := remotePeer.SyncLink.GetAddr()
