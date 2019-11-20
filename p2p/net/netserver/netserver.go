@@ -372,6 +372,9 @@ func (this *NetServer) Connect(addr string, isConsensus bool) error {
 	if err != nil {
 		if !isConsensus {
 			this.RemoveFromOutConnRecord(addr)
+			this.RemoveFromConnectingList(addr)
+			this.RemovePeerSyncAddress(addr)
+			remotePeer.CloseSync()
 		}
 		this.log.Error("[p2p] send message error: ", err)
 		return err

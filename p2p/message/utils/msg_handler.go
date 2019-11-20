@@ -299,6 +299,8 @@ func (p *MsgHandler) VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args 
 	if remotePeer == nil {
 		log.Error("[p2p] peer is not exist: ", data.Addr)
 		//peer not exist,just remove list and return
+		p2p.RemoveFromInConnRecord(data.Addr)
+		p2p.RemoveFromOutConnRecord(data.Addr)
 		p2p.RemoveFromConnectingList(data.Addr)
 		return
 	}
@@ -324,6 +326,9 @@ func (p *MsgHandler) VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args 
 		}
 		if !found {
 			p2p.RemoveFromInConnRecord(remotePeer.GetAddr())
+			p2p.RemoveFromOutConnRecord(remotePeer.GetAddr())
+			p2p.RemoveFromConnectingList(remotePeer.GetAddr())
+			p2p.RemovePeerSyncAddress(remotePeer.GetAddr())
 			remotePeer.CloseSync()
 			remotePeer.CloseCons()
 			log.Debug("[p2p] peer not in reserved list, close ", data.Addr)
@@ -350,6 +355,9 @@ func (p *MsgHandler) VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args 
 		if p == nil {
 			log.Warn("[p2p] sync link is not exist: ", version.Nonce, data.Addr)
 			p2p.RemoveFromInConnRecord(remotePeer.GetAddr())
+			p2p.RemoveFromOutConnRecord(remotePeer.GetAddr())
+			p2p.RemoveFromConnectingList(remotePeer.GetAddr())
+			p2p.RemovePeerSyncAddress(remotePeer.GetAddr())
 			remotePeer.CloseCons()
 			remotePeer.CloseSync()
 			return
@@ -366,6 +374,8 @@ func (p *MsgHandler) VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args 
 			p2p.SetOwnAddress(nodeAddr)
 			p2p.RemoveFromInConnRecord(remotePeer.GetAddr())
 			p2p.RemoveFromOutConnRecord(remotePeer.GetAddr())
+			p2p.RemoveFromConnectingList(remotePeer.GetAddr())
+			p2p.RemovePeerSyncAddress(remotePeer.GetAddr())
 			remotePeer.CloseCons()
 			return
 		}
@@ -402,6 +412,8 @@ func (p *MsgHandler) VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args 
 		if version.Nonce == p2p.GetID() {
 			p2p.RemoveFromInConnRecord(remotePeer.GetAddr())
 			p2p.RemoveFromOutConnRecord(remotePeer.GetAddr())
+			p2p.RemoveFromConnectingList(remotePeer.GetAddr())
+			p2p.RemovePeerSyncAddress(remotePeer.GetAddr())
 			log.Warn("[p2p] the node handshake with itself: ", remotePeer.GetAddr())
 			p2p.SetOwnAddress(nodeAddr)
 			remotePeer.CloseSync()
@@ -412,6 +424,9 @@ func (p *MsgHandler) VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args 
 		if s != msgCommon.INIT && s != msgCommon.HAND {
 			log.Warnf("[p2p] unknown status to received version,%d,%s\n", s, remotePeer.GetAddr())
 			p2p.RemoveFromInConnRecord(remotePeer.GetAddr())
+			p2p.RemoveFromOutConnRecord(remotePeer.GetAddr())
+			p2p.RemoveFromConnectingList(remotePeer.GetAddr())
+			p2p.RemovePeerSyncAddress(remotePeer.GetAddr())
 			remotePeer.CloseSync()
 			return
 		}
@@ -427,6 +442,9 @@ func (p *MsgHandler) VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args 
 			ipNew, err := msgCommon.ParseIPAddr(data.Addr)
 			if err != nil {
 				p2p.RemoveFromInConnRecord(remotePeer.GetAddr())
+				p2p.RemoveFromOutConnRecord(remotePeer.GetAddr())
+				p2p.RemoveFromConnectingList(remotePeer.GetAddr())
+				p2p.RemovePeerSyncAddress(remotePeer.GetAddr())
 				remotePeer.CloseSync()
 				log.Warnf("[p2p] connecting peer %d ip format is wrong %s, close", version.Nonce, data.Addr)
 				return
@@ -447,6 +465,9 @@ func (p *MsgHandler) VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args 
 			} else {
 				log.Warnf("[p2p] same peer id from different addr: %s, %s close latest one", ipOld, ipNew)
 				p2p.RemoveFromInConnRecord(remotePeer.GetAddr())
+				p2p.RemoveFromOutConnRecord(remotePeer.GetAddr())
+				p2p.RemoveFromConnectingList(remotePeer.GetAddr())
+				p2p.RemovePeerSyncAddress(remotePeer.GetAddr())
 				remotePeer.CloseSync()
 				return
 
