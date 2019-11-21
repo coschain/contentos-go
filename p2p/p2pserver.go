@@ -186,14 +186,15 @@ func (this *P2PServer) connectSeeds() {
 		np.Unlock()
 		needAskAddr = false
 	}
-	if len(pList) > 0 {
-		for _, p := range pList {
-			this.reqNbrList(p)
-		}
-		//rand.Seed(time.Now().UnixNano())
-		//index := rand.Intn(len(pList))
-		//this.reqNbrList(pList[index])
-	} else { //not found
+	//if len(pList) > 0 {
+	//	for _, p := range pList {
+	//		this.reqNbrList(p)
+	//	}
+	//	//rand.Seed(time.Now().UnixNano())
+	//	//index := rand.Intn(len(pList))
+	//	//this.reqNbrList(pList[index])
+	//} else { //not found
+	if len(pList) == 0 {
 		for _, nodeAddr := range seedNodes {
 			go this.Network.Connect(nodeAddr, false)
 		}
