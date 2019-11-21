@@ -6,14 +6,19 @@ import (
 
 const BlockLogProcessServiceName = "block_log_proc_svc"
 
-const ThresholdForFastConvertToSync = 1000
+const ThresholdForFastConvertToSync = 10
+
+const (
+	FastForwardStatus = 0
+	SyncForwardStatus = 1
+	MiddleStatus = 2
+)
 
 type Progress struct {
 	ID 				uint64	`gorm:"primary_key;auto_increment"`
 	Processor       string  `gorm:"index"`
 	BlockHeight 	uint64
-	// restrict from gorm
-	FastForward     *bool
+	SyncStatus      *int
 	FinishAt 		time.Time
 }
 

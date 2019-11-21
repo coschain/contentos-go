@@ -3,7 +3,6 @@ package plugins
 import (
 	"github.com/coschain/contentos-go/app/blocklog"
 	"github.com/coschain/contentos-go/iservices"
-	"github.com/coschain/contentos-go/node"
 	"github.com/jinzhu/gorm"
 	"github.com/sirupsen/logrus"
 	"sync"
@@ -29,30 +28,10 @@ type ForwardManagerService struct {
 	point Checkpoint
 }
 
-func NewForwardManagerService(logger *logrus.Logger, db *gorm.DB, processors map[string]IBlockLogProcessor, point Checkpoint) *ForwardManagerService {
-	s := &ForwardManagerService{logger:logger, db: db, mainProcessors:processors, point: point}
+func NewForwardManagerService(logger *logrus.Logger, db *gorm.DB, processors map[string]IBlockLogProcessor) *ForwardManagerService {
+	s := &ForwardManagerService{logger:logger, db: db, mainProcessors:processors}
 	s.workStop = sync.NewCond(&s.Mutex)
 	return s
-}
-
-func (s *ForwardManagerService) Start(node *node.Node) error  {
-	if s.point.HasNeedSyncProcessors() {
-		s.scheduleNextJob()
-	}
-	return nil
-}
-
-func (s *ForwardManagerService) Stop() error  {
-	s.waitWorkDone()
-	if s.db != nil {
-		_ = s.db.Close()
-	}
-	s.db, s.stop, s.working = nil, 0, 0
-	return nil
-}
-
-func (s *ForwardManagerService) scheduleNextJob() {
-	s.jobTimer = time.AfterFunc(1*time.Second, s.work)
 }
 
 func (s *ForwardManagerService) waitWorkDone() {
@@ -64,76 +43,6 @@ func (s *ForwardManagerService) waitWorkDone() {
 	for atomic.LoadInt32(&s.working) != 0 {
 		s.workStop.Wait()
 	}
-	s.Unlock()
-}
-
-func (s *ForwardManagerService) work() {
-	const maxJobSize = 1000
-	var (
-		userBreak = false
-		err error
-	)
-	atomic.StoreInt32(&s.working, 1)
-
-	progresses := s.point.ProgressesOfNeedSyncProcessors()
-
-	for _, progress := range progresses {
-		if atomic.LoadInt32(&s.stop) != 0 {
-			userBreak = true
-			break
-		}
-		processor, ok := s.mainProcessors[progress.Processor]
-		if !ok {
-			continue
-		}
-		minBlockNum, maxBlockNum := progress.BlockHeight+1, progress.BlockHeight+maxJobSize
-		for blockNum := minBlockNum; blockNum <= maxBlockNum; blockNum++ {
-			if atomic.LoadInt32(&s.stop) != 0 {
-				userBreak = true
-				break
-			}
-			blockLogRec := &iservices.BlockLogRecord{BlockHeight: blockNum}
-			if s.db.Where(&iservices.BlockLogRecord{BlockHeight: blockNum, Final: true}).First(blockLogRec).RecordNotFound() {
-				break
-			}
-			blockLog := new(blocklog.BlockLog)
-			if err = blockLog.FromJsonString(blockLogRec.JsonLog); err != nil {
-				break
-			}
-			tx := s.db.Begin()
-			userBreak, err = s.processLog(tx, blockLog, processor)
-			if !userBreak && err == nil {
-				progress.BlockHeight = blockNum
-				progress.FinishAt = time.Now()
-				if err = tx.Save(progress).Error; err == nil {
-					tx.Commit()
-				} else {
-					s.logger.Errorf("save service progress failed and rolled back, error: %v", err)
-					tx.Rollback()
-					break
-				}
-			} else {
-				s.logger.Errorf("process log failed and rolled back, error: %v", err)
-				tx.Rollback()
-				break
-			}
-		}
-		if atomic.LoadInt32(&s.stop) != 0 {
-			userBreak = true
-			break
-		}
-		if err := s.point.TryToTransferProcessorManager(progress); err != nil {
-			s.logger.Errorf("try to transfer processor manager error: %v", err)
-		}
-	}
-	s.Lock()
-	atomic.StoreInt32(&s.working, 0)
-	if !userBreak {
-		if s.point.HasNeedSyncProcessors() {
-			s.scheduleNextJob()
-		}
-	}
-	s.workStop.Signal()
 	s.Unlock()
 }
 

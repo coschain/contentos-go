@@ -97,8 +97,8 @@ func (s *BlockLogProcessService) initDatabase() error {
 		if s.db.Where(&iservices.Progress{Processor: k}).First(progress).RecordNotFound() {
 			progress.Processor = k
 			progress.BlockHeight = 0
-			fastForward := true
-			progress.FastForward = &fastForward
+			fastForward := iservices.FastForwardStatus
+			progress.SyncStatus = &fastForward
 			progress.FinishAt = time.Unix(constants.GenesisTime, 0)
 			if err := s.db.Create(progress).Error; err != nil {
 				return err
