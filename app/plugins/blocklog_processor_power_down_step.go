@@ -21,13 +21,7 @@ type EcosysPowerDown struct {
 const PowerDownTableName = "ecosys_powerdown"
 
 func (rec *EcosysPowerDown) TableName() string {
-	num := rec.BlockHeight
-	if num <= 0 {
-		return PowerDownTableName
-	}
-	c := num / 5000000
-
-	return fmt.Sprintf("%s_%d", PowerDownTableName, c )
+	return PowerDownTableName
 }
 
 type EcosysPowerDownProcessor struct {

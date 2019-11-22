@@ -39,7 +39,7 @@ func NewBlockLogProcessService(ctx *node.ServiceContext, config *service_configs
 func (s *BlockLogProcessService) Start(node *node.Node) error {
 	s.register("blocklog", NewBlockLogProcessor())
 	s.register("iotrx", NewIOTrxProcessor())
-	s.register("ecosys_powerdown", NewEcosysPowerDownProcessor())
+	s.register("ecosys_powerdown_step", NewEcosysPowerDownProcessor())
 	if err := s.initDatabase(); err != nil {
 		return fmt.Errorf("invalid database: %s", err)
 	}
