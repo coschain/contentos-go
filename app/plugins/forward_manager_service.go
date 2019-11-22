@@ -2,19 +2,12 @@ package plugins
 
 import (
 	"github.com/coschain/contentos-go/app/blocklog"
-	"github.com/coschain/contentos-go/iservices"
 	"github.com/jinzhu/gorm"
 	"github.com/sirupsen/logrus"
 	"sync"
 	"sync/atomic"
 	"time"
 )
-
-type Checkpoint interface {
-	HasNeedSyncProcessors() bool
-	ProgressesOfNeedSyncProcessors() []*iservices.Progress
-	TryToTransferProcessorManager(progress *iservices.Progress) error
-}
 
 type ForwardManagerService struct {
 	sync.Mutex
@@ -25,7 +18,6 @@ type ForwardManagerService struct {
 	working int32
 	workStop *sync.Cond
 	mainProcessors map[string]IBlockLogProcessor
-	point Checkpoint
 }
 
 func NewForwardManagerService(logger *logrus.Logger, db *gorm.DB, processors map[string]IBlockLogProcessor) *ForwardManagerService {
