@@ -157,7 +157,7 @@ func (s *SyncForwardManagerService) processProcessors(tx *gorm.DB, progresses []
 		// only for compatible, it's hard code
 		if progress.Processor == "blocklog" {
 			deprecatedProgress := &iservices.DeprecatedBlockLogProgress{}
-			if s.db.HasTable(deprecatedProgress) {
+			if tx.HasTable(deprecatedProgress) {
 				if !tx.First(deprecatedProgress).RecordNotFound() {
 					deprecatedProgress.BlockHeight = blockNum
 					deprecatedProgress.FinishAt = time.Now()
