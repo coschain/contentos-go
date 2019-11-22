@@ -34,7 +34,7 @@ type P2PServer struct {
 	msgRouter *utils.MessageRouter
 	ReconnectAddrs
 	quitSeed       chan bool
-	quitOnline     chan bool
+	//quitOnline     chan bool
 	quitHeartBeat  chan bool
 	mockLatency  int
 
@@ -64,7 +64,7 @@ func NewServer(ctx *node.ServiceContext, lg *logrus.Logger) (*P2PServer, error) 
 	p.ctx = ctx
 	p.msgRouter = utils.NewMsgRouter(p.Network)
 	p.quitSeed = make(chan bool, 1)
-	p.quitOnline = make(chan bool, 1)
+	//p.quitOnline = make(chan bool, 1)
 	p.quitHeartBeat = make(chan bool, 1)
 	return p, nil
 }
@@ -87,7 +87,7 @@ func (this *P2PServer) Start(node *node.Node) error {
 		return errors.New("[p2p]msg router invalid")
 	}
 	go this.connectSeedService()
-	go this.keepOnlineService()
+	//go this.keepOnlineService()
 	go this.heartBeatService()
 	return nil
 }
@@ -96,7 +96,7 @@ func (this *P2PServer) Start(node *node.Node) error {
 func (this *P2PServer) Stop() error {
 	this.Network.Halt()
 	this.quitSeed <- true
-	this.quitOnline <- true
+	//this.quitOnline <- true
 	this.quitHeartBeat <- true
 	this.msgRouter.Stop()
 	return nil
@@ -186,14 +186,15 @@ func (this *P2PServer) connectSeeds() {
 		np.Unlock()
 		needAskAddr = false
 	}
-	if len(pList) > 0 {
-		for _, p := range pList {
-			this.reqNbrList(p)
-		}
-		//rand.Seed(time.Now().UnixNano())
-		//index := rand.Intn(len(pList))
-		//this.reqNbrList(pList[index])
-	} else { //not found
+	//if len(pList) > 0 {
+	//	for _, p := range pList {
+	//		this.reqNbrList(p)
+	//	}
+	//	//rand.Seed(time.Now().UnixNano())
+	//	//index := rand.Intn(len(pList))
+	//	//this.reqNbrList(pList[index])
+	//} else { //not found
+	if len(pList) == 0 {
 		for _, nodeAddr := range seedNodes {
 			go this.Network.Connect(nodeAddr, false)
 		}
@@ -206,85 +207,85 @@ func (this *P2PServer) connectSeeds() {
 //}
 
 //retryInactivePeer try to connect peer in INACTIVITY state
-func (this *P2PServer) retryInactivePeer() {
-	np := this.Network.GetNp()
-	np.Lock()
-	var ip net.IP
-	neighborPeers := make(map[uint64]*peer.Peer)
-	for _, p := range np.List {
-		addr, _ := p.GetAddr16()
-		ip = addr[:]
-		nodeAddr := ip.To16().String() + ":" +
-			strconv.Itoa(int(p.GetSyncPort()))
-		if p.GetSyncState() == common.INACTIVITY {
-			this.log.Debugf("[p2p] try reconnect %s", nodeAddr)
-			//add addr to retry list
-			this.addToRetryList(nodeAddr)
-			this.Network.RemoveFromInConnRecord(p.GetAddr())
-			this.Network.RemoveFromOutConnRecord(p.GetAddr())
-			this.Network.RemoveFromConnectingList(p.GetAddr())
-			p.CloseSync()
-			p.CloseCons()
-		} else {
-			//add others to tmp node map
-			this.removeFromRetryList(nodeAddr)
-			neighborPeers[p.GetID()] = p
-		}
-	}
-
-	np.List = neighborPeers
-	np.Unlock()
-
-	connCount := uint(this.Network.GetOutConnRecordLen())
-	if connCount >= this.ctx.Config().P2P.MaxConnOutBound {
-		this.log.Warnf("[p2p] Connect: out connections(%d) reach the max limit(%d)", connCount,
-			this.ctx.Config().P2P.MaxConnOutBound)
-		return
-	}
-
-	//try connect
-	if len(this.RetryAddrs) > 0 {
-		this.ReconnectAddrs.Lock()
-
-		list := make(map[string]int)
-		addrs := make([]string, 0, len(this.RetryAddrs))
-		for addr, v := range this.RetryAddrs {
-			v += 1
-			//addrs = append(addrs, addr)
-			if v <= common.MAX_RETRY_COUNT {
-				addrs = append(addrs, addr)
-				list[addr] = v
-			}
-			if v > common.MAX_RETRY_COUNT {
-				this.Network.RemoveFromInConnRecord(addr)
-				this.Network.RemoveFromOutConnRecord(addr)
-				this.Network.RemoveFromConnectingList(addr)
-				remotePeer := this.Network.GetPeerFromAddr(addr)
-				if remotePeer != nil {
-					if remotePeer.SyncLink.GetAddr() == addr {
-						this.Network.RemovePeerSyncAddress(addr)
-						this.Network.RemovePeerConsAddress(addr)
-					}
-					if remotePeer.ConsLink.GetAddr() == addr {
-						this.Network.RemovePeerConsAddress(addr)
-					}
-					this.Network.DelNbrNode(remotePeer)
-				}
-			}
-		}
-
-		this.RetryAddrs = list
-		this.ReconnectAddrs.Unlock()
-		for _, addr := range addrs {
-			rand.Seed(time.Now().UnixNano())
-			this.log.Debug("[p2p] Try to reconnect peer, peer addr is ", addr)
-			<-time.After(time.Duration(rand.Intn(common.CONN_MAX_BACK)) * time.Millisecond)
-			this.log.Debug("[p2p] Back off time`s up, start connect node")
-			this.Network.Connect(addr, false)
-		}
-
-	}
-}
+//func (this *P2PServer) retryInactivePeer() {
+//	np := this.Network.GetNp()
+//	np.Lock()
+//	var ip net.IP
+//	neighborPeers := make(map[uint64]*peer.Peer)
+//	for _, p := range np.List {
+//		addr, _ := p.GetAddr16()
+//		ip = addr[:]
+//		nodeAddr := ip.To16().String() + ":" +
+//			strconv.Itoa(int(p.GetSyncPort()))
+//		if p.GetSyncState() == common.INACTIVITY {
+//			this.log.Debugf("[p2p] try reconnect %s", nodeAddr)
+//			//add addr to retry list
+//			this.addToRetryList(nodeAddr)
+//			this.Network.RemoveFromInConnRecord(p.GetAddr())
+//			this.Network.RemoveFromOutConnRecord(p.GetAddr())
+//			this.Network.RemoveFromConnectingList(p.GetAddr())
+//			p.CloseSync()
+//			p.CloseCons()
+//		} else {
+//			//add others to tmp node map
+//			this.removeFromRetryList(nodeAddr)
+//			neighborPeers[p.GetID()] = p
+//		}
+//	}
+//
+//	np.List = neighborPeers
+//	np.Unlock()
+//
+//	connCount := uint(this.Network.GetOutConnRecordLen())
+//	if connCount >= this.ctx.Config().P2P.MaxConnOutBound {
+//		this.log.Warnf("[p2p] Connect: out connections(%d) reach the max limit(%d)", connCount,
+//			this.ctx.Config().P2P.MaxConnOutBound)
+//		return
+//	}
+//
+//	//try connect
+//	if len(this.RetryAddrs) > 0 {
+//		this.ReconnectAddrs.Lock()
+//
+//		list := make(map[string]int)
+//		addrs := make([]string, 0, len(this.RetryAddrs))
+//		for addr, v := range this.RetryAddrs {
+//			v += 1
+//			//addrs = append(addrs, addr)
+//			if v <= common.MAX_RETRY_COUNT {
+//				addrs = append(addrs, addr)
+//				list[addr] = v
+//			}
+//			if v > common.MAX_RETRY_COUNT {
+//				this.Network.RemoveFromInConnRecord(addr)
+//				this.Network.RemoveFromOutConnRecord(addr)
+//				this.Network.RemoveFromConnectingList(addr)
+//				remotePeer := this.Network.GetPeerFromAddr(addr)
+//				if remotePeer != nil {
+//					if remotePeer.SyncLink.GetAddr() == addr {
+//						this.Network.RemovePeerSyncAddress(addr)
+//						this.Network.RemovePeerConsAddress(addr)
+//					}
+//					if remotePeer.ConsLink.GetAddr() == addr {
+//						this.Network.RemovePeerConsAddress(addr)
+//					}
+//					this.Network.DelNbrNode(remotePeer)
+//				}
+//			}
+//		}
+//
+//		this.RetryAddrs = list
+//		this.ReconnectAddrs.Unlock()
+//		for _, addr := range addrs {
+//			rand.Seed(time.Now().UnixNano())
+//			this.log.Debug("[p2p] Try to reconnect peer, peer addr is ", addr)
+//			<-time.After(time.Duration(rand.Intn(common.CONN_MAX_BACK)) * time.Millisecond)
+//			this.log.Debug("[p2p] Back off time`s up, start connect node")
+//			this.Network.Connect(addr, false)
+//		}
+//
+//	}
+//}
 
 //connectSeedService make sure seed peer be connected
 func (this *P2PServer) connectSeedService() {
@@ -303,20 +304,20 @@ func (this *P2PServer) connectSeedService() {
 }
 
 //keepOnline try connect lost peer
-func (this *P2PServer) keepOnlineService() {
-	t := time.NewTimer(time.Second * common.CONN_MONITOR)
-	for {
-		select {
-		case <-t.C:
-			this.retryInactivePeer()
-			t.Stop()
-			t.Reset(time.Second * common.CONN_MONITOR)
-		case <-this.quitOnline:
-			t.Stop()
-			return
-		}
-	}
-}
+//func (this *P2PServer) keepOnlineService() {
+//	t := time.NewTimer(time.Second * common.CONN_MONITOR)
+//	for {
+//		select {
+//		case <-t.C:
+//			this.retryInactivePeer()
+//			t.Stop()
+//			t.Reset(time.Second * common.CONN_MONITOR)
+//		case <-this.quitOnline:
+//			t.Stop()
+//			return
+//		}
+//	}
+//}
 
 //reqNbrList ask the peer for its neighbor list
 func (this *P2PServer) reqNbrList(p *peer.Peer) {
