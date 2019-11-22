@@ -154,6 +154,20 @@ func (s *SyncForwardManagerService) processProcessors(tx *gorm.DB, progresses []
 			s.logger.Errorf("process log failed and rolled back, error: %v", err)
 			break
 		}
+		// only for compatible, it's hard code
+		if progress.Processor == "blocklog" {
+			deprecatedProgress := &iservices.DeprecatedBlockLogProgress{}
+			if s.db.HasTable(deprecatedProgress) {
+				if !tx.First(deprecatedProgress).RecordNotFound() {
+					deprecatedProgress.BlockHeight = blockNum
+					deprecatedProgress.FinishAt = time.Now()
+					if err = tx.Save(deprecatedProgress).Error; err != nil {
+						s.logger.Error("save blocklog progress failed and rolled back, error: %v", err)
+						break
+					}
+				}
+			}
+		}
 	}
 	return
 }
