@@ -309,7 +309,7 @@ func (db *DB) Head() common.ISignedBlock {
 func (db *DB) Empty() bool {
 	db.RLock()
 	defer db.RUnlock()
-	return db.head == common.EmptyBlockID
+	return db.head == common.EmptyBlockID || len(db.branches) == 0
 }
 
 // Pop pops the head block
