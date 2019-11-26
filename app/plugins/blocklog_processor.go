@@ -19,7 +19,6 @@ func NewBlockLogProcessor() *BlockLogProcessor {
 		NewEcosysProcessor(),
 		NewProducerVoteProcessor(),
 		NewPowerUpDownProcessor(),
-		NewEcosysPowerDownProcessor(),
 	)
 	return blockLogProcessor
 }
