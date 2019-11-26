@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-const IOTrxSplitSizeInMillion = 3
+const IOTrxSplitSizeInMillion = 5
 const IOTrxTable = "iotrx_record"
 
 type IOTrxRecord struct {
