@@ -14,6 +14,7 @@ type Injector interface {
 	GetVmRemainCpuStamina(name string) uint64
 	// only panic, no error return
 	TransferFromContractToUser(contract, owner, to string, amount uint64)
+	TransferFromContractToUserVest(contract, owner, to string, amount uint64)
 	TransferFromUserToContract(from, contract, owner string, amount uint64)
 	TransferFromContractToContract(fromContract, fromOwner, toContract, toOwner string, amount uint64)
 	ContractCall(caller, fromOwner, fromContract, fromMethod, toOwner, toContract, toMethod string, params []byte, coins, remainGas uint64,preVm *exec.VM)

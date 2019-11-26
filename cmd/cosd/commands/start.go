@@ -45,7 +45,7 @@ var StartCmd = func() *cobra.Command {
 
 var NodeName string
 const (
-	ClientTag  = "v1.0.3"
+	ClientTag  = "v1.0.4"
 
 	spacePrecision = 1024 * 1024 * 1024  // 1 GB in Bytes
 )

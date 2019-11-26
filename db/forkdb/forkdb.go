@@ -309,7 +309,7 @@ func (db *DB) Head() common.ISignedBlock {
 func (db *DB) Empty() bool {
 	db.RLock()
 	defer db.RUnlock()
-	return db.head == common.EmptyBlockID
+	return db.head == common.EmptyBlockID || len(db.branches) == 0
 }
 
 // Pop pops the head block
@@ -581,3 +581,39 @@ func (db *DB) Illegal(id common.BlockID) bool {
 
 // MarkAsIllegal put the block in a blacklist to prevent DDoS attack
 func (db *DB) MarkAsIllegal(id common.BlockID) {}
+
+func (db *DB) fetchUnlinkBlockById(id common.BlockID) common.ISignedBlock {
+	for _, v := range db.detachedLink {
+		if v.Id() == id {
+			return v
+		}
+	}
+	return nil
+}
+
+func (db *DB) FetchUnlinkBlockTail() (*common.BlockID, error) {
+	db.RLock()
+	defer db.RUnlock()
+
+	if len(db.detachedLink) == 0 {
+		return nil, errors.New("No More Unlinked block")
+	}
+
+	var firstKey common.BlockID
+	for _, v := range db.detachedLink {
+		firstKey = v.Previous()
+		break
+	}
+
+	for {
+		preBlock := db.fetchUnlinkBlockById(firstKey)
+
+		if preBlock != nil {
+			firstKey = preBlock.Previous()
+		} else {
+			return &firstKey, nil
+		}
+	}
+
+	return nil, errors.New("No More Unlinked block")
+}

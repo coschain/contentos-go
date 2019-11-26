@@ -139,6 +139,44 @@ func (tester *ContractTester) blockProducers(d *Dandelion) (names []string) {
 func (tester *ContractTester) transfer(t *testing.T, d *Dandelion) {
 	t.Run("user_and_contract", d.Test(tester.transferBetweenUserAndContract))
 	t.Run("contract_and_contract", d.Test(tester.transferBetweenContractAndContract))
+	t.Run("contract_to_user_vest", d.Test(tester.transferContractToUserVest))
+}
+
+func (tester *ContractTester) transferContractToUserVest(t *testing.T, d *Dandelion) {
+	a := assert.New(t)
+	userBalance := d.Account("actor0").GetBalance().Value
+	contractBalance := d.Contract("actor1", "native_tester").GetBalance().Value
+	oldVest := d.Account("actor0").GetVest().Value
+
+	// user->contract: normal
+	ApplyNoError(t, d, fmt.Sprintf("actor1: actor1.native_tester.get_user_balance %q, %d", "actor0", userBalance))
+	ApplyNoError(t, d, fmt.Sprintf("actor1: actor1.native_tester.get_contract_balance %q, %q, %d", "actor1", "native_tester", contractBalance))
+	ApplyNoError(t, d, fmt.Sprintf("actor0: %d actor1.native_tester.get_contract_sender_value %d", 123, 123))
+	ApplyNoError(t, d, fmt.Sprintf("actor1: actor1.native_tester.get_user_balance %q, %d", "actor0", userBalance - 123))
+	ApplyNoError(t, d, fmt.Sprintf("actor1: actor1.native_tester.get_contract_balance %q, %q, %d", "actor1", "native_tester", contractBalance + 123))
+	userBalance -= 123
+	contractBalance += 123
+
+	// contract->unknown user
+	ApplyError(t, d, fmt.Sprintf("actor1: actor1.native_tester.transfer_to_user_vest %q, %d", "xxxxxxx", 1))
+
+	// contract->user: too much
+	ApplyError(t, d, fmt.Sprintf("actor1: actor1.native_tester.transfer_to_user_vest %q, %d", "actor0", contractBalance + 1))
+	ApplyError(t, d, fmt.Sprintf("actor1: actor1.native_tester.transfer_to_user_vest %q, %d", "actor0", contractBalance + 100))
+	ApplyError(t, d, fmt.Sprintf("actor1: actor1.native_tester.transfer_to_user_vest %q, %d", "actor0", uint64(math.MaxUint64)))
+
+	// contract->user: normal
+	ApplyNoError(t, d, fmt.Sprintf("actor1: actor1.native_tester.transfer_to_user_vest %q, %d", "actor0", 123))
+	ApplyNoError(t, d, fmt.Sprintf("actor1: actor1.native_tester.get_contract_balance %q, %q, %d", "actor1", "native_tester", contractBalance - 123))
+	// user balance should stay same
+	ApplyNoError(t, d, fmt.Sprintf("actor1: actor1.native_tester.get_user_balance %q, %d", "actor0", userBalance))
+	userVest := oldVest + 123
+	contractBalance -= 123
+
+	// contract send vest to account
+	fmt.Println("vest:",d.Account("actor0").GetVest().Value)
+	a.Equal(userVest, d.Account("actor0").GetVest().Value)
+	a.Equal(contractBalance, d.Contract("actor1", "native_tester").GetBalance().Value)
 }
 
 func (tester *ContractTester) transferBetweenUserAndContract(t *testing.T, d *Dandelion) {

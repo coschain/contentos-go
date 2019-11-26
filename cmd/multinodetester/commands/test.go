@@ -2,6 +2,7 @@ package commands
 
 import (
 	"fmt"
+	"github.com/coschain/contentos-go/common/pprof"
 	"math/rand"
 	"os"
 	"os/exec"
@@ -102,6 +103,8 @@ func startNodes2(cnt int, runSecond int32) {
 
 	clear(nil, nil)
 	initConfByCount(cnt)
+
+	pprof.StartPprof()
 
 	nodes := make([]*node.Node, 0, cnt)
 	sks := make([]string, 0, cnt)

@@ -15,6 +15,9 @@ type IP2P interface {
 	// trigger sync request remote peer the block hashes we do not have
 	TriggerSync(HeadId comn.BlockID)
 
+	// when got one unlinked block, to fetch its previous block
+	FetchUnlinkedBlock(prevId comn.BlockID)
+
 	// (localHeadID, targetID]
 	FetchMissingBlock(from, to comn.BlockID)
 

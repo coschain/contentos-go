@@ -90,6 +90,10 @@ public:
         cosio::transfer_to_user(name, amount, "");
     }
 
+    void transfer_to_user_vest(const std::string& name, uint64_t amount) {
+        cosio::transfer_to_user_vest(name, amount, "");
+    }
+
     void transfer_to_contract(const std::string& owner, const std::string& name, uint64_t amount) {
         cosio::transfer_to_contract(cosio::name(owner, name), amount, "");
     }
@@ -157,4 +161,4 @@ private:
     COSIO_UNBOUND_TABLE_EX( external_person_table, person_record, (name)(gender)(age));
 };
 
-COSIO_ABI(native_tester, (print_str)(print_uint)(print_int)(current_block_number)(current_timestamp)(current_block_producer)(block_producers)(sha256)(is_contract_called_by_user)(get_contract_caller)(get_contract_caller_contract)(get_contract_name)(get_contract_method)(get_contract_sender_value)(get_contract_balance)(get_user_balance)(require_auth)(require_auth_contract)(transfer_to_user)(transfer_to_contract)(call_is_contract_called_by_user)(call_get_contract_caller)(call_get_contract_caller_contract)(call_require_auth)(call_require_auth_contract)(call_get_contract_sender_value)(insert_person)(update_person)(delete_person)(get_person)(get_person_external))
+COSIO_ABI(native_tester, (print_str)(print_uint)(print_int)(current_block_number)(current_timestamp)(current_block_producer)(block_producers)(sha256)(is_contract_called_by_user)(get_contract_caller)(get_contract_caller_contract)(get_contract_name)(get_contract_method)(get_contract_sender_value)(get_contract_balance)(get_user_balance)(require_auth)(require_auth_contract)(transfer_to_user)(transfer_to_user_vest)(transfer_to_contract)(call_is_contract_called_by_user)(call_get_contract_caller)(call_get_contract_caller_contract)(call_require_auth)(call_require_auth_contract)(call_get_contract_sender_value)(insert_person)(update_person)(delete_person)(get_person)(get_person_external))

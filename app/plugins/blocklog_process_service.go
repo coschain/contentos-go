@@ -5,12 +5,11 @@ import (
 	"github.com/coschain/contentos-go/app/blocklog"
 	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/iservices"
-	"github.com/coschain/contentos-go/iservices/service-configs"
+	service_configs "github.com/coschain/contentos-go/iservices/service-configs"
 	"github.com/coschain/contentos-go/node"
 	"github.com/jinzhu/gorm"
 	"github.com/sirupsen/logrus"
 	"sync"
-	"sync/atomic"
 	"time"
 )
 
@@ -21,62 +20,63 @@ type IBlockLogProcessor interface {
 	Finalize(db *gorm.DB, blockLog *blocklog.BlockLog) error
 }
 
-type BlockLogProcess struct {
-	ID 				uint64			`gorm:"primary_key;auto_increment"`
-	BlockHeight 	uint64
-	FinishAt 		time.Time
-}
-
-func (BlockLogProcess) TableName() string {
-	return "blocklog_process"
-}
-
 type BlockLogProcessService struct {
 	sync.Mutex
 	config *service_configs.DatabaseConfig
 	logger *logrus.Logger
 	db *gorm.DB
-	jobTimer *time.Timer
-	stop int32
-	working int32
-	workStop *sync.Cond
-	processors []IBlockLogProcessor
+	ctx *node.ServiceContext
+	fastForwardService node.Service
+	syncForwardService node.Service
+	processors map[string]IBlockLogProcessor
 }
 
-func NewBlockLogProcessService(ctx *node.ServiceContext, config *service_configs.DatabaseConfig, logger *logrus.Logger) (*BlockLogProcessService, error) {
-	s := &BlockLogProcessService{ config:config, logger:logger }
-	s.workStop = sync.NewCond(&s.Mutex)
-	return s, nil
+func NewBlockLogProcessService(ctx *node.ServiceContext, config *service_configs.DatabaseConfig, log *logrus.Logger) (*BlockLogProcessService, error) {
+	processors := make(map[string]IBlockLogProcessor)
+	return &BlockLogProcessService{ctx: ctx, logger: log, config: config, processors:processors}, nil
 }
 
-func (s *BlockLogProcessService) Start(node *node.Node) error  {
+func (s *BlockLogProcessService) Start(node *node.Node) error {
+	s.register("blocklog", NewBlockLogProcessor())
+	s.register("iotrx", NewIOTrxProcessor())
+	s.register("ecosys_powerdown_step", NewEcosysPowerDownProcessor())
 	if err := s.initDatabase(); err != nil {
-		return fmt.Errorf("invalid database: %s", err.Error())
+		return fmt.Errorf("invalid database: %s", err)
 	}
-	s.addProcessors()
-	s.scheduleNextJob()
+	s.fastForwardService = NewFastForwardManagerService(s.logger, s.db, s.processors)
+	s.syncForwardService = NewSyncForwardManagerService(s.logger, s.db, s.processors)
+	go s.fastForwardService.Start(node)
+	go s.syncForwardService.Start(node)
 	return nil
 }
 
-func (s *BlockLogProcessService) Stop() error  {
-	s.waitWorkDone()
+func (s *BlockLogProcessService) Stop() error {
+	_ = s.fastForwardService.Stop()
+	_ = s.syncForwardService.Stop()
 	if s.db != nil {
 		_ = s.db.Close()
 	}
-	s.db, s.stop, s.working = nil, 0, 0
 	return nil
 }
 
-func (s *BlockLogProcessService) addProcessors() {
-	s.processors = append(s.processors,
-		NewHolderProcessor(),
-		NewStakeProcessor(),
-		NewTransferProcessor(),
-		NewCreateUserProcessor(),
-		NewEcosysProcessor(),
-		NewProducerVoteProcessor(),
-		NewPowerUpDownProcessor(),
-	)
+func (s *BlockLogProcessService) register(name string, processor IBlockLogProcessor) {
+	s.processors[name] = processor
+}
+
+// hard code is ok there.
+func (s *BlockLogProcessService) migrateDeprecatedProgress() {
+	deprecatedProgress := &iservices.DeprecatedBlockLogProgress{}
+	if s.db.HasTable(deprecatedProgress) {
+		if !s.db.First(deprecatedProgress).RecordNotFound() {
+			progress := &iservices.Progress{}
+			s.db.Where(&iservices.Progress{Processor: "blocklog"}).First(progress)
+			if deprecatedProgress.BlockHeight > progress.BlockHeight {
+				progress.BlockHeight = deprecatedProgress.BlockHeight
+				progress.FinishAt = deprecatedProgress.FinishAt
+				s.db.Save(progress)
+			}
+		}
+	}
 }
 
 func (s *BlockLogProcessService) initDatabase() error {
@@ -86,149 +86,29 @@ func (s *BlockLogProcessService) initDatabase() error {
 	} else {
 		s.db = db
 	}
-	progress := &BlockLogProcess{
-		BlockHeight: 0,
-		FinishAt: time.Unix(constants.GenesisTime, 0),
-	}
-	if !s.db.HasTable(progress) {
-		if err := s.db.CreateTable(progress).Error; err != nil {
+	if !s.db.HasTable(&iservices.Progress{}) {
+		if err := s.db.CreateTable(&iservices.Progress{}).Error; err != nil {
 			_ = s.db.Close()
 			return err
 		}
-		s.db.Create(progress)
 	}
+	for k := range s.processors {
+		progress := &iservices.Progress{}
+		if s.db.Where(&iservices.Progress{Processor: k}).First(progress).RecordNotFound() {
+			progress.Processor = k
+			progress.BlockHeight = 0
+			fastForward := iservices.FastForwardStatus
+			progress.SyncStatus = &fastForward
+			progress.FinishAt = time.Unix(constants.GenesisTime, 0)
+			if err := s.db.Create(progress).Error; err != nil {
+				return err
+			}
+		}
+	}
+	s.migrateDeprecatedProgress()
 	return nil
 }
 
-func (s *BlockLogProcessService) scheduleNextJob() {
-	s.jobTimer = time.AfterFunc(1 * time.Second, s.work)
-}
-
-func (s *BlockLogProcessService) waitWorkDone() {
-	s.Lock()
-	if s.jobTimer != nil {
-		s.jobTimer.Stop()
-	}
-	atomic.StoreInt32(&s.stop, 1)
-	for atomic.LoadInt32(&s.working) != 0 {
-		s.workStop.Wait()
-	}
-	s.Unlock()
-}
-
-func (s *BlockLogProcessService) work() {
-	const maxJobSize = 1000
-	var (
-		userBreak = false
-		err error
-	)
-	atomic.StoreInt32(&s.working, 1)
-
-	progress := &BlockLogProcess{}
-	s.db.First(progress)
-
-	minBlockNum, maxBlockNum := progress.BlockHeight + 1, progress.BlockHeight + maxJobSize
-	for blockNum := minBlockNum; blockNum <= maxBlockNum; blockNum++ {
-		if atomic.LoadInt32(&s.stop) != 0 {
-			userBreak = true
-			break
-		}
-		blockLogRec := &iservices.BlockLogRecord{ BlockHeight:blockNum }
-		if s.db.Where(&iservices.BlockLogRecord{BlockHeight:blockNum, Final:true}).First(blockLogRec).RecordNotFound() {
-			break
-		}
-		blockLog := new(blocklog.BlockLog)
-		if err = blockLog.FromJsonString(blockLogRec.JsonLog); err != nil {
-			break
-		}
-		tx := s.db.Begin()
-		userBreak, err = s.processLog(tx, blockLog)
-		if !userBreak && err == nil {
-			progress.BlockHeight = blockNum
-			progress.FinishAt = time.Now()
-			if err = tx.Save(progress).Error; err == nil {
-				tx.Commit()
-			} else {
-				tx.Rollback()
-				break
-			}
-		} else {
-			tx.Rollback()
-			break
-		}
-	}
-	s.Lock()
-	atomic.StoreInt32(&s.working, 0)
-	if !userBreak {
-		s.scheduleNextJob()
-	}
-	s.workStop.Signal()
-	s.Unlock()
-}
-
-func (s *BlockLogProcessService) processLog(db *gorm.DB, blockLog *blocklog.BlockLog) (userBreak bool, err error) {
-	userBreak, err = s.callProcessors(func(processor IBlockLogProcessor) error {
-		return processor.Prepare(db, blockLog)
-	})
-	if userBreak || err != nil {
-		return
-	}
-	ok := true
-	for trxIdx, trxLog := range blockLog.Transactions {
-		if !ok {
-			break
-		}
-		for opIdx, opLog := range trxLog.Operations {
-			if !ok {
-				break
-			}
-			userBreak, err = s.callProcessors(func(processor IBlockLogProcessor) error {
-				return processor.ProcessOperation(db, blockLog, opIdx, trxIdx)
-			})
-			if ok = !userBreak && err == nil; !ok {
-				break
-			}
-			for changeIdx, change := range opLog.Changes {
-				userBreak, err = s.callProcessors(func(processor IBlockLogProcessor) error {
-					return processor.ProcessChange(db, change, blockLog, changeIdx, opIdx, trxIdx)
-				})
-				if ok = !userBreak && err == nil; !ok {
-					break
-				}
-			}
-		}
-	}
-	if ok {
-		for changeIdx, change := range blockLog.Changes {
-			userBreak, err = s.callProcessors(func(processor IBlockLogProcessor) error {
-				return processor.ProcessChange(db, change, blockLog, changeIdx, -1, -1)
-			})
-			if ok = !userBreak && err == nil; !ok {
-				break
-			}
-		}
-	}
-	if ok {
-		userBreak, err = s.callProcessors(func(processor IBlockLogProcessor) error {
-			return processor.Finalize(db, blockLog)
-		})
-	}
-	return
-}
-
-func (s *BlockLogProcessService) callProcessors(f func(IBlockLogProcessor)error) (userBreak bool, err error) {
-	for _, processor := range s.processors {
-		if atomic.LoadInt32(&s.stop) != 0 {
-			userBreak = true
-			break
-		}
-		if err = f(processor); err != nil {
-			break
-		}
-	}
-	return
-}
-
 func init() {
-	RegisterSQLTableNamePattern("blocklog_process")
+	RegisterSQLTableNamePattern("progress")
 }
