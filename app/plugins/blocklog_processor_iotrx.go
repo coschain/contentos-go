@@ -29,7 +29,6 @@ func (m *OpProcessorManager) Find(opType string) (OpProcessor, bool) {
 }
 
 type IOTrxProcessor struct {
-	tableReady bool
 	opProcessorManager *OpProcessorManager
 	changeProcessors []ChangeProcessor
 }
@@ -70,14 +69,9 @@ func (p *IOTrxProcessor) registerChangeProcessor() {
 }
 
 func (p *IOTrxProcessor) Prepare(db *gorm.DB, blockLog *blocklog.BlockLog) (err error) {
-	if !p.tableReady {
-		if !db.HasTable(&iservices.IOTrxRecord{}) {
-			if err = db.CreateTable(&iservices.IOTrxRecord{}).Error; err == nil {
-				p.tableReady = true
-			}
-		} else {
-			p.tableReady = true
-		}
+	rec := &iservices.IOTrxRecord{ BlockHeight:blockLog.BlockNum }
+	if !db.HasTable(rec) {
+		err = db.CreateTable(rec).Error;
 	}
 	return
 }
