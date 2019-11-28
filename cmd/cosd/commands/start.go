@@ -17,6 +17,7 @@ import (
 	"github.com/coschain/contentos-go/node"
 	"github.com/coschain/contentos-go/p2p"
 	"github.com/coschain/contentos-go/rpc"
+	"github.com/beevik/ntp"
 	"github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"errors"
@@ -110,11 +111,26 @@ func startNode(cmd *cobra.Command, args []string) {
 	app.Log = mylog.Init(cfg.ResolvePath("logs"), cfg.LogLevel, 3600 * 24 * 7)
 	app.Log.Info("Cosd running version: ", NodeName)
 
+	ntpTime, err := ntp.Time("pool.ntp.org")
+	if err != nil {
+		app.Log.Error("Acquire ntp time error ", err)
+		return
+	}
+	localTime := time.Now()
+	app.Log.Info("ntp time ", ntpTime)
+	app.Log.Info("local time ", localTime)
+	ntpTimeSec := ntpTime.Unix()
+	localTimeSec := localTime.Unix()
+	if ntpTimeSec - localTimeSec > 1 || ntpTimeSec - localTimeSec < -1 {
+		app.Log.Errorf("Gap between ntp time and local time greater than 1 second, ntp %d, local %d", ntpTimeSec, localTimeSec)
+		return
+	}
+
 
 	tStr := time.Unix(time.Now().Unix(),0).Format("2006-01-02-15-04-05")
 	crashFileName := cfg.ResolvePath("logs") + "/" + "crash-log-" + tStr
 	fmt.Println("crash log:",crashFileName)
-	err := InitCrashFile(crashFileName)
+	err = InitCrashFile(crashFileName)
 	if err != nil {
 		panic(fmt.Errorf("init crash file failed, error:%v",err))
 	}
