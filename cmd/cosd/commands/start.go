@@ -110,7 +110,7 @@ func startNode(cmd *cobra.Command, args []string) {
 	app.Log = mylog.Init(cfg.ResolvePath("logs"), cfg.LogLevel, 3600 * 24 * 7)
 	app.Log.Info("Cosd running version: ", NodeName)
 
-	err := checkNTPTime()
+	err := checkNTPTime(app.Log)
 	if err != nil {
 		app.Log.Error(err)
 		return
