@@ -41,6 +41,7 @@ func (s *DailyStatisticService) Start(node *node.Node) error {
 	if db, err := gorm.Open(s.config.Driver, connStr); err != nil {
 		return err
 	} else {
+		//db.DB().SetConnMaxLifetime(55 * time.Second)
 		s.db = db
 	}
 	// hard code
