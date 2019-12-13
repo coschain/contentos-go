@@ -21,7 +21,7 @@ type TrxCallback func(result *prototype.TransactionWrapperWithInfo)
 type TrxEntry struct {
 	chainId   prototype.ChainId	                    // id of block chain to which the transaction is sent
 	result    *prototype.TransactionWrapperWithInfo	// process result involving the transaction
-	sig       string								// transaction signature
+	trxId     string								// transaction id
 	size      int									// transaction size
 	signer    string								// requested account to sign the transaction
 	signerKey *prototype.PublicKeyType				// the actual public key which signed the transaction
@@ -62,7 +62,13 @@ func (e *TrxEntry) InitCheck() error {
 	if err := trx.Validate(); err != nil {
 		return e.SetError(err)
 	}
-	e.sig = string(trx.Signature.Sig)
+
+	if trxId, err := trx.Id(); err != nil {
+		return e.SetError(err)
+	} else {
+		e.trxId = string(trxId.Hash)
+	}
+
 	// transaction size limit check
 	e.size = proto.Size(trx)
 	if e.size > constants.MaxTransactionSize {
@@ -164,9 +170,9 @@ type TrxMgr struct {
 	db 				iservices.IDatabaseRW				// the database
 	log             *logrus.Logger						// the logger
 	headTime		uint32								// timestamp of head block, in seconds
-	waiting 		map[string]*TrxEntry				// transactions waiting to be packed to blocks, signature -> entry
+	waiting 		map[string]*TrxEntry				// transactions waiting to be packed to blocks, trxId -> entry
 	waitingLock 	sync.RWMutex						// lock of waiting transactions
-	fetched 		map[string]*TrxEntry				// transactions being packed to a block, signature -> entry
+	fetched 		map[string]*TrxEntry				// transactions being packed to a block, trxId -> entry
 	fetchedLock 	sync.RWMutex						// lock of fetched transactions
 	auth 			*AuthFetcher						// checker of transaction signatures
 	tapos 			*TaposChecker						// checker of transaction tapos
@@ -271,7 +277,7 @@ func (m *TrxMgr) FetchTrx(blockTime uint32, maxCount, maxSize int) (entries []*T
 		// but chain state is keep changing, we have to redo state-dependent checks.
 		if err := m.checkTrx(e, blockTime, true); err != nil {
 			// if failed, deliver the transaction.
-			m.log.Debugf("TRXMGR: FetchTrx check failed: %v, sig=%x", err, []byte(e.sig))
+			m.log.Debugf("TRXMGR: FetchTrx check failed: %v, trxId=%x", err, []byte(e.trxId))
 			m.deliverEntry(e)
 		} else {
 			// if passed, pick it
@@ -301,10 +307,10 @@ func (m *TrxMgr) ReturnTrx(entries ...*TrxEntry) {
 
 	for _, e := range entries {
 		// any returning transaction should be previously fetched
-		f := m.fetched[e.sig]
+		f := m.fetched[e.trxId]
 		if f != nil {
 			m.deliverEntry(f)
-			delete(m.fetched, e.sig)
+			delete(m.fetched, e.trxId)
 		}
 	}
 	timing.End()
@@ -340,7 +346,7 @@ func (m *TrxMgr) CheckBlockTrxs(b *prototype.SignedBlock) (entries []*TrxEntry, 
 				// this voids doing the expensive public key recovery again.
 				if ptrx := m.isProcessingTrx(trx); ptrx != nil {
 					needInitCheck = false
-					e.sig = ptrx.sig
+					e.trxId = ptrx.trxId
 					e.size = ptrx.size
 					e.signer = ptrx.signer
 					e.signerKey = ptrx.signerKey
@@ -374,11 +380,11 @@ func (m *TrxMgr) CheckBlockTrxs(b *prototype.SignedBlock) (entries []*TrxEntry, 
 		// m.history won't help here coz it updates in block level instead of transaction level.
 		trxSigs, dupTrx := make(map[string]bool), -1
 		for idx, e := range entries {
-			if trxSigs[e.sig] {
+			if trxSigs[e.trxId] {
 				dupTrx = idx
 				break
 			}
-			trxSigs[e.sig] = true
+			trxSigs[e.trxId] = true
 		}
 		if dupTrx >= 0 {
 			entries = nil
@@ -405,7 +411,8 @@ func (m *TrxMgr) BlockApplied(b *prototype.SignedBlock) {
 
 	timing.Mark()
 	for _, txw := range b.Transactions {
-		s := string(txw.SigTrx.Signature.Sig)
+		trxId, _ := txw.SigTrx.Id()
+		s := string(trxId.Hash)
 		if e := m.fetched[s]; e != nil {
 			m.deliverEntry(e)
 			delete(m.fetched, s)
@@ -477,7 +484,7 @@ func (m *TrxMgr) addToWaiting(entries...*TrxEntry) (count int) {
 			m.deliverEntry(e)
 			continue
 		}
-		m.waiting[e.sig] = e
+		m.waiting[e.trxId] = e
 		count++
 	}
 
@@ -498,11 +505,18 @@ func (m *TrxMgr) isProcessingTrx(trx *prototype.SignedTransaction) *TrxEntry {
 // It returns the transaction entry if given transaction is in the waiting pool or the fetched pool,
 // otherwise, nil is returned.
 func (m *TrxMgr) isProcessingNoLock(trx *prototype.SignedTransaction) *TrxEntry {
-	s := string(trx.Signature.Sig)
-	if e := m.waiting[s]; e != nil {
-		return e
+	if trx == nil {
+		return nil
 	}
-	return m.fetched[s]
+	if trxId, err := trx.Id(); err == nil {
+		s := string(trxId.Hash)
+		if e := m.waiting[s]; e != nil {
+			return e
+		}
+		return m.fetched[s]
+	} else {
+		return nil
+	}
 }
 
 // checkTrx does state-dependent checks on given transaction.
