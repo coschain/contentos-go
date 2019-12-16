@@ -138,6 +138,7 @@ func ProcessContractDeployOperation(baseOp prototype.BaseOperation, baseRecord i
 	}
 	ioTrx := baseRecord.(iservices.IOTrxRecord)
 	ioTrx.From = op.GetOwner().GetValue()
+	ioTrx.To = op.GetOwner().GetValue() + "@" + op.GetContract()
 	return []interface{}{ioTrx}, nil
 }
 
@@ -148,6 +149,7 @@ func ProcessContractApplyOperation(baseOp prototype.BaseOperation, baseRecord in
 	}
 	ioTrx := baseRecord.(iservices.IOTrxRecord)
 	ioTrx.From = op.GetCaller().GetValue()
+	ioTrx.To = op.GetOwner().GetValue() + "@" + op.GetContract()
 	return []interface{}{ioTrx}, nil
 }
 
