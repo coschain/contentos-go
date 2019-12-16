@@ -34,6 +34,7 @@ type IBlockHeader interface {
 type ISignedBlockHeader interface {
 	IBlockHeader
 	Id() BlockID
+	Validate() bool
 	GetSignee() (interface{}, error)
 }
 
