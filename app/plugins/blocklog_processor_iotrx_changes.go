@@ -1,8 +1,10 @@
 package plugins
 
 import (
+	"encoding/json"
 	"errors"
 	"github.com/coschain/contentos-go/app/blocklog"
+	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/prototype"
 )
@@ -17,6 +19,8 @@ func ProcessContractTransferToUserChangeProcessor(opType string, operation proto
 		return nil, errors.New("failed conversion to ContractApplyOperation")
 	}
 	if change.Cause == "contract_apply.vm_native.transfer_to_user"{
+		before := common.JsonNumberUint64(change.Change.Before.(json.Number))
+		after := common.JsonNumberUint64(change.Change.After.(json.Number))
 		owner := op.GetOwner().GetValue()
 		contract := op.GetContract()
 		contractName := owner + "@" + contract
@@ -25,7 +29,7 @@ func ProcessContractTransferToUserChangeProcessor(opType string, operation proto
 		ioTrx.From = contractName
 		ioTrx.To = userName
 		ioTrx.Action = "contract_transfer_to_user"
-		ioTrx.Amount = op.GetAmount().GetValue()
+		ioTrx.Amount = after - before
 		return []interface{}{ioTrx}, nil
 	}
 	return nil, nil
@@ -69,10 +73,12 @@ func ProcessContractTransferToContractChangeProcessor(opType string, operation p
 		toContractName := change.Change.Id.(string)
 		ioTrx := baseRecord.(iservices.IOTrxRecord)
 		if fromContractName != toContractName {
+			before := common.JsonNumberUint64(change.Change.Before.(json.Number))
+			after := common.JsonNumberUint64(change.Change.After.(json.Number))
 			ioTrx.From = fromContractName
 			ioTrx.To = toContractName
 			ioTrx.Action = "contract_transfer_to_contract"
-			ioTrx.Amount = op.GetAmount().GetValue()
+			ioTrx.Amount = after - before
 			return []interface{}{ioTrx}, nil
 		}
 		return nil, nil
