@@ -65,6 +65,7 @@ func (p *IOTrxProcessor) registerChangeProcessor() {
 	p.changeProcessors = append(p.changeProcessors,
 		ProcessContractTransferToUserChangeProcessor,
 		ProcessUserToContractChangeProcessor,
+		ProcessContractTransferToUserVestChangeProcessor,
 		ProcessContractTransferToContractChangeProcessor)
 }
 

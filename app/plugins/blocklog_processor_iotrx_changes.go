@@ -35,6 +35,31 @@ func ProcessContractTransferToUserChangeProcessor(opType string, operation proto
 	return nil, nil
 }
 
+func ProcessContractTransferToUserVestChangeProcessor(opType string, operation prototype.BaseOperation, change *blocklog.StateChange, baseRecord interface{}) ([]interface{}, error) {
+	if opType != "contract_apply" || change.What != "Account.Vest" {
+		return nil, nil
+	}
+	op, ok := operation.(*prototype.ContractApplyOperation)
+	if !ok {
+		return nil, errors.New("failed conversion to ContractApplyOperation")
+	}
+	if change.Cause == "contract_apply.vm_native.transfer_to_user_vest"{
+		before := common.JsonNumberUint64(change.Change.Before.(json.Number))
+		after := common.JsonNumberUint64(change.Change.After.(json.Number))
+		owner := op.GetOwner().GetValue()
+		contract := op.GetContract()
+		contractName := owner + "@" + contract
+		userName := change.Change.Id.(string)
+		ioTrx := baseRecord.(iservices.IOTrxRecord)
+		ioTrx.From = contractName
+		ioTrx.To = userName
+		ioTrx.Action = "contract_transfer_vest_to_user"
+		ioTrx.Amount = after - before
+		return []interface{}{ioTrx}, nil
+	}
+	return nil, nil
+}
+
 func ProcessUserToContractChangeProcessor(opType string, operation prototype.BaseOperation, change *blocklog.StateChange, baseRecord interface{}) ([]interface{}, error) {
 	if opType != "contract_apply" || change.What != "Account.Balance" {
 		return nil, nil
