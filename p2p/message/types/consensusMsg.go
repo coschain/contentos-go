@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"encoding/binary"
+	"errors"
+	"fmt"
 	"github.com/coschain/contentos-go/p2p/common"
 	"github.com/coschain/gobft/message"
 	"github.com/gogo/protobuf/proto"
@@ -39,6 +41,9 @@ func (this *ConsMsg) Deserialization(source *common.ZeroCopySource) error {
 	totalBuf := source.Data()
 	msgLengthBuf := totalBuf[0:4]
 	this.Length = binary.LittleEndian.Uint32(msgLengthBuf)
+	if uint32(4) + this.Length > uint32(len(totalBuf)) {
+		return errors.New(fmt.Sprintf("Invalid msg length, may cause slice out of index length %d totalBuf %d", this.Length, len(totalBuf)))
+	}
 
 	consensusMsgLength := this.Length
 	consensusBuf := totalBuf[4:4+consensusMsgLength]
