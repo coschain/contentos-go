@@ -180,6 +180,7 @@ func ProcessConvertVestOperation(baseOp prototype.BaseOperation, baseRecord inte
 	}
 	ioTrx := baseRecord.(iservices.IOTrxRecord)
 	ioTrx.From = op.GetFrom().GetValue()
+	ioTrx.Amount = op.GetAmount().GetValue()
 	return []interface{}{ioTrx}, nil
 }
 
