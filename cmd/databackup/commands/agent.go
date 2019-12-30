@@ -84,10 +84,13 @@ func (a *Agent) Run() {
 }
 
 func (a *Agent) run() error {
+	logrus.Info("start a new backup round")
+
 	// kill the running cosd process
 	cmd := exec.Command("/bin/bash","-c", "pkill cosd")
 	if err := cmd.Run(); err != nil {
 		logrus.Error(err)
+		return err
 	}
 
 	// start a fake port to cheat the monitor
@@ -326,6 +329,9 @@ func compress(file *os.File, prefix string, tw *tar.Writer) error {
 		if err != nil {
 			return err
 		}
+
+		//names := strings.Split(prefix, "/")
+		//logrus.Infof("compress %s %s done", names[len(names)-1], info.Name())
 	}
 	return nil
 }
