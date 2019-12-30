@@ -22,6 +22,7 @@ import (
 var dataDir string
 var interval int32
 var archFileName string
+var fullNodeBackup bool
 var server *http.Server
 //var destAddr string
 
@@ -29,6 +30,9 @@ const (
 	S3_REGION    = "eu-north-1" // lightsail.RegionNameEuCentral1
 	S3_BUCKET    = "cosd-databackup"
 	FAKE_PORT    = "9090"
+
+	FULL_NODE_ARC_FILENAME       = "fulldata.tar.gz"
+	NON_FULL_NODE_ARC_FILENAME   = "data.tar.gz"
 
 	TMP_DIR_NAME    = "/tmp"
 	BLOG_NAME       = "/blog"
@@ -45,7 +49,7 @@ var AgentCmd = func() *cobra.Command {
 	}
 	cmd.Flags().StringVarP(&dataDir, "data_dir", "d", "", "directory of cosd data")
 	cmd.Flags().Int32VarP(&interval, "interval", "i", 86400, "backup data every interval seconds")
-	cmd.Flags().StringVarP(&archFileName, "archFileName", "f", "data.tar.gz", "name of archive file")
+	cmd.Flags().BoolVarP(&fullNodeBackup, "fullNodeBackup", "f", false, "backup a full node or not")
 	//cmd.Flags().StringVarP(&destAddr, "addr", "a", "", "the address of the backup server")
 	return cmd
 }
@@ -68,6 +72,12 @@ type Agent struct {
 }
 
 func (a *Agent) Run() {
+	if fullNodeBackup {
+		archFileName = FULL_NODE_ARC_FILENAME
+	} else {
+		archFileName = NON_FULL_NODE_ARC_FILENAME
+	}
+
 	// init fake server handler
 	http.HandleFunc("/", fakeHandler)
 
