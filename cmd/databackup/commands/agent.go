@@ -3,9 +3,13 @@ package commands
 import (
 	"archive/tar"
 	"compress/gzip"
+	"context"
+	"fmt"
 	"io"
+	"net/http"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -18,12 +22,19 @@ import (
 
 var dataDir string
 var interval int32
+var archFileName string
+var server *http.Server
 //var destAddr string
 
 const (
 	S3_REGION    = "eu-north-1" // lightsail.RegionNameEuCentral1
 	S3_BUCKET    = "cosd-databackup"
-	archFileName = "data.tar.gz"
+	FAKE_PORT    = "9090"
+
+	TMP_DIR_NAME    = "/tmp"
+	BLOG_NAME       = "/blog"
+	CHECHPOINT_NAME = "/checkpoint"
+	DB_NAME         = "/db"
 )
 
 var AgentCmd = func() *cobra.Command {
@@ -35,6 +46,7 @@ var AgentCmd = func() *cobra.Command {
 	}
 	cmd.Flags().StringVarP(&dataDir, "data_dir", "d", "", "directory of cosd data")
 	cmd.Flags().Int32VarP(&interval, "interval", "i", 86400, "backup data every interval seconds")
+	cmd.Flags().StringVarP(&archFileName, "archFileName", "f", "data.tar.gz", "name of archive file")
 	//cmd.Flags().StringVarP(&destAddr, "addr", "a", "", "the address of the backup server")
 	return cmd
 }
@@ -57,6 +69,9 @@ type Agent struct {
 }
 
 func (a *Agent) Run() {
+	// init fake server handler
+	http.HandleFunc("/", fakeHandler)
+
 	a.run()
 	t := time.NewTicker(time.Second * time.Duration(interval))
 	for {
@@ -70,20 +85,33 @@ func (a *Agent) Run() {
 }
 
 func (a *Agent) run() error {
+	// kill the running cosd process
 	cmd := exec.Command("/bin/bash","-c", "pkill cosd")
 	if err := cmd.Run(); err != nil {
 		logrus.Error(err)
 	}
-	if err := zip(); err == nil {
-		logrus.Info("cosd data archived at ", time.Now())
-	} else {
+
+	// start a fake port to cheat the monitor
+	StartFakePort()
+
+	// copy the data file to a tmp directory
+	CopyDataFile(dataDir)
+
+	// stop fake port
+	StopFakePort()
+
+	// start real cosd process
+	//exec.Command("/bin/bash","-c","/data/coschain/contentos-go/cmd/cosd/cosd start -n /data/logs/coschain/cosd/")
+	cmd = exec.Command("/bin/bash","-c","/data/coschain/src/deploy/boot.sh")
+	if err := cmd.Start(); err != nil {
 		logrus.Error(err)
 		return err
 	}
 
-	//exec.Command("/bin/bash","-c","/data/coschain/contentos-go/cmd/cosd/cosd start -n /data/logs/coschain/cosd/")
-	cmd = exec.Command("/bin/bash","-c","/data/coschain/src/deploy/boot.sh")
-	if err := cmd.Start(); err != nil {
+	// compress data file in tmp directory
+	if err := zip(); err == nil {
+		logrus.Info("cosd data archived at ", time.Now())
+	} else {
 		logrus.Error(err)
 		return err
 	}
@@ -94,6 +122,9 @@ func (a *Agent) run() error {
 		logrus.Error(err)
 		return err
 	}
+
+	// delete old file
+	os.RemoveAll(dataDir + TMP_DIR_NAME)
 	os.Remove(archFileName)
 
 	return nil
@@ -102,9 +133,9 @@ func (a *Agent) run() error {
 func zip() error {
 	input := make([]*os.File, 3)
 	inputName := []string{
-		dataDir + "/blog",
-		dataDir + "/checkpoint",
-		dataDir + "/db",
+		dataDir + TMP_DIR_NAME + BLOG_NAME,
+		dataDir + TMP_DIR_NAME + CHECHPOINT_NAME,
+		dataDir + TMP_DIR_NAME + DB_NAME,
 	}
 	for i := range inputName {
 		dataFile, err := os.Open(inputName[i])
@@ -395,4 +426,54 @@ func AddFileToS3(s *session.Session, fileDir string) error {
 	}
 	logrus.Info("presigned URL: ", urlStr)
 	return err
+}
+
+func CopyDataFile(prefix string) {
+	// create tmp directory
+	err := os.Mkdir(prefix+TMP_DIR_NAME, os.ModePerm)
+	if err != nil{
+		logrus.Error("Failed to create tmp directory ", err)
+		os.Exit(-1)
+	}
+
+	// copy blog
+	cmdStr := fmt.Sprintf("cp -r %s %s", prefix+BLOG_NAME, prefix+TMP_DIR_NAME+BLOG_NAME)
+	cmd := exec.Command("/bin/bash","-c", cmdStr)
+	if err := cmd.Run(); err != nil {
+		logrus.Error("failed to copy blog", err)
+		os.Exit(-1)
+	}
+
+	// copy checkpoint
+	cmdStr = fmt.Sprintf("cp -r %s %s", prefix+CHECHPOINT_NAME, prefix+TMP_DIR_NAME+CHECHPOINT_NAME)
+	cmd = exec.Command("/bin/bash","-c", cmdStr)
+	if err := cmd.Run(); err != nil {
+		logrus.Error("failed to copy checkpoint", err)
+		os.Exit(-1)
+	}
+
+	// copy db
+	cmdStr = fmt.Sprintf("cp -r %s %s", prefix+DB_NAME, prefix+TMP_DIR_NAME+DB_NAME)
+	cmd = exec.Command("/bin/bash","-c", cmdStr)
+	if err := cmd.Run(); err != nil {
+		logrus.Error("failed to copy db", err)
+		os.Exit(-1)
+	}
+}
+
+func StartFakePort() {
+	server = &http.Server{Addr: fmt.Sprintf(":%s", FAKE_PORT)}
+	go server.ListenAndServe()
+}
+
+func StopFakePort() {
+	ctx, _ := context.WithTimeout(context.Background(), 5 * time.Second)
+	if err := server.Shutdown(ctx); err != nil {
+		logrus.Error("Fake server shutdown error ", err)
+		os.Exit(-1)
+	}
+}
+
+func fakeHandler(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprintf(w, "——hi aws ALB, I'm alive ——\n")
 }
