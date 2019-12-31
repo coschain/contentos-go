@@ -14,9 +14,9 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/coschain/cobra"
 	"github.com/sirupsen/logrus"
+	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 )
 
 var dataDir string
@@ -419,28 +419,42 @@ func AddFileToS3(s *session.Session, fileDir string) error {
 	// Config settings: this is where you choose the bucket, filename, content-type etc.
 	// of the file you're uploading.
 
-	svc := s3.New(s)
-	_, err = svc.PutObject(&s3.PutObjectInput{
+	uploader := s3manager.NewUploader(s)
+	_, err = uploader.Upload(&s3manager.UploadInput{
 		Bucket:               aws.String(S3_BUCKET),
 		Key:                  aws.String(fileDir),
-		//ACL:                  aws.String("private"),
-		Body:                 file,//bytes.NewReader(buffer),
-		//ContentLength:        aws.Int64(size),
-		//ContentType:          aws.String(http.DetectContentType(buffer)),
-		//ContentDisposition:   aws.String("attachment"),
-		//ServerSideEncryption: aws.String("AES256"),
-	})
-
-	req, _ := svc.GetObjectRequest(&s3.GetObjectInput{
-		Bucket: aws.String(S3_BUCKET),
-		Key:    aws.String(fileDir),
-	})
-	urlStr, err := req.Presign(24 * time.Hour)
+		Body:                 file,
+	},func(u *s3manager.Uploader) {
+		u.PartSize = 1024 * 1024 * 1024 // size of chunk  1GB
+		u.LeavePartsOnError = true
+		u.Concurrency = 5})
 	if err != nil {
-		logrus.Println("Failed to sign request", err)
+		logrus.Error("upload to s3 error ", err)
+		os.Exit(-1)
 	}
-	logrus.Info("presigned URL: ", urlStr)
-	return err
+
+	//svc := s3.New(s)
+	//_, err = svc.PutObject(&s3.PutObjectInput{
+	//	Bucket:               aws.String(S3_BUCKET),
+	//	Key:                  aws.String(fileDir),
+	//	//ACL:                  aws.String("private"),
+	//	Body:                 file,//bytes.NewReader(buffer),
+	//	//ContentLength:        aws.Int64(size),
+	//	//ContentType:          aws.String(http.DetectContentType(buffer)),
+	//	//ContentDisposition:   aws.String("attachment"),
+	//	//ServerSideEncryption: aws.String("AES256"),
+	//})
+	//
+	//req, _ := svc.GetObjectRequest(&s3.GetObjectInput{
+	//	Bucket: aws.String(S3_BUCKET),
+	//	Key:    aws.String(fileDir),
+	//})
+	//urlStr, err := req.Presign(24 * time.Hour)
+	//if err != nil {
+	//	logrus.Println("Failed to sign request", err)
+	//}
+	//logrus.Info("presigned URL: ", urlStr)
+	return nil
 }
 
 func CopyDataFile(prefix string) {
