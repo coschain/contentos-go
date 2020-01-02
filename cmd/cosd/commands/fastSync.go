@@ -63,6 +63,9 @@ func syncMainnetData(cmd *cobra.Command, args []string) {
 	if err := bashCmd.Run(); err != nil {
 		common.Fatalf("failed to decompress data file %v", err)
 	}
+
+	// delete compressed data file
+	os.Remove(downFileName)
 }
 
 func downloadFromS3() error {
