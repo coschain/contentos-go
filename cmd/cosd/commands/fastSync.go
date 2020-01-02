@@ -31,6 +31,12 @@ var FastSyncCmd = func() *cobra.Command {
 }
 
 func syncMainnetData(cmd *cobra.Command, args []string) {
+	if fullNode {
+		downFileName = commands.FULL_NODE_ARC_FILENAME
+	} else {
+		downFileName = commands.NON_FULL_NODE_ARC_FILENAME
+	}
+
 	// read config to get data directory
 	cfg := readConfig()
 
@@ -52,10 +58,15 @@ func syncMainnetData(cmd *cobra.Command, args []string) {
 	}
 
 	// download file from s3
-	err := downloadFromS3()
-	if err != nil {
-		common.Fatalf("download From S3 error %v", err)
+	cmdStr = fmt.Sprintf("wget https://%s.s3.amazonaws.com/%s", commands.S3_BUCKET, downFileName)
+	bashCmd = exec.Command("/bin/bash","-c", cmdStr)
+	if err := bashCmd.Run(); err != nil {
+		common.Fatalf("failed to download data file %v", err)
 	}
+	//err := downloadFromS3()
+	//if err != nil {
+	//	common.Fatalf("download From S3 error %v", err)
+	//}
 
 	// decompress
 	cmdStr = fmt.Sprintf("tar -zxvf %s -C %s", downFileName, dest)
@@ -72,12 +83,6 @@ func downloadFromS3() error {
 	s, err := session.NewSession(&aws.Config{Region: aws.String(commands.S3_REGION)})
 	if err != nil {
 		return err
-	}
-
-	if fullNode {
-		downFileName = commands.FULL_NODE_ARC_FILENAME
-	} else {
-		downFileName = commands.NON_FULL_NODE_ARC_FILENAME
 	}
 
 	file, err := os.Create(downFileName)
