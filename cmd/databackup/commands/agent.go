@@ -27,8 +27,8 @@ var server *http.Server
 //var destAddr string
 
 const (
-	S3_REGION    = "eu-north-1" // lightsail.RegionNameEuCentral1
-	S3_BUCKET    = "cosd-databackup"
+	S3_REGION    = "us-east-1" // lightsail.RegionNameEuCentral1
+	S3_BUCKET    = "crystalline-cosd-databackup"
 	FAKE_PORT    = "9090"
 
 	FULL_NODE_ARC_FILENAME       = "fulldata.tar.gz"
@@ -48,7 +48,7 @@ var AgentCmd = func() *cobra.Command {
 		Run:   startBackUpAgent,
 	}
 	cmd.Flags().StringVarP(&dataDir, "data_dir", "d", "", "directory of cosd data")
-	cmd.Flags().Int32VarP(&interval, "interval", "i", 86400, "backup data every interval seconds")
+	cmd.Flags().Int32VarP(&interval, "interval", "i", 3 * 86400, "backup data every interval seconds")
 	cmd.Flags().BoolVarP(&fullNodeBackup, "fullNodeBackup", "f", false, "backup a full node or not")
 	//cmd.Flags().StringVarP(&destAddr, "addr", "a", "", "the address of the backup server")
 	return cmd
@@ -424,6 +424,7 @@ func AddFileToS3(s *session.Session, fileDir string) error {
 		Bucket:               aws.String(S3_BUCKET),
 		Key:                  aws.String(fileDir),
 		Body:                 file,
+		ACL:                  aws.String("public-read"),
 	},func(u *s3manager.Uploader) {
 		u.PartSize = 1024 * 1024 * 1024 // size of chunk  1GB
 		u.LeavePartsOnError = true

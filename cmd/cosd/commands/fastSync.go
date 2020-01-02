@@ -34,12 +34,7 @@ func syncMainnetData(cmd *cobra.Command, args []string) {
 	// read config to get data directory
 	cfg := readConfig()
 
-	// download file from s3
-	err := downloadFromS3()
-	if err != nil {
-		common.Fatalf("download From S3 error %v", err)
-	}
-
+	// generate data directory absolute path
 	if cfg.DataDir != "" {
 		dir, err := filepath.Abs(cfg.DataDir)
 		if err != nil {
@@ -48,8 +43,23 @@ func syncMainnetData(cmd *cobra.Command, args []string) {
 		cfg.DataDir = dir
 	}
 	dest := filepath.Join(cfg.DataDir, cfg.Name)
-	cmdStr := fmt.Sprintf("tar -zxvf %s -C %s", downFileName, dest)
+
+	// delete old data file
+	cmdStr := fmt.Sprintf("cd %s;rm -rf | `ls | grep -v \"config.toml\"`", dest)
 	bashCmd := exec.Command("/bin/bash","-c", cmdStr)
+	if err := bashCmd.Run(); err != nil {
+		common.Fatalf("failed to delete old data file %v", err)
+	}
+
+	// download file from s3
+	err := downloadFromS3()
+	if err != nil {
+		common.Fatalf("download From S3 error %v", err)
+	}
+
+	// decompress
+	cmdStr = fmt.Sprintf("tar -zxvf %s -C %s", downFileName, dest)
+	bashCmd = exec.Command("/bin/bash","-c", cmdStr)
 	if err := bashCmd.Run(); err != nil {
 		common.Fatalf("failed to decompress data file %v", err)
 	}
