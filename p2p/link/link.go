@@ -108,7 +108,7 @@ func (this *Link) SendMessage(msg types.Message) error {
 	defer this.Unlock()
 
 	if len(this.sendChan) == cap(this.sendChan) {
-		this.log.Warn(errors.New("peer send buffer is full, discard this message"))
+		this.log.Warn(errors.New(fmt.Sprintf("peer send buffer is full, discard this message. destination %s", this.addr)))
 		return errors.New("peer send buffer is full, discard this message")
 	}
 	this.sendChan <- msg
