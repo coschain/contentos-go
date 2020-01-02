@@ -60,6 +60,8 @@ func syncMainnetData(cmd *cobra.Command, args []string) {
 	// download file from s3
 	cmdStr = fmt.Sprintf("wget https://%s.s3.amazonaws.com/%s", commands.S3_BUCKET, downFileName)
 	bashCmd = exec.Command("/bin/bash","-c", cmdStr)
+	bashCmd.Stdout = os.Stdout
+	bashCmd.Stderr = os.Stderr
 	if err := bashCmd.Run(); err != nil {
 		common.Fatalf("failed to download data file %v", err)
 	}
@@ -71,6 +73,8 @@ func syncMainnetData(cmd *cobra.Command, args []string) {
 	// decompress
 	cmdStr = fmt.Sprintf("tar -zxvf %s -C %s", downFileName, dest)
 	bashCmd = exec.Command("/bin/bash","-c", cmdStr)
+	bashCmd.Stdout = os.Stdout
+	bashCmd.Stderr = os.Stderr
 	if err := bashCmd.Run(); err != nil {
 		common.Fatalf("failed to decompress data file %v", err)
 	}
