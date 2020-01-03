@@ -495,7 +495,13 @@ func UpdateRouter(s *session.Session, content string) error {
 		return err
 	}
 
-	_, err = file.WriteString(content)
+	writer, err := os.OpenFile("input.txt", os.O_APPEND|os.O_WRONLY, 0600)
+	if err != nil {
+		panic(err)
+	}
+	defer writer.Close()
+
+	_, err = writer.WriteString(content)
 	if err != nil {
 		return err
 	}
