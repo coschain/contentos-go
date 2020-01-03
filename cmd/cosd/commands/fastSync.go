@@ -3,7 +3,6 @@ package commands
 import (
 	"bufio"
 	"fmt"
-	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -91,28 +90,11 @@ func getTargetFileName() (name string) {
 		common.Fatalf("failed to read route file %v", err)
 		return
 	}
-	fileInfo, _ := file.Stat()
-	fileSize := fileInfo.Size()
-	if fileSize == 0 {
-		common.Fatalf("route list is empty")
-		return
+
+	fileScanner := bufio.NewScanner(file)
+	for fileScanner.Scan(){
+		name = fileScanner.Text()
 	}
 
-	br := bufio.NewReader(file)
-	content, _, err := br.ReadLine()
-	if err != nil {
-		common.Fatalf("failed to read route file")
-		return
-	}
-	perLineLength := int64(len(content))
-	lines := fileSize / perLineLength
-
-	file.Seek((lines-1) * perLineLength, io.SeekStart)
-	bytes, _, err := br.ReadLine()
-	if err != nil {
-		common.Fatalf("failed to read target file name")
-		return
-	}
-	name = string(bytes)
 	return name
 }
