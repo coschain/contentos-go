@@ -1,21 +1,18 @@
 package commands
 
 import (
+	"bufio"
 	"fmt"
-	"github.com/coschain/cobra"
-	"github.com/coschain/contentos-go/cmd/databackup/commands"
-	"github.com/coschain/contentos-go/common"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/aws/aws-sdk-go/service/s3/s3manager"
+	"github.com/coschain/cobra"
+	"github.com/coschain/contentos-go/cmd/databackup/commands"
+	"github.com/coschain/contentos-go/common"
 )
 
-var fullNode bool
 var downFileName string
 
 var FastSyncCmd = func() *cobra.Command {
@@ -26,17 +23,10 @@ var FastSyncCmd = func() *cobra.Command {
 		Run:       syncMainnetData,
 	}
 	cmd.Flags().StringVarP(&cfgName, "name", "n", "", "node name (default is cosd)")
-	cmd.Flags().BoolVarP(&fullNode, "fullNode", "f", false, "start a full node or not")
 	return cmd
 }
 
 func syncMainnetData(cmd *cobra.Command, args []string) {
-	if fullNode {
-		downFileName = commands.FULL_NODE_ARC_FILENAME
-	} else {
-		downFileName = commands.NON_FULL_NODE_ARC_FILENAME
-	}
-
 	// read config to get data directory
 	cfg := readConfig()
 
@@ -57,6 +47,11 @@ func syncMainnetData(cmd *cobra.Command, args []string) {
 		common.Fatalf("failed to delete old data file %v", err)
 	}
 
+	downFileName = getTargetFileName()
+	if downFileName == "" {
+		common.Fatalf("failed to get target file name")
+	}
+
 	// download file from s3
 	cmdStr = fmt.Sprintf("wget https://%s.s3.amazonaws.com/%s", commands.S3_BUCKET, downFileName)
 	bashCmd = exec.Command("/bin/bash","-c", cmdStr)
@@ -75,27 +70,49 @@ func syncMainnetData(cmd *cobra.Command, args []string) {
 		common.Fatalf("failed to decompress data file %v", err)
 	}
 
-	// delete compressed data file
+	// delete compressed data file and route file
 	os.Remove(downFileName)
+	os.Remove(commands.ROUTER)
 }
 
-func downloadFromS3() error {
-	s, err := session.NewSession(&aws.Config{Region: aws.String(commands.S3_REGION)})
-	if err != nil {
-		return err
+func getTargetFileName() (name string) {
+	// download route file
+	cmdStr := fmt.Sprintf("wget https://%s.s3.amazonaws.com/%s", commands.S3_BUCKET, commands.ROUTER)
+	bashCmd := exec.Command("/bin/bash","-c", cmdStr)
+	bashCmd.Stdout = os.Stdout
+	bashCmd.Stderr = os.Stderr
+	if err := bashCmd.Run(); err != nil {
+		common.Fatalf("failed to download route file %v", err)
 	}
 
-	file, err := os.Create(downFileName)
+	// get target file name, aka last line content
+	file, err := os.Open(commands.ROUTER)
 	if err != nil {
-		return err
+		common.Fatalf("failed to read route file %v", err)
+		return
 	}
-	defer file.Close()
+	fileInfo, _ := file.Stat()
+	fileSize := fileInfo.Size()
+	if fileSize == 0 {
+		common.Fatalf("route list is empty")
+		return
+	}
 
-	downloader := s3manager.NewDownloader(s)
-	_, err = downloader.Download(file,
-		&s3.GetObjectInput{
-			Bucket:   aws.String(commands.S3_BUCKET),
-			Key:      aws.String(downFileName),
-		})
-	return err
+	br := bufio.NewReader(file)
+	content, _, err := br.ReadLine()
+	if err != nil {
+		common.Fatalf("failed to read route file")
+		return
+	}
+	perLineLength := int64(len(content))
+	lines := fileSize / perLineLength
+
+	file.Seek((lines-1) * perLineLength, io.SeekStart)
+	bytes, _, err := br.ReadLine()
+	if err != nil {
+		common.Fatalf("failed to read target file name")
+		return
+	}
+	name = string(bytes)
+	return name
 }
