@@ -14,14 +14,16 @@ import (
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 	"github.com/coschain/cobra"
 	"github.com/sirupsen/logrus"
-	"github.com/aws/aws-sdk-go/service/s3/s3manager"
 )
 
 var dataDir string
 var interval int32
 var archFileName string
+var archFileNameSuffix string
 var fullNodeBackup bool
 var server *http.Server
 //var destAddr string
@@ -31,13 +33,15 @@ const (
 	S3_BUCKET    = "crystalline-cosd-databackup"
 	FAKE_PORT    = "9090"
 
-	FULL_NODE_ARC_FILENAME       = "fulldata.tar.gz"
-	NON_FULL_NODE_ARC_FILENAME   = "data.tar.gz"
+	FULL_NODE_SUFFIX       = "-fulldata.tar.gz"
+	NON_FULL_NODE_SUFFIX   = "-data.tar.gz"
 
 	TMP_DIR_NAME    = "/tmp"
 	BLOG_NAME       = "/blog"
 	CHECHPOINT_NAME = "/checkpoint"
 	DB_NAME         = "/db"
+
+	ROUTER = "route.txt"
 )
 
 var AgentCmd = func() *cobra.Command {
@@ -73,9 +77,9 @@ type Agent struct {
 
 func (a *Agent) Run() {
 	if fullNodeBackup {
-		archFileName = FULL_NODE_ARC_FILENAME
+		archFileNameSuffix = FULL_NODE_SUFFIX
 	} else {
-		archFileName = NON_FULL_NODE_ARC_FILENAME
+		archFileNameSuffix = NON_FULL_NODE_SUFFIX
 	}
 
 	// init fake server handler
@@ -95,6 +99,10 @@ func (a *Agent) Run() {
 
 func (a *Agent) run() error {
 	logrus.Info("start a new backup round")
+
+	timeNow := time.Now()
+	timeString := timeNow.Format("20060102-150405")
+	archFileName = timeString + archFileNameSuffix
 
 	// kill the running cosd process
 	cmd := exec.Command("/bin/bash","-c", "pkill cosd")
@@ -166,121 +174,121 @@ func zip() error {
 	return nil
 }
 
-/*
-func Upload(url, file string) (err error) {
-	// Prepare a form that you will submit to that URL.
-	var b bytes.Buffer
-	w := multipart.NewWriter(&b)
-	// Add your image file
-	f, err := os.Open(file)
-	if err != nil {
-		return
-	}
-	defer f.Close()
-	fw, err := w.CreateFormFile("file", file)
-	if err != nil {
-		return
-	}
-	if _, err = io.Copy(fw, f); err != nil {
-		return
-	}
 
-	// Add the other fields
-	if fw, err = w.CreateFormField("key"); err != nil {
-		return
-	}
-	if _, err = fw.Write([]byte("KEY")); err != nil {
-		return
-	}
-	// Don't forget to close the multipart writer.
-	// If you don't close it, your request will be missing the terminating boundary.
-	w.Close()
+//func Upload(url, file string) (err error) {
+//	// Prepare a form that you will submit to that URL.
+//	var b bytes.Buffer
+//	w := multipart.NewWriter(&b)
+//	// Add your image file
+//	f, err := os.Open(file)
+//	if err != nil {
+//		return
+//	}
+//	defer f.Close()
+//	fw, err := w.CreateFormFile("file", file)
+//	if err != nil {
+//		return
+//	}
+//	if _, err = io.Copy(fw, f); err != nil {
+//		return
+//	}
+//
+//	// Add the other fields
+//	if fw, err = w.CreateFormField("key"); err != nil {
+//		return
+//	}
+//	if _, err = fw.Write([]byte("KEY")); err != nil {
+//		return
+//	}
+//	// Don't forget to close the multipart writer.
+//	// If you don't close it, your request will be missing the terminating boundary.
+//	w.Close()
+//
+//	// Now that you have a form, you can submit it to your handler.
+//	req, err := http.NewRequest("POST", url, &b)
+//	if err != nil {
+//		return
+//	}
+//	// Don't forget to set the content type, this will contain the boundary.
+//	req.Header.Set("Content-Type", w.FormDataContentType())
+//
+//	// Submit the request
+//	client := &http.Client{}
+//	res, err := client.Do(req)
+//	if err != nil {
+//		return
+//	}
+//
+//	// Check the response
+//	if res.StatusCode != http.StatusOK {
+//		err = fmt.Errorf("bad status: %s", res.Status)
+//	}
+//	return
+//}
+//
+//func UploadTwo() (err error) {
+//	url := "http://localhost:8062/many"
+//	// Prepare a form that you will submit to that URL.
+//	var b bytes.Buffer
+//	w := multipart.NewWriter(&b)
+//
+//	for i := 1; i <= 100; i++ {
+//		fname := fmt.Sprintf("file%d.bin", i)
+//		fw, err2 := w.CreateFormFile("file", fname)
+//		if err2 != nil {
+//			err = err2
+//			return
+//		}
+//
+//		f, err2 := os.Open(fname)
+//		if err2 != nil {
+//			err = err2
+//			return
+//		}
+//		if _, err2 = io.Copy(fw, f); err2 != nil {
+//			err = err2
+//			return
+//		}
+//		f.Close()
+//	}
+//
+//	// Add the other fields
+//	fw, err2 := w.CreateFormField("key")
+//	if err2 != nil {
+//		err = err2
+//		return
+//	}
+//	if _, err2 = fw.Write([]byte("KEY")); err2 != nil {
+//		err = err2
+//		return
+//	}
+//
+//	// Don't forget to close the multipart writer.
+//	// If you don't close it, your request will be missing the terminating boundary.
+//	w.Close()
+//
+//	// Now that you have a form, you can submit it to your handler.
+//	req, err := http.NewRequest("POST", url, &b)
+//	if err != nil {
+//		return
+//	}
+//	// Don't forget to set the content type, this will contain the boundary.
+//	req.Header.Set("Content-Type", w.FormDataContentType())
+//
+//	// Submit the request
+//	client := &http.Client{}
+//	res, err := client.Do(req)
+//	if err != nil {
+//		return
+//	}
+//
+//	// Check the response
+//	if res.StatusCode != http.StatusOK {
+//		err = fmt.Errorf("bad status: %s", res.Status)
+//	}
+//	return
+//}
 
-	// Now that you have a form, you can submit it to your handler.
-	req, err := http.NewRequest("POST", url, &b)
-	if err != nil {
-		return
-	}
-	// Don't forget to set the content type, this will contain the boundary.
-	req.Header.Set("Content-Type", w.FormDataContentType())
-
-	// Submit the request
-	client := &http.Client{}
-	res, err := client.Do(req)
-	if err != nil {
-		return
-	}
-
-	// Check the response
-	if res.StatusCode != http.StatusOK {
-		err = fmt.Errorf("bad status: %s", res.Status)
-	}
-	return
-}
-
-func UploadTwo() (err error) {
-	url := "http://localhost:8062/many"
-	// Prepare a form that you will submit to that URL.
-	var b bytes.Buffer
-	w := multipart.NewWriter(&b)
-
-	for i := 1; i <= 100; i++ {
-		fname := fmt.Sprintf("file%d.bin", i)
-		fw, err2 := w.CreateFormFile("file", fname)
-		if err2 != nil {
-			err = err2
-			return
-		}
-
-		f, err2 := os.Open(fname)
-		if err2 != nil {
-			err = err2
-			return
-		}
-		if _, err2 = io.Copy(fw, f); err2 != nil {
-			err = err2
-			return
-		}
-		f.Close()
-	}
-
-	// Add the other fields
-	fw, err2 := w.CreateFormField("key")
-	if err2 != nil {
-		err = err2
-		return
-	}
-	if _, err2 = fw.Write([]byte("KEY")); err2 != nil {
-		err = err2
-		return
-	}
-
-	// Don't forget to close the multipart writer.
-	// If you don't close it, your request will be missing the terminating boundary.
-	w.Close()
-
-	// Now that you have a form, you can submit it to your handler.
-	req, err := http.NewRequest("POST", url, &b)
-	if err != nil {
-		return
-	}
-	// Don't forget to set the content type, this will contain the boundary.
-	req.Header.Set("Content-Type", w.FormDataContentType())
-
-	// Submit the request
-	client := &http.Client{}
-	res, err := client.Do(req)
-	if err != nil {
-		return
-	}
-
-	// Check the response
-	if res.StatusCode != http.StatusOK {
-		err = fmt.Errorf("bad status: %s", res.Status)
-	}
-	return
-}
-*/
 
 func Compress(files []*os.File, dest string) error {
 	d, _ := os.Create(dest)
@@ -392,7 +400,19 @@ func SendToS3() error {
 		return err
 	}
 
+	// download router and update it
+	err = UpdateRouter(s, archFileName)
+	if err != nil {
+		return err
+	}
+
+
 	// Upload
+	err = AddFileToS3(s, ROUTER)
+	if err != nil {
+		return err
+	}
+
 	err = AddFileToS3(s, archFileName)
 	if err != nil {
 		return err
@@ -455,6 +475,31 @@ func AddFileToS3(s *session.Session, fileDir string) error {
 	//	logrus.Println("Failed to sign request", err)
 	//}
 	//logrus.Info("presigned URL: ", urlStr)
+	return nil
+}
+
+func UpdateRouter(s *session.Session, content string) error {
+	file, err := os.Create(ROUTER)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	downloader := s3manager.NewDownloader(s)
+	_, err = downloader.Download(file,
+		&s3.GetObjectInput{
+			Bucket: aws.String(S3_BUCKET),
+			Key:    aws.String(ROUTER),
+		})
+	if err != nil {
+		return err
+	}
+
+	_, err = file.WriteString(content)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
