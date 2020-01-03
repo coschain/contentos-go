@@ -496,7 +496,7 @@ func UpdateRouter(s *session.Session, content string) error {
 		return err
 	}
 
-	writer, err := os.OpenFile("input.txt", os.O_APPEND|os.O_WRONLY, 0600)
+	writer, err := os.OpenFile(ROUTER, os.O_APPEND|os.O_WRONLY, 0600)
 	if err != nil {
 		panic(err)
 	}
