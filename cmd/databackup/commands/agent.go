@@ -2,8 +2,10 @@ package commands
 
 import (
 	"archive/tar"
+	"bufio"
 	"compress/gzip"
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -100,6 +102,13 @@ func (a *Agent) Run() {
 func (a *Agent) run() error {
 	logrus.Info("start a new backup round")
 
+	defer func() {
+		// delete old file
+		os.RemoveAll(dataDir + TMP_DIR_NAME)
+		os.Remove(archFileName)
+		os.Remove(ROUTER)
+	}()
+
 	timeNow := time.Now()
 	timeString := timeNow.Format("20060102-150405")
 	archFileName = timeString + archFileNameSuffix
@@ -115,7 +124,11 @@ func (a *Agent) run() error {
 	StartFakePort()
 
 	// copy the data file to a tmp directory
-	CopyDataFile(dataDir)
+	err := CopyDataFile(dataDir)
+	if err != nil {
+		logrus.Error(err)
+		return err
+	}
 
 	// stop fake port
 	StopFakePort()
@@ -142,11 +155,6 @@ func (a *Agent) run() error {
 		logrus.Error(err)
 		return err
 	}
-
-	// delete old file
-	os.RemoveAll(dataDir + TMP_DIR_NAME)
-	os.Remove(archFileName)
-	os.Remove(ROUTER)
 
 	return nil
 }
@@ -496,51 +504,48 @@ func UpdateRouter(s *session.Session, content string) error {
 		return err
 	}
 
-	writer, err := os.OpenFile(ROUTER, os.O_APPEND|os.O_WRONLY, 0600)
+	writeFd, err := os.OpenFile(ROUTER, os.O_APPEND|os.O_WRONLY, 0600)
 	if err != nil {
 		panic(err)
 	}
-	defer writer.Close()
+	defer writeFd.Close()
 
-	_, err = writer.WriteString(content)
-	if err != nil {
-		return err
-	}
+	writer := bufio.NewWriter(writeFd)
+	fmt.Fprintln(writer, content)
+	writer.Flush()
 
 	return nil
 }
 
-func CopyDataFile(prefix string) {
+func CopyDataFile(prefix string) error {
 	// create tmp directory
 	err := os.Mkdir(prefix+TMP_DIR_NAME, os.ModePerm)
 	if err != nil{
-		logrus.Error("Failed to create tmp directory ", err)
-		os.Exit(-1)
+		return errors.New(fmt.Sprintf("Failed to create tmp directory %s", err))
 	}
 
 	// copy blog
 	cmdStr := fmt.Sprintf("cp -r %s %s", prefix+BLOG_NAME, prefix+TMP_DIR_NAME+BLOG_NAME)
 	cmd := exec.Command("/bin/bash","-c", cmdStr)
 	if err := cmd.Run(); err != nil {
-		logrus.Error("failed to copy blog", err)
-		os.Exit(-1)
+		return errors.New(fmt.Sprintf("failed to copy blog %s", err))
 	}
 
 	// copy checkpoint
 	cmdStr = fmt.Sprintf("cp -r %s %s", prefix+CHECHPOINT_NAME, prefix+TMP_DIR_NAME+CHECHPOINT_NAME)
 	cmd = exec.Command("/bin/bash","-c", cmdStr)
 	if err := cmd.Run(); err != nil {
-		logrus.Error("failed to copy checkpoint", err)
-		os.Exit(-1)
+		return errors.New(fmt.Sprintf("failed to copy checkpoint %s", err))
 	}
 
 	// copy db
 	cmdStr = fmt.Sprintf("cp -r %s %s", prefix+DB_NAME, prefix+TMP_DIR_NAME+DB_NAME)
 	cmd = exec.Command("/bin/bash","-c", cmdStr)
 	if err := cmd.Run(); err != nil {
-		logrus.Error("failed to copy db", err)
-		os.Exit(-1)
+		return errors.New(fmt.Sprintf("failed to copy db %s", err))
 	}
+
+	return nil
 }
 
 func StartFakePort() {
