@@ -40,7 +40,7 @@ func syncMainnetData(cmd *cobra.Command, args []string) {
 	dest := filepath.Join(cfg.DataDir, cfg.Name)
 
 	// delete old data file
-	cmdStr := fmt.Sprintf("cd %s;rm -rf `ls | grep -v \"config.toml\"`", dest)
+	cmdStr := fmt.Sprintf("mkdir -p %s;cd %s;rm -rf `ls | grep -v \"config.toml\"`", dest, dest)
 	bashCmd := exec.Command("/bin/bash","-c", cmdStr)
 	if err := bashCmd.Run(); err != nil {
 		common.Fatalf("failed to delete old data file %v", err)
