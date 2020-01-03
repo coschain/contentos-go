@@ -146,6 +146,7 @@ func (a *Agent) run() error {
 	// delete old file
 	os.RemoveAll(dataDir + TMP_DIR_NAME)
 	os.Remove(archFileName)
+	os.Remove(ROUTER)
 
 	return nil
 }
