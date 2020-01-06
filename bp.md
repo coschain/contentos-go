@@ -44,15 +44,20 @@ Please modify the following things in the file config.toml:
 
 #### Start the node and register your account as a block producer
 
-The following command can run the node and wallet
+We provide a fast synchronization function for the main network data. This function can be enabled by the following command
+```
+./cosd fast-sync
+
+```
+The above command just download the mainnet data and place it in the path specified by `DataDir` in your config file.
+The node is not started, and your node data is still behind the mainnet at this moment.
+You can execute the following command to start the cosd process and automatically synchronize the remaining data
+(You can also skip the above command and run the following directly, but this may cause the synchronization process to take a long time)
 ```
   ./cosd start
-  ./wallet-cli
 ```
 
-When the node is start up it will automatically synchronize data from the main network.
-
-Note: The synchronization process may take a long time to wait. 
+Note: The synchronization process will take some time. 
 If the data is not synchronized, then any transaction initiated by the wallet will fail. 
 The failure message is as follows:
 
