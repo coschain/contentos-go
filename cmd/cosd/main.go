@@ -18,6 +18,7 @@ func addCommands() {
 	rootCmd.AddCommand(commands.InitCmd())
 	rootCmd.AddCommand(commands.StartCmd())
 	rootCmd.AddCommand(commands.DbCmd())
+	rootCmd.AddCommand(commands.FastSyncCmd())
 }
 
 func main() {
