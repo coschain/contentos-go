@@ -65,6 +65,7 @@ func (p *IOTrxProcessor) registerChangeProcessor() {
 	p.changeProcessors = append(p.changeProcessors,
 		ProcessContractTransferToUserChangeProcessor,
 		ProcessUserToContractChangeProcessor,
+		ProcessContractTransferToUserVestChangeProcessor,
 		ProcessContractTransferToContractChangeProcessor)
 }
 
@@ -109,6 +110,9 @@ func (p *IOTrxProcessor) ProcessChange(db *gorm.DB, change *blocklog.StateChange
 
 func (p *IOTrxProcessor) ProcessOperation(db *gorm.DB, blockLog *blocklog.BlockLog, opIdx, trxIdx int) error {
 	trxLog := blockLog.Transactions[trxIdx]
+	if trxLog.Receipt.Status != prototype.StatusSuccess {
+		return nil
+	}
 	opLog := trxLog.Operations[opIdx]
 	opType := opLog.Type
 	op := prototype.GetBaseOperation(opLog.Data)

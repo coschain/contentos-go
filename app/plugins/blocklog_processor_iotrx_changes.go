@@ -1,8 +1,10 @@
 package plugins
 
 import (
+	"encoding/json"
 	"errors"
 	"github.com/coschain/contentos-go/app/blocklog"
+	"github.com/coschain/contentos-go/common"
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/prototype"
 )
@@ -17,17 +19,43 @@ func ProcessContractTransferToUserChangeProcessor(opType string, operation proto
 		return nil, errors.New("failed conversion to ContractApplyOperation")
 	}
 	if change.Cause == "contract_apply.vm_native.transfer_to_user"{
+		before := common.JsonNumberUint64(change.Change.Before.(json.Number))
+		after := common.JsonNumberUint64(change.Change.After.(json.Number))
 		owner := op.GetOwner().GetValue()
 		contract := op.GetContract()
 		contractName := owner + "@" + contract
 		userName := change.Change.Id.(string)
-		ioTrxRecordContract := baseRecord.(iservices.IOTrxRecord)
-		ioTrxRecordContract.Account = contractName
-		ioTrxRecordContract.Action = "contract_transfer_to_user"
-		ioTrxRecordUser := baseRecord.(iservices.IOTrxRecord)
-		ioTrxRecordUser.Account = userName
-		ioTrxRecordUser.Action = "contract_transfer_to_user"
-		return []interface{}{ioTrxRecordContract, ioTrxRecordUser}, nil
+		ioTrx := baseRecord.(iservices.IOTrxRecord)
+		ioTrx.From = contractName
+		ioTrx.To = userName
+		ioTrx.Action = "contract_transfer_to_user"
+		ioTrx.Amount = after - before
+		return []interface{}{ioTrx}, nil
+	}
+	return nil, nil
+}
+
+func ProcessContractTransferToUserVestChangeProcessor(opType string, operation prototype.BaseOperation, change *blocklog.StateChange, baseRecord interface{}) ([]interface{}, error) {
+	if opType != "contract_apply" || change.What != "Account.Vest" {
+		return nil, nil
+	}
+	op, ok := operation.(*prototype.ContractApplyOperation)
+	if !ok {
+		return nil, errors.New("failed conversion to ContractApplyOperation")
+	}
+	if change.Cause == "contract_apply.vm_native.transfer_to_user_vest"{
+		before := common.JsonNumberUint64(change.Change.Before.(json.Number))
+		after := common.JsonNumberUint64(change.Change.After.(json.Number))
+		owner := op.GetOwner().GetValue()
+		contract := op.GetContract()
+		contractName := owner + "@" + contract
+		userName := change.Change.Id.(string)
+		ioTrx := baseRecord.(iservices.IOTrxRecord)
+		ioTrx.From = contractName
+		ioTrx.To = userName
+		ioTrx.Action = "contract_transfer_vest_to_user"
+		ioTrx.Amount = after - before
+		return []interface{}{ioTrx}, nil
 	}
 	return nil, nil
 }
@@ -45,13 +73,12 @@ func ProcessUserToContractChangeProcessor(opType string, operation prototype.Bas
 		contract := op.GetContract()
 		contractName := owner + "@" + contract
 		userName := change.Change.Id.(string)
-		ioTrxRecordContract := baseRecord.(iservices.IOTrxRecord)
-		ioTrxRecordContract.Account = contractName
-		ioTrxRecordContract.Action = "user_transfer_to_contract"
-		ioTrxRecordUser := baseRecord.(iservices.IOTrxRecord)
-		ioTrxRecordUser.Account = userName
-		ioTrxRecordUser.Action = "user_transfer_to_contract"
-		return []interface{}{ioTrxRecordUser, ioTrxRecordContract}, nil
+		ioTrx := baseRecord.(iservices.IOTrxRecord)
+		ioTrx.From = userName
+		ioTrx.To = contractName
+		ioTrx.Action = "user_transfer_to_contract"
+		ioTrx.Amount = op.GetAmount().GetValue()
+		return []interface{}{ioTrx}, nil
 	}
 	return nil, nil
 }
@@ -69,15 +96,15 @@ func ProcessContractTransferToContractChangeProcessor(opType string, operation p
 		contract := op.GetContract()
 		fromContractName := owner + "@" + contract
 		toContractName := change.Change.Id.(string)
-
+		ioTrx := baseRecord.(iservices.IOTrxRecord)
 		if fromContractName != toContractName {
-			ioTrxRecordContractFrom := baseRecord.(iservices.IOTrxRecord)
-			ioTrxRecordContractFrom.Account = fromContractName
-			ioTrxRecordContractFrom.Action = "contract_transfer_to_contract"
-			ioTrxRecordContractTo := baseRecord.(iservices.IOTrxRecord)
-			ioTrxRecordContractTo.Account = toContractName
-			ioTrxRecordContractTo.Action = "contract_transfer_to_contract"
-			return []interface{}{ioTrxRecordContractFrom, ioTrxRecordContractTo}, nil
+			before := common.JsonNumberUint64(change.Change.Before.(json.Number))
+			after := common.JsonNumberUint64(change.Change.After.(json.Number))
+			ioTrx.From = fromContractName
+			ioTrx.To = toContractName
+			ioTrx.Action = "contract_transfer_to_contract"
+			ioTrx.Amount = after - before
+			return []interface{}{ioTrx}, nil
 		}
 		return nil, nil
 	}

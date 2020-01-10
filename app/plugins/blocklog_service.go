@@ -21,6 +21,7 @@ type BlockLogService struct {
 	logger *logrus.Logger
 	bus EventBus.Bus
 	db *gorm.DB
+	lastCommit string		// block id of latest committed block, as a hex-string
 }
 
 func NewBlockLogService(ctx *node.ServiceContext, config *service_configs.DatabaseConfig, logger *logrus.Logger) (*BlockLogService, error) {
@@ -56,12 +57,28 @@ func (s *BlockLogService) initDatabase() error {
 
 func (s *BlockLogService) onBlockLog(blockLog *blocklog.BlockLog, blockProducer string) {
 	isGenesis := blockLog.BlockNum == 0
+
+	//
+	// Early commitment issue
+	// -----------------------
+	// Block commitment messages may be 1-block-ahead of block logs, which is a rare case when current node is
+	// producing blocks. Here's the flow chart,
+	//
+	// [sabft] -->(generateBlock)--+---------------(block)--> (BFT) --> (commitment)
+	//                             |                  ^
+	//                             v                  |
+	// [trx_pool]--------------------> GenerateBlock -+---> (SLOW: eco-system & produce block log) --> (block log)
+	//
+	// So when inserting a new block log record, we need to check if it has already been committed.
+	//
+	alreadyCommitted := blockLog.BlockId == s.lastCommit
+
 	rec := &iservices.BlockLogRecord{
 		BlockId:     blockLog.BlockId,
 		BlockHeight: blockLog.BlockNum,
 		BlockTime:   time.Unix(int64(blockLog.BlockTime), 0),
 		BlockProducer: blockProducer,
-		Final:       isGenesis,
+		Final:       isGenesis || alreadyCommitted,
 		JsonLog:     blockLog.ToJsonString(),
 	}
 	if !s.db.HasTable(rec) {
@@ -76,7 +93,8 @@ func (s *BlockLogService) onLibChange(blocks []common.ISignedBlock) {
 		for _ , block := range blocks {
 			blockId := block.Id()
 			tableName := iservices.BlockLogTableNameForBlockHeight(blockId.BlockNum())
-			updates[tableName] = append(updates[tableName], fmt.Sprintf("%x", block.Id().Data))
+			s.lastCommit = fmt.Sprintf("%x", block.Id().Data)
+			updates[tableName] = append(updates[tableName], s.lastCommit)
 		}
 		tx := s.db.Begin()
 		for tableName, blockIds := range updates {

@@ -6,6 +6,7 @@ import (
 
 var (
 	ErrInvalidProducer         = errors.New("invalid producer")
+	ErrInvalidSig              = errors.New("invalid signature")
 	ErrInvalidBlockNum         = errors.New("invalid block number")
 	ErrBlockOutOfScope         = errors.New("block number out of scope")
 	ErrConsensusNotReady       = errors.New("consensus not ready")

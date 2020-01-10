@@ -850,6 +850,10 @@ func (sabft *SABFT) pushBlock(b common.ISignedBlock, applyStateDB bool) error {
 	newID := b.Id()
 	newNum := newID.BlockNum()
 
+	if !b.Validate() {
+		return ErrInvalidSig
+	}
+
 	if head != nil && b.Previous() == head.Id() && applyStateDB {
 		if !sabft.validateProducer(b) {
 			return ErrInvalidProducer

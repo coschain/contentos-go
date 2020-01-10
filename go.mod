@@ -5,6 +5,8 @@ require (
 	github.com/FactomProject/btcutilecc v0.0.0-20130527213604-d3a63a5752ec // indirect
 	github.com/asaskevich/EventBus v0.0.0-20180315140547-d46933a94f05
 	github.com/aws/aws-sdk-go v1.20.20
+	github.com/beevik/ntp v0.2.0
+	github.com/btcsuite/btcd v0.20.1-beta // indirect
 	github.com/cespare/xxhash v1.1.0 // indirect
 	github.com/chzyer/logex v1.1.10 // indirect
 	github.com/chzyer/readline v0.0.0-20180603132655-2972be24d48e
@@ -44,7 +46,6 @@ require (
 	github.com/mattn/go-colorable v0.0.9 // indirect
 	github.com/mgutz/ansi v0.0.0-20170206155736-9520e82c474b
 	github.com/mitchellh/go-homedir v1.0.0
-	github.com/ontio/ontology v1.7.0 // indirect
 	github.com/pelletier/go-toml v1.2.0
 	github.com/petar/GoLLRB v0.0.0-20130427215148-53be0d36a84c
 	github.com/petermattis/goid v0.0.0-20180202154549-b0b1615b78e5 // indirect

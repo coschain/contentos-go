@@ -32,6 +32,10 @@ func (msb *MockSignedBlock) Data() string {
 	return string(msb.Payload)
 }
 
+func (msb *MockSignedBlock) Validate() bool {
+	return true
+}
+
 func (msb *MockSignedBlock) GetSignee() (interface{}, error) {
 	return nil, nil
 }

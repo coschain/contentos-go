@@ -98,6 +98,7 @@ func initConfByCount(nodeCount int) {
 
 	for i := 0; i < nodeCount; i++ {
 		cfg := config.DefaultNodeConfig
+		cfg.MinDiskSpaceInGB = 0
 		cfg.Name = fmt.Sprintf("%s_%d", TesterClientIdentifier, i)
 		cfg.ChainId = chainName
 		if i > 0 {

@@ -45,7 +45,7 @@ var StartCmd = func() *cobra.Command {
 
 var NodeName string
 const (
-	ClientTag  = "v1.0.5"
+	ClientTag  = "v1.0.6"
 
 	spacePrecision = 1024 * 1024 * 1024  // 1 GB in Bytes
 )
@@ -110,11 +110,17 @@ func startNode(cmd *cobra.Command, args []string) {
 	app.Log = mylog.Init(cfg.ResolvePath("logs"), cfg.LogLevel, 3600 * 24 * 7)
 	app.Log.Info("Cosd running version: ", NodeName)
 
+	err := checkNTPTime(app.Log)
+	if err != nil {
+		app.Log.Error(err)
+		return
+	}
+
 
 	tStr := time.Unix(time.Now().Unix(),0).Format("2006-01-02-15-04-05")
 	crashFileName := cfg.ResolvePath("logs") + "/" + "crash-log-" + tStr
 	fmt.Println("crash log:",crashFileName)
-	err := InitCrashFile(crashFileName)
+	err = InitCrashFile(crashFileName)
 	if err != nil {
 		panic(fmt.Errorf("init crash file failed, error:%v",err))
 	}

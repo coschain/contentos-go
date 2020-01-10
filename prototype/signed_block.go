@@ -50,6 +50,22 @@ func (sb *SignedBlock) Id() common.BlockID {
 	return ret
 }
 
+func (sb *SignedBlock) Validate() bool {
+	id := sb.CalculateMerkleRoot()
+	if !bytes.Equal(sb.SignedHeader.Header.TransactionMerkleRoot.Hash, id.Data[:]) {
+		return false
+	}
+
+	headerHash := sb.SignedHeader.Header.Hash()
+	sig := sb.SignedHeader.BlockProducerSignature.Sig
+	pubKey, err := secp256k1.RecoverPubkey(headerHash[:], sig)
+	if err != nil {
+		return false
+	}
+
+	return secp256k1.VerifySignature(pubKey, headerHash[:], sig[:64])
+}
+
 func (sb *SignedBlock) CalculateMerkleRoot() *common.BlockID {
 	if len(sb.Transactions) == 0 {
 		return &common.BlockID{}

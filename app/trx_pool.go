@@ -524,8 +524,7 @@ func (c *TrxPool) applyBlock(blk *prototype.SignedBlock, skip prototype.SkipFlag
 				expect := blk.Transactions[trxIdx].Receipt
 				actual := entries[trxIdx].GetTrxResult().Receipt
 
-				if actual.Status != expect.Status &&
-					!(expect.Status == prototype.StatusSuccess && actual.Status == prototype.StatusFailDeductStamina) {
+				if actual.Status != expect.Status {
 					c.log.Errorf("InvoiceMismatch: expect_status=%d, status=%d, err=%s. trx #%d of block %d",
 						expect.Status, actual.Status, actual.ErrorInfo, trxIdx, blockNum)
 					invoiceOK = false
