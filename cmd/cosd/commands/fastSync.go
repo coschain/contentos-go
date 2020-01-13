@@ -12,6 +12,7 @@ import (
 	"github.com/coschain/contentos-go/common"
 )
 
+var specificName string
 var downFileName string
 
 var FastSyncCmd = func() *cobra.Command {
@@ -21,6 +22,7 @@ var FastSyncCmd = func() *cobra.Command {
 		Example:   "bp enable [bpname]",
 		Run:       syncMainnetData,
 	}
+	cmd.Flags().StringVarP(&specificName, "specificName", "s", "", "specify data file name")
 	cmd.Flags().StringVarP(&cfgName, "name", "n", "", "node name (default is cosd)")
 	return cmd
 }
@@ -46,9 +48,13 @@ func syncMainnetData(cmd *cobra.Command, args []string) {
 		common.Fatalf("failed to delete old data file %v", err)
 	}
 
-	downFileName = getTargetFileName()
-	if downFileName == "" {
-		common.Fatalf("failed to get target file name")
+	if specificName != "" {
+		downFileName = specificName
+	} else {
+		downFileName = getTargetFileName()
+		if downFileName == "" {
+			common.Fatalf("failed to get target file name")
+		}
 	}
 
 	// download file from s3
