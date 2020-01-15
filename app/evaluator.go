@@ -826,8 +826,12 @@ func (ev *ConvertVestEvaluator) Apply() {
 
 	opAssert(accWrap.GetVest().Sub( globalProps.AccountCreateFee.ToVest() ).Value >= op.Amount.Value, "VEST balance not enough")
 	currentBlock := globalProps.HeadBlockNumber
-	eachRate := op.Amount.Value / (constants.ConvertWeeks - 1)
-
+	var eachRate uint64
+	if ev.HardFork() < constants.HardFork2 {
+		eachRate = op.Amount.Value / (constants.ConvertWeeks - 1)
+	} else {
+		eachRate = op.Amount.Value / (constants.HardFork2ConvertWeeks - 1)
+	}
 	accWrap.Modify(func(t *table.SoAccount) {
 		t.StartPowerdownBlockNum = currentBlock
 		t.NextPowerdownBlockNum = currentBlock + constants.PowerDownBlockInterval

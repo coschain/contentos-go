@@ -23,4 +23,5 @@ const (
 const (
 	Original uint64 = 0
 	HardFork1 uint64 = 1375000
+	HardFork2 uint64 = 2000000
 )

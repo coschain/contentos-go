@@ -91,6 +91,7 @@ const (
 	RewardRateVoter = 1000
 
 	ConvertWeeks = 13
+	HardFork2ConvertWeeks = 6
 
 
 	BlockApplierVersion = 0x00000001
