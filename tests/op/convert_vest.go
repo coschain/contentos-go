@@ -10,7 +10,7 @@ import (
 )
 
 type ConvertVestTester struct {
-	acc0, acc1, acc2, acc3, acc4 *DandelionAccount
+	acc0, acc1, acc2, acc3, acc4, acc5 *DandelionAccount
 }
 
 var cvProps = &prototype.ChainProperties{
@@ -21,6 +21,36 @@ var cvProps = &prototype.ChainProperties{
 	TopNAcquireFreeToken: constants.InitTopN,
 	PerTicketPrice:     prototype.NewCoin(1000000),
 	PerTicketWeight:    constants.PerTicketWeight,
+}
+
+func (tester *ConvertVestTester) TestHardFork2DoNothing(t *testing.T, d *Dandelion) {
+	tester.acc2 = d.Account("actor2")
+	tester.acc5 = d.Account("actor5")
+
+	a := assert.New(t)
+	a.NoError(tester.acc2.SendTrxAndProduceBlock(TransferToVest(tester.acc2.Name, tester.acc2.Name, constants.MinBpRegisterVest, "")))
+	a.NoError(tester.acc2.SendTrxAndProduceBlock(BpRegister(tester.acc2.Name, "", "", tester.acc2.GetPubKey(), cvProps)))
+
+
+	// 1. before HardFork2 power down
+	// 2. HardFork2 happen
+	// 3. do nothing
+	t.Run("HardFork2 do nothing", d.Test(tester.hf2DoNothing))
+}
+
+func (tester *ConvertVestTester) TestHardFork2Clear(t *testing.T, d *Dandelion) {
+	tester.acc2 = d.Account("actor2")
+	tester.acc5 = d.Account("actor5")
+
+	a := assert.New(t)
+	a.NoError(tester.acc2.SendTrxAndProduceBlock(TransferToVest(tester.acc2.Name, tester.acc2.Name, constants.MinBpRegisterVest, "")))
+	a.NoError(tester.acc2.SendTrxAndProduceBlock(BpRegister(tester.acc2.Name, "", "", tester.acc2.GetPubKey(), cvProps)))
+
+
+	// 1. before HardFork2 power down
+	// 2. HardFork2 happen
+	// 3. start a new power down
+	t.Run("HardFork2 interrupt former power down", d.Test(tester.hf2ClearFormerBehave))
 }
 
 func (tester *ConvertVestTester) Test(t *testing.T, d *Dandelion) {
@@ -75,6 +105,7 @@ func (tester *ConvertVestTester) normal(t *testing.T, d *Dandelion) {
 	a.NoError(tester.acc0.SendTrxAndProduceBlock(TransferToVest(tester.acc0.Name, tester.acc0.Name, TRANSFER, "")))
 	headBlock1 := d.GlobalProps().GetHeadBlockNumber()
 	balance1 := d.Account(tester.acc0.Name).GetBalance().Value
+	vest1 := d.Account(tester.acc0.Name).GetVest().Value
 	a.NoError(tester.acc0.SendTrxAndProduceBlock(ConvertVest(tester.acc0.Name, TRANSFER)))
 	a.Equal(headBlock1 + uint64(constants.PowerDownBlockInterval), d.Account(tester.acc0.Name).GetNextPowerdownBlockNum())
 	a.Equal(headBlock1, d.Account(tester.acc0.Name).GetStartPowerdownBlockNum())
@@ -82,6 +113,13 @@ func (tester *ConvertVestTester) normal(t *testing.T, d *Dandelion) {
 	a.Equal(uint64(eachRate), d.Account(tester.acc0.Name).GetEachPowerdownRate().Value)
 	a.NoError(d.ProduceBlocks(constants.PowerDownBlockInterval + 1))
 	a.Equal(balance1 + uint64(eachRate), d.Account(tester.acc0.Name).GetBalance().Value)
+
+	// produce blocks to finish power down
+	a.NoError(d.ProduceBlocks(constants.HardFork2ConvertWeeks * constants.PowerDownBlockInterval + 1))
+	balance2 := d.Account(tester.acc0.Name).GetBalance().Value
+	vest2 := d.Account(tester.acc0.Name).GetVest().Value
+	a.Equal(vest1 - vest2, uint64(TRANSFER))
+	a.Equal(balance2 - balance1, uint64(TRANSFER))
 }
 
 func (tester *ConvertVestTester) Reset(t *testing.T, d *Dandelion) {
@@ -160,4 +198,93 @@ func (tester *ConvertVestTester) mismatch(t *testing.T, d *Dandelion) {
 	a.NoError(d.ProduceBlocks(1))
 	a.Equal(vest, d.Account(tester.acc0.Name).GetVest().Value)
 	a.Equal(toConvert, d.Account(tester.acc0.Name).GetToPowerdown().Value)
+}
+
+func (tester *ConvertVestTester) hf2ClearFormerBehave(t *testing.T, d *Dandelion) {
+	a := assert.New(t)
+
+	const TRANSFER = 10000000
+	a.NoError(tester.acc5.SendTrxAndProduceBlock(TransferToVest(tester.acc5.Name, tester.acc5.Name, 2 * TRANSFER, "")))
+
+	// produce some blocks to get close to HardFork2 point
+	a.NoError(d.ProduceBlocks( int(constants.HardFork2 - constants.PowerDownBlockInterval - 5) ))
+	vest0 := d.Account(tester.acc5.Name).GetVest().Value
+	balance0 := d.Account(tester.acc5.Name).GetBalance().Value
+	headBlock0 := d.GlobalProps().GetHeadBlockNumber()
+	a.Equal(uint64(0), d.Account(tester.acc5.Name).GetStartPowerdownBlockNum())
+
+	// start a power down before HardFork2, it should follow old rule
+	a.NoError(tester.acc5.SendTrxAndProduceBlock(ConvertVest(tester.acc5.Name, TRANSFER)))
+	a.Equal(headBlock0 + uint64(constants.PowerDownBlockInterval), d.Account(tester.acc5.Name).GetNextPowerdownBlockNum())
+	a.Equal(headBlock0, d.Account(tester.acc5.Name).GetStartPowerdownBlockNum())
+	eachRate := TRANSFER / (constants.ConvertWeeks - 1)
+	a.Equal(uint64(eachRate), d.Account(tester.acc5.Name).GetEachPowerdownRate().Value)
+	a.NoError(d.ProduceBlocks(constants.PowerDownBlockInterval + 1))
+	a.Equal(balance0 + uint64(eachRate), d.Account(tester.acc5.Name).GetBalance().Value)
+	a.Equal(vest0 - uint64(eachRate), d.Account(tester.acc5.Name).GetVest().Value)
+
+	// produce some blocks to more than HardFork2 but former power down not yet done
+	a.NoError(d.ProduceBlocks( constants.PowerDownBlockInterval ))
+
+	// start a new power down, it should follow new rule
+	vest1 := d.Account(tester.acc5.Name).GetVest().Value
+	balance1 := d.Account(tester.acc5.Name).GetBalance().Value
+	a.NoError(tester.acc5.SendTrxAndProduceBlock(ConvertVest(tester.acc5.Name, TRANSFER)))
+	eachRate = TRANSFER / (constants.HardFork2ConvertWeeks - 1)
+	a.Equal(uint64(eachRate), d.Account(tester.acc5.Name).GetEachPowerdownRate().Value)
+	a.NoError(d.ProduceBlocks(constants.PowerDownBlockInterval + 1))
+	a.Equal(balance1 + uint64(eachRate), d.Account(tester.acc5.Name).GetBalance().Value)
+	a.Equal(vest1 - uint64(eachRate), d.Account(tester.acc5.Name).GetVest().Value)
+
+	// produce blocks to finish power down
+	a.NoError(d.ProduceBlocks(constants.HardFork2ConvertWeeks * constants.PowerDownBlockInterval + 1))
+	balance2 := d.Account(tester.acc5.Name).GetBalance().Value
+	vest2 := d.Account(tester.acc5.Name).GetVest().Value
+	a.Equal(vest1 - vest2, uint64(TRANSFER))
+	a.Equal(balance2 - balance1, uint64(TRANSFER))
+}
+
+func (tester *ConvertVestTester) hf2DoNothing(t *testing.T, d *Dandelion) {
+	a := assert.New(t)
+
+	const TRANSFER = 10000000
+	a.NoError(tester.acc5.SendTrxAndProduceBlock(TransferToVest(tester.acc5.Name, tester.acc5.Name, TRANSFER, "")))
+
+	// produce some blocks to get close to HardFork2 point
+	a.NoError(d.ProduceBlocks( int(constants.HardFork2 - constants.PowerDownBlockInterval - 5) ))
+	vest0 := d.Account(tester.acc5.Name).GetVest().Value
+	balance0 := d.Account(tester.acc5.Name).GetBalance().Value
+	headBlock0 := d.GlobalProps().GetHeadBlockNumber()
+	a.Equal(uint64(0), d.Account(tester.acc5.Name).GetStartPowerdownBlockNum())
+
+	// start a power down before HardFork2, it should follow old rule
+	a.NoError(tester.acc5.SendTrxAndProduceBlock(ConvertVest(tester.acc5.Name, TRANSFER)))
+	a.Equal(headBlock0 + uint64(constants.PowerDownBlockInterval), d.Account(tester.acc5.Name).GetNextPowerdownBlockNum())
+	a.Equal(headBlock0, d.Account(tester.acc5.Name).GetStartPowerdownBlockNum())
+	eachRate := TRANSFER / (constants.ConvertWeeks - 1)
+	a.Equal(uint64(eachRate), d.Account(tester.acc5.Name).GetEachPowerdownRate().Value)
+	a.NoError(d.ProduceBlocks(constants.PowerDownBlockInterval + 1))
+	a.Equal(balance0 + uint64(eachRate), d.Account(tester.acc5.Name).GetBalance().Value)
+	a.Equal(vest0 - uint64(eachRate), d.Account(tester.acc5.Name).GetVest().Value)
+
+	// produce some blocks to more than HardFork2 but former power down not yet done
+	a.NoError(d.ProduceBlocks( constants.PowerDownBlockInterval ))
+	eachRateCorrect := TRANSFER / (constants.ConvertWeeks - 1)
+	eachRateWrong := TRANSFER / (constants.HardFork2ConvertWeeks - 1)
+	a.Equal(uint64(eachRateCorrect), d.Account(tester.acc5.Name).GetEachPowerdownRate().Value)
+	a.NotEqual(uint64(eachRateWrong), d.Account(tester.acc5.Name).GetEachPowerdownRate().Value)
+
+	// produce HardFork2ConvertWeeks blocks, power down should't be done
+	a.NoError(d.ProduceBlocks(constants.HardFork2ConvertWeeks * constants.PowerDownBlockInterval + 1))
+	balance1 := d.Account(tester.acc5.Name).GetBalance().Value
+	vest1 := d.Account(tester.acc5.Name).GetVest().Value
+	a.NotEqual(vest0 - vest1, uint64(TRANSFER))
+	a.NotEqual(balance1 - balance0, uint64(TRANSFER))
+
+	// continue produce HardFork2ConvertWeeks blocks, power down should be done
+	a.NoError(d.ProduceBlocks(constants.HardFork2ConvertWeeks * constants.PowerDownBlockInterval + 1))
+	balance2 := d.Account(tester.acc5.Name).GetBalance().Value
+	vest2 := d.Account(tester.acc5.Name).GetVest().Value
+	a.Equal(vest0 - vest2, uint64(TRANSFER))
+	a.Equal(balance2 - balance0, uint64(TRANSFER))
 }
