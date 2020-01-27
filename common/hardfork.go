@@ -5,6 +5,7 @@ import "github.com/coschain/contentos-go/common/constants"
 var hardForks = []uint64{
 	constants.Original,
 	constants.HardFork1,
+	constants.HardFork2,
 }
 
 func GetHardFork(blockNum uint64) uint64 {
