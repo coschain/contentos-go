@@ -2,6 +2,7 @@ package peer
 
 import (
 	"errors"
+	"github.com/coschain/contentos-go/common/constants"
 	"net"
 	"runtime"
 	"sync"
@@ -131,6 +132,10 @@ type Peer struct {
 	connLock           sync.RWMutex
 	busy			   int32
 	busyFetchingCP     int32
+
+	BlockQueryLimiter      *common.RateLimiter
+	CheckpointQueryLimiter *common.RateLimiter
+	BlobSizeLimiter        *common.RateLimiter
 }
 
 //NewPeer return new peer without publickey initial
@@ -149,6 +154,14 @@ func NewPeer(lg *logrus.Logger) *Peer {
 	p.TrxCache.useFilter2 = false
 
 	p.ConsensusCache = common.NewHashCache(common.DefaultHashCacheMaxCount)
+
+	maxBytesPerSecond := uint64(common.CheckPointSize * common.MaxCheckPointQueriesPerSecond) + uint64(constants.MaxBlockSize * 5)
+	if maxBytesPerSecond > common.MaxBlobSizePerSecond {
+		maxBytesPerSecond = common.MaxBlobSizePerSecond
+	}
+	p.BlockQueryLimiter        = common.NewRateLimiter(common.MaxBlockQueriesPerSecond)
+	p.CheckpointQueryLimiter   = common.NewRateLimiter(common.MaxCheckPointQueriesPerSecond)
+	p.BlobSizeLimiter          = common.NewRateLimiter(uint32(maxBytesPerSecond))
 
 	p.SyncLink = conn.NewLink(p.log)
 	p.ConsLink = conn.NewLink(p.log)

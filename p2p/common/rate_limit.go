@@ -5,6 +5,15 @@ import (
 	"time"
 )
 
+const (
+	MaxBlockQueriesPerSecond      = 1500
+	MaxCheckPointQueriesPerSecond = 1500
+	MaxBlobSizePerSecond          = 10 * 1024 * 1024
+)
+
+const (
+	CheckPointSize = 8192	// estimated size of a checkpoint in bytes
+)
 
 type RateLimiter struct {
 	sync.Mutex
