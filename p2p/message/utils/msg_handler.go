@@ -240,10 +240,13 @@ func maybeTriggerFetch(p2p p2p.P2P, lg *logrus.Logger, remotePeer *peer.Peer, si
 		startId := remotePeer.OutOfRangeState.KeyPointIDList[length-1]
 		endId := remotePeer.OutOfRangeState.KeyPointIDList[length-2]
 
-		var endBlockID common.BlockID
-		copy(endBlockID.Data[:], endId)
-		if endBlockID.BlockNum() != sigBlkMsg.SigBlk.Id().BlockNum() {
+		//var endBlockID common.BlockID
+		//copy(endBlockID.Data[:], endId)
+		var startBlockID common.BlockID
+		copy(startBlockID.Data[:], startId)
+		if startBlockID.BlockNum() != sigBlkMsg.SigBlk.Id().BlockNum() {
 			lg.Warn("receive a fake sigblk msg")
+			remotePeer.OutOfRangeState.KeyPointIDList = remotePeer.OutOfRangeState.KeyPointIDList[:0]
 			return
 		}
 
