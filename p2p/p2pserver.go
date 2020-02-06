@@ -382,6 +382,7 @@ func (this *P2PServer) timeout() {
 				this.Network.RemoveFromInConnRecord(p.GetAddr())
 				this.Network.RemoveFromOutConnRecord(p.GetAddr())
 				this.Network.RemoveFromConnectingList(p.GetAddr())
+				this.Network.RemovePeerSyncAddress(p.GetAddr())
 				p.CloseSync()
 				p.CloseCons()
 			}
