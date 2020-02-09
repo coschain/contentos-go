@@ -50,10 +50,10 @@ init will create a folder to hold cosd's running data,this will create a folder 
 Please modify the following things in the file config.toml:
 (The directory of config.toml is `$HOME/.coschain/cosd`)
 ```
-  BootStrap : false (Be careful, this must be set to false)
-  LocalBpName : your account name
-  LocalBpPrivateKey : private key of your Contentos account
-  SeedList : ["3.210.182.21:20338","34.206.144.13:20338"] (Set this to the seed nodes of contentos main net)
+  BootStrap = false (Be careful, this must be set to false)
+  LocalBpName = your account name
+  LocalBpPrivateKey = private key of your Contentos account
+  SeedList = ["3.210.182.21:20338","34.206.144.13:20338"] (Set this to the seed nodes of contentos main net)
 ```
 
 #### Start the node and register your account as a block producer
