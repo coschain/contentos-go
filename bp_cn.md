@@ -40,16 +40,12 @@ init将创建一个文件夹来保存cosd的运行数据，这将创建一个文
 ```
 ./cosd init
 ```
-您还可以自定义自己的文件夹名称，这将创建一个文件夹`$HOME/.coschain/your_node_name`
-```
-./cosd init -n your_node_name
-```
 
 ### 3.修改配置文件、启动节点、注册账号成为block producer
 
 #### 修改配置文件
 
-在config.toml 修改以下内容:（config.toml的路径为`$HOME/.coschain/your_node_name`，默认的节点名是`cosd`）
+在config.toml 修改以下内容:（config.toml的路径为`$HOME/.coschain/cosd`）
 ```
   BootStrap = false (注意，这个值必须设置为false)
   LocalBpName = your_account_name (刚才第一步创建的账号名)

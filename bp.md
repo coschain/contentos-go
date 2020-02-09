@@ -42,17 +42,13 @@ init will create a folder to hold cosd's running data,this will create a folder 
 ```
 ./cosd init
 ```
-you can also custom your own folder name, this will create a folder `$HOME/.coschain/your_node_name`
-```
-./cosd init -n your_node_name
-```
 
 ### 3.Modify your config file、start the node and register your account as a block producer
 
 #### Modify config file
 
 Please modify the following things in the file config.toml:
-(The directory of config.toml is `$HOME/.coschain/your_node_name`, default node name is `cosd`)
+(The directory of config.toml is `$HOME/.coschain/cosd`)
 ```
   BootStrap : false (Be careful, this must be set to false)
   LocalBpName : your account name
