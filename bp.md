@@ -148,10 +148,11 @@ pull latest code
 ```
 git pull
 ```
-build cosd
+build and run cosd
 ```
 cd cmd/cosd
 go build
+./cosd start
 ```
 
 ### 5.Re-engagement

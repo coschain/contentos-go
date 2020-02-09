@@ -138,10 +138,11 @@ bp enable YourAccountName --cancel
 ```
 git pull
 ```
-编译cosd
+编译并运行cosd
 ```
 cd cmd/cosd
 go build
+./cosd start
 ```
 
 ### 5.重新参与到出块过程
