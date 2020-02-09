@@ -26,15 +26,33 @@ If you don't, please follow the steps below
 ### 2.Build and Initialization
 
 Ensure that the code is in the `master` branch, we use this as a stable branch for external use.
-To acquire detail instruction, you can refer
-[build instruction](https://github.com/coschain/contentos-go#building-the-source)
-[Initialization](https://github.com/coschain/contentos-go#initialization)
+
+pull source code
+```
+git clone git@github.com:coschain/contentos-go.git
+```
+build cosd
+```
+cd cmd/cosd
+go build
+```
+Initialization
+
+init will create a folder to hold cosd's running data,this will create a folder `$HOME/.coschain/cosd`
+```
+./cosd init
+```
+you can also custom your own folder name, this will create a folder `$HOME/.coschain/your_node_name`
+```
+./cosd init -n your_node_name
+```
 
 ### 3.Modify your config file、start the node and register your account as a block producer
 
 #### Modify config file
 
 Please modify the following things in the file config.toml:
+(The directory of config.toml is `$HOME/.coschain/your_node_name`, default node name is `cosd`)
 ```
   BootStrap : false (Be careful, this must be set to false)
   LocalBpName : your account name
@@ -86,7 +104,11 @@ If you have already registered yourself as a producer, you are likely to partici
 
 ### 1.Unlock account
 
-Compile `wallet-cli`. To acquire detail instruction, you can refer [build instruction](https://github.com/coschain/contentos-go#building-the-source)
+Compile `wallet-cli`
+```
+cd contentos-go/cmd/wallet-cli/
+go build
+```
 
 After compilation is complete, execute `./wallet-cli`. First import your account into `wallet-cli`
 ```
@@ -121,7 +143,16 @@ you may still participate to produce block during the current period. If you sto
 ### 4.Get code, compile and run
 
 Get the latest code from remote, compile and run, wait for your node to complete synchronization. 
-If you are not familiar with these processes, please refer to [build instruction](https://github.com/coschain/contentos-go#building-the-source)
+
+pull latest code
+```
+git pull
+```
+build cosd
+```
+cd cmd/cosd
+go build
+```
 
 ### 5.Re-engagement
 
@@ -157,7 +188,12 @@ At this point, you can operate the node as you wish.
 
 ### 1.Compile and run the wallet
 
-Wallet compilation can refer to [build instruction](https://github.com/coschain/contentos-go#building-the-source)
+build wallet
+```
+cd contentos-go/cmd/wallet-cli/
+go build
+```
+
 Then execute `./wallet-cli` to run it
 
 ### 2.View node status
