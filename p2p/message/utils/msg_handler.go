@@ -343,70 +343,70 @@ func (p *MsgHandler) VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args 
 	//ctrl := service.(iservices.IConsensus)
 
 	if version.IsConsensus == true {
-		if ctx.Config().P2P.DualPortSupport == false {
-			log.Warn("[p2p] consensus port not surpport ", data.Addr)
-			remotePeer.CloseCons()
-			return
-		}
-
-		p := p2p.GetPeer(version.Nonce)
-
-		if p == nil {
-			log.Warn("[p2p] sync link is not exist: ", version.Nonce, data.Addr)
-			p2p.RemoveFromInConnRecord(remotePeer.GetAddr())
-			p2p.RemoveFromOutConnRecord(remotePeer.GetAddr())
-			p2p.RemoveFromConnectingList(remotePeer.GetAddr())
-			p2p.RemovePeerSyncAddress(remotePeer.GetAddr())
-			remotePeer.CloseCons()
-			remotePeer.CloseSync()
-			return
-		} else {
-			//p synclink must exist,merged
-			p.ConsLink = remotePeer.ConsLink
-			p.ConsLink.SetID(version.Nonce)
-			p.SetConsState(remotePeer.GetConsState())
-			remotePeer = p
-
-		}
-		if version.Nonce == p2p.GetID() {
-			log.Warn("[p2p] the node handshake with itself ", data.Addr)
-			p2p.SetOwnAddress(nodeAddr)
-			p2p.RemoveFromInConnRecord(remotePeer.GetAddr())
-			p2p.RemoveFromOutConnRecord(remotePeer.GetAddr())
-			p2p.RemoveFromConnectingList(remotePeer.GetAddr())
-			p2p.RemovePeerSyncAddress(remotePeer.GetAddr())
-			remotePeer.CloseCons()
-			return
-		}
-
-		s := remotePeer.GetConsState()
-		if s != msgCommon.INIT && s != msgCommon.HAND {
-			log.Warnf("[p2p] unknown status to received version,%d,%s\n", s, data.Addr)
-			remotePeer.CloseCons()
-			return
-		}
-
-		// Todo: change the method of input parameters
-		remotePeer.UpdateInfo(time.Now(), version.Version,
-			version.Services, version.SyncPort,
-			version.ConsPort, version.Nonce,
-			version.Relay, version.StartHeight, version.RunningCodeVersion)
-
-		var msg msgTypes.Message
-		if s == msgCommon.INIT {
-			remotePeer.SetConsState(msgCommon.HAND_SHAKE)
-			//msg = msgpack.NewVersion(p2p, true, ctrl.GetHeadBlockId().BlockNum())
-			msg = msgpack.NewVersion(p2p, true, uint64(0), ctx.Config().P2P.RunningCodeVersion)
-		} else if s == msgCommon.HAND {
-			remotePeer.SetConsState(msgCommon.HAND_SHAKED)
-			msg = msgpack.NewVerAck(true)
-
-		}
-		err := p2p.Send(remotePeer, msg, true)
-		if err != nil {
-			log.Error("[p2p] send message error: ", err)
-			return
-		}
+		//if ctx.Config().P2P.DualPortSupport == false {
+		//	log.Warn("[p2p] consensus port not surpport ", data.Addr)
+		//	remotePeer.CloseCons()
+		//	return
+		//}
+		//
+		//p := p2p.GetPeer(version.Nonce)
+		//
+		//if p == nil {
+		//	log.Warn("[p2p] sync link is not exist: ", version.Nonce, data.Addr)
+		//	p2p.RemoveFromInConnRecord(remotePeer.GetAddr())
+		//	p2p.RemoveFromOutConnRecord(remotePeer.GetAddr())
+		//	p2p.RemoveFromConnectingList(remotePeer.GetAddr())
+		//	p2p.RemovePeerSyncAddress(remotePeer.GetAddr())
+		//	remotePeer.CloseCons()
+		//	remotePeer.CloseSync()
+		//	return
+		//} else {
+		//	//p synclink must exist,merged
+		//	p.ConsLink = remotePeer.ConsLink
+		//	p.ConsLink.SetID(version.Nonce)
+		//	p.SetConsState(remotePeer.GetConsState())
+		//	remotePeer = p
+		//
+		//}
+		//if version.Nonce == p2p.GetID() {
+		//	log.Warn("[p2p] the node handshake with itself ", data.Addr)
+		//	p2p.SetOwnAddress(nodeAddr)
+		//	p2p.RemoveFromInConnRecord(remotePeer.GetAddr())
+		//	p2p.RemoveFromOutConnRecord(remotePeer.GetAddr())
+		//	p2p.RemoveFromConnectingList(remotePeer.GetAddr())
+		//	p2p.RemovePeerSyncAddress(remotePeer.GetAddr())
+		//	remotePeer.CloseCons()
+		//	return
+		//}
+		//
+		//s := remotePeer.GetConsState()
+		//if s != msgCommon.INIT && s != msgCommon.HAND {
+		//	log.Warnf("[p2p] unknown status to received version,%d,%s\n", s, data.Addr)
+		//	remotePeer.CloseCons()
+		//	return
+		//}
+		//
+		//// Todo: change the method of input parameters
+		//remotePeer.UpdateInfo(time.Now(), version.Version,
+		//	version.Services, version.SyncPort,
+		//	version.ConsPort, version.Nonce,
+		//	version.Relay, version.StartHeight, version.RunningCodeVersion)
+		//
+		//var msg msgTypes.Message
+		//if s == msgCommon.INIT {
+		//	remotePeer.SetConsState(msgCommon.HAND_SHAKE)
+		//	//msg = msgpack.NewVersion(p2p, true, ctrl.GetHeadBlockId().BlockNum())
+		//	msg = msgpack.NewVersion(p2p, true, uint64(0), ctx.Config().P2P.RunningCodeVersion)
+		//} else if s == msgCommon.HAND {
+		//	remotePeer.SetConsState(msgCommon.HAND_SHAKED)
+		//	msg = msgpack.NewVerAck(true)
+		//
+		//}
+		//err := p2p.Send(remotePeer, msg, true)
+		//if err != nil {
+		//	log.Error("[p2p] send message error: ", err)
+		//	return
+		//}
 	} else {
 		if version.Nonce == p2p.GetID() {
 			p2p.RemoveFromInConnRecord(remotePeer.GetAddr())
@@ -516,24 +516,24 @@ func (p *MsgHandler) VerAckHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args .
 	}
 
 	if verAck.IsConsensus == true {
-		if ctx.Config().P2P.DualPortSupport == false {
-			log.Warn("[p2p] consensus port not surpport")
-			return
-		}
-		s := remotePeer.GetConsState()
-		if s != msgCommon.HAND_SHAKE && s != msgCommon.HAND_SHAKED {
-			log.Warnf("[p2p] unknown status to received verAck,state:%d,%s\n", s, data.Addr)
-			return
-		}
-
-		remotePeer.SetConsState(msgCommon.ESTABLISH)
-		//p2p.RemoveFromConnectingList(data.Addr)
-		remotePeer.SetConsConn(remotePeer.GetConsConn())
-
-		if s == msgCommon.HAND_SHAKE {
-			msg := msgpack.NewVerAck(true)
-			p2p.Send(remotePeer, msg, true)
-		}
+		//if ctx.Config().P2P.DualPortSupport == false {
+		//	log.Warn("[p2p] consensus port not surpport")
+		//	return
+		//}
+		//s := remotePeer.GetConsState()
+		//if s != msgCommon.HAND_SHAKE && s != msgCommon.HAND_SHAKED {
+		//	log.Warnf("[p2p] unknown status to received verAck,state:%d,%s\n", s, data.Addr)
+		//	return
+		//}
+		//
+		//remotePeer.SetConsState(msgCommon.ESTABLISH)
+		////p2p.RemoveFromConnectingList(data.Addr)
+		//remotePeer.SetConsConn(remotePeer.GetConsConn())
+		//
+		//if s == msgCommon.HAND_SHAKE {
+		//	msg := msgpack.NewVerAck(true)
+		//	p2p.Send(remotePeer, msg, true)
+		//}
 	} else {
 		s := remotePeer.GetSyncState()
 		if s != msgCommon.HAND_SHAKE && s != msgCommon.HAND_SHAKED {
