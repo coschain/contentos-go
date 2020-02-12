@@ -52,7 +52,7 @@ type BFTCheckPoint struct {
 
 	lastCommitted common.BlockID
 	nextCP        common.BlockID
-	cache         map[common.BlockID]*message.Commit // lastCommitted-->Commit
+	cache         *CommitCache // lastCommitted-->Commit
 
 	indexPrefix [8]byte
 }
@@ -69,7 +69,7 @@ func NewBFTCheckPoint(dir string, sabft *SABFT) *BFTCheckPoint {
 		db:            db,
 		lastCommitted: lc,
 		nextCP:        common.EmptyBlockID,
-		cache:         make(map[common.BlockID]*message.Commit),
+		cache:         NewCommitCache(),
 		indexPrefix:   [8]byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
 	}
 }
@@ -88,20 +88,21 @@ func (cp *BFTCheckPoint) getIdxKey(idx uint64) []byte {
 func (cp *BFTCheckPoint) Flush(bid common.BlockID) error {
 	key := make([]byte, 8)
 	for {
+		if cp.cache.Get(cp.lastCommitted) == nil {
+			errstr := fmt.Sprintf("*********** %s lc %v/ cp lc %v nextCP %v",
+				cp.sabft.Name, cp.sabft.ForkDB.LastCommitted(), cp.lastCommitted, cp.nextCP)
+			panic(errstr)
+		}
+
 		binary.BigEndian.PutUint64(key, cp.nextCP.BlockNum())
 		batch := cp.db.NewBatch()
-		err := batch.Put(key, cp.cache[cp.lastCommitted].Bytes())
+		err := batch.Put(key, cp.cache.Get(cp.lastCommitted).Bytes())
 		if err != nil {
 			cp.sabft.log.Fatalf("BFT-Flush: %v",err)
 			return err
 		}
 
-		if cp.cache[cp.lastCommitted] == nil {
-			errstr := fmt.Sprintf("*********** %s lc %v/ cp lc %v nextCP %v",
-				cp.sabft.Name, cp.sabft.ForkDB.LastCommitted(), cp.lastCommitted, cp.nextCP)
-			panic(errstr)
-		}
-		err = batch.Put(cp.getIdxKey(uint64(cp.cache[cp.lastCommitted].Height())), key)
+		err = batch.Put(cp.getIdxKey(uint64(cp.cache.Get(cp.lastCommitted).Height())), key)
 		if err != nil {
 			cp.sabft.log.Fatalf("BFT-Flush: %v",err)
 			return err
@@ -110,12 +111,13 @@ func (cp *BFTCheckPoint) Flush(bid common.BlockID) error {
 			panic(fmt.Sprintf("BFT-Flush error: %v", err) )
 		}
 
-		delete(cp.cache, cp.lastCommitted)
+		//delete(cp.cache, cp.lastCommitted)
+		cp.cache.CommitOne()
 
 		cp.lastCommitted = cp.nextCP
 		cp.sabft.log.Info("checkpoint flushed at block height ", cp.nextCP.BlockNum())
 		cp.nextCP = common.EmptyBlockID
-		if v, ok := cp.cache[cp.lastCommitted]; ok {
+		if v := cp.cache.Get(cp.lastCommitted); v != nil {
 			cp.nextCP = ConvertToBlockID(v.ProposedData)
 		}
 		if cp.lastCommitted == bid {
@@ -146,11 +148,10 @@ func (cp *BFTCheckPoint) Add(commit *message.Commit) error {
 		return ErrCheckPointOutOfRange
 	}
 
-	prev := ConvertToBlockID(commit.Prev)
-	if _, ok := cp.cache[prev]; ok {
-		return ErrCheckPointExists
+	if !cp.cache.Add(commit) {
+		return nil
 	}
-	cp.cache[prev] = commit // prev could be malformed
+	prev := ConvertToBlockID(commit.Prev)
 	if cp.lastCommitted == prev {
 		cp.nextCP = blockID
 	}
@@ -163,12 +164,12 @@ func (cp *BFTCheckPoint) Remove(commit *message.Commit) {
 	if cp.lastCommitted != ConvertToBlockID(commit.Prev) {
 		panic("removing a invalid checkpoint")
 	}
-	delete(cp.cache, cp.lastCommitted)
+	cp.cache.Remove(cp.lastCommitted)
 	cp.nextCP = common.EmptyBlockID
 }
 
 func (cp *BFTCheckPoint) HasDanglingCheckPoint() bool {
-	return cp.NextUncommitted() == nil && len(cp.cache) > 0
+	return cp.NextUncommitted() == nil && cp.cache.HasDangling()
 }
 
 // (from, to)
@@ -176,22 +177,15 @@ func (cp *BFTCheckPoint) HasDanglingCheckPoint() bool {
 // @to is any of the dangling uncommitted checkpoints
 // Only call it if HasDanglingCheckPoint returns true
 func (cp *BFTCheckPoint) MissingRange() (from, to uint64) {
-	var v *message.Commit
-	for _, v = range cp.cache {
-		break
-	}
-	return cp.lastCommitted.BlockNum(), ExtractBlockID(v).BlockNum()
+	return cp.lastCommitted.BlockNum(), cp.cache.GetDanglingHeight()
 }
 
 func (cp *BFTCheckPoint) NextUncommitted() *message.Commit {
-	if v, ok := cp.cache[cp.lastCommitted]; ok {
-		return v
-	}
-	return nil
+	return cp.cache.Get(cp.lastCommitted)
 }
 
 func (cp *BFTCheckPoint) RemoveNextUncommitted() {
-	delete(cp.cache, cp.lastCommitted)
+	cp.cache.Remove(cp.lastCommitted)
 	cp.nextCP = common.EmptyBlockID
 }
 
@@ -202,8 +196,9 @@ func (cp *BFTCheckPoint) IsNextCheckPoint(commit *message.Commit) bool {
 		return false
 	}
 	cp.sabft.log.Warn("cp.nextCP: ", cp.nextCP.BlockNum(), " commit number: ", id.BlockNum())
-	_, ok := cp.cache[cp.lastCommitted]
-	if !ok {
+	//_, ok := cp.cache[cp.lastCommitted]
+	//if !ok {
+	if cp.cache.Get(cp.lastCommitted) == nil {
 		cp.sabft.log.Warn("cp not in cache, cp.lastCommitted: ", cp.lastCommitted.BlockNum(), " commit: ", commit)
 		return false
 	}
