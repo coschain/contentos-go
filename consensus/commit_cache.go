@@ -2,6 +2,7 @@ package consensus
 
 import (
 	"container/list"
+	"fmt"
 	"sync"
 
 	"github.com/coschain/contentos-go/common"
@@ -59,6 +60,7 @@ func (c *CommitCache) Add(commit *message.Commit) bool {
 		} else {
 			e = c.heightList.PushBack(hc)
 		}
+		c.m[height] = e
 	}
 	hc := e.Value.(*heightCache)
 	if _, exist := hc.m[id]; exist {
@@ -66,6 +68,14 @@ func (c *CommitCache) Add(commit *message.Commit) bool {
 	}
 	hc.m[id] = commit
 	return true
+}
+
+func (c *CommitCache) String() string {
+	str := ""
+	for i := c.heightList.Front(); i != nil; i = i.Next() {
+		str += fmt.Sprintf("\n--->height = %d, %v", i.Value.(*heightCache).height, i.Value.(*heightCache).m)
+	}
+	return str
 }
 
 func (c *CommitCache) Remove(id common.BlockID) {
@@ -86,8 +96,11 @@ func (c *CommitCache) Commit(id common.BlockID) {
 	height := id.BlockNum()
 	var i *list.Element
 	for i = c.heightList.Front(); i != nil; i = i.Next() {
-		if i.Value.(*heightCache).height < height {
+		hc := i.Value.(*heightCache)
+		if hc.height < height {
+			//delete(c.m, height)
 			c.heightList.Remove(i)
+			delete(c.m, height)
 		} else {
 			break
 		}

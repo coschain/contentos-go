@@ -89,8 +89,9 @@ func (cp *BFTCheckPoint) Flush(bid common.BlockID) error {
 	key := make([]byte, 8)
 	for {
 		if cp.cache.Get(cp.lastCommitted) == nil {
-			errstr := fmt.Sprintf("*********** %s lc %v/ cp lc %v nextCP %v",
-				cp.sabft.Name, cp.sabft.ForkDB.LastCommitted(), cp.lastCommitted, cp.nextCP)
+			errstr := fmt.Sprintf("*********** %s lc %v/ cp lc %v nextCP %v, commit_cache %s",
+				cp.sabft.Name, cp.sabft.ForkDB.LastCommitted(), cp.lastCommitted, cp.nextCP, cp.cache.String())
+			cp.sabft.log.Error(errstr)
 			panic(errstr)
 		}
 
