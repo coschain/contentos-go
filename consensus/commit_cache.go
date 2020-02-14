@@ -24,10 +24,10 @@ type CommitCache struct {
 	sync.RWMutex
 }
 
-func NewCommitCache() *CommitCache {
+func NewCommitCache(lastCommitHeight uint64) *CommitCache {
 	return &CommitCache{
 		waterMark:  constants.MaxUncommittedBlockNum,
-		startH:     0,
+		startH:     lastCommitHeight,
 		commitCnt:  0,
 		heightList: list.New(),
 		m:          make(map[uint64]*list.Element),
@@ -100,7 +100,6 @@ func (c *CommitCache) Commit(id common.BlockID) {
 		if hc.height < height {
 			//delete(c.m, height)
 			c.heightList.Remove(i)
-			delete(c.m, height)
 		} else {
 			break
 		}
