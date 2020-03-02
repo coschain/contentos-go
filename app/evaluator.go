@@ -162,6 +162,18 @@ type VoteByTicketEvaluator struct {
 	op *prototype.VoteByTicketOperation
 }
 
+type DelegateVestEvaluator struct {
+	BaseEvaluator
+	BaseDelegate
+	op *prototype.DelegateVestOperation
+}
+
+type UnDelegateVestEvaluator struct {
+	BaseEvaluator
+	BaseDelegate
+	op *prototype.UnDelegateVestOperation
+}
+
 func init() {
 	RegisterEvaluator((*prototype.AccountCreateOperation)(nil), func(delegate ApplyDelegate, op prototype.BaseOperation) BaseEvaluator {
 		return &AccountCreateEvaluator {BaseDelegate: BaseDelegate{delegate:delegate}, op: op.(*prototype.AccountCreateOperation)}
@@ -222,6 +234,12 @@ func init() {
 	})
 	RegisterEvaluator((*prototype.VoteByTicketOperation)(nil), func(delegate ApplyDelegate, op prototype.BaseOperation) BaseEvaluator {
 		return &VoteByTicketEvaluator {BaseDelegate: BaseDelegate{delegate:delegate}, op: op.(*prototype.VoteByTicketOperation)}
+	})
+	RegisterEvaluator((*prototype.DelegateVestOperation)(nil), func(delegate ApplyDelegate, op prototype.BaseOperation) BaseEvaluator {
+		return &DelegateVestEvaluator {BaseDelegate: BaseDelegate{delegate:delegate}, op: op.(*prototype.DelegateVestOperation)}
+	})
+	RegisterEvaluator((*prototype.UnDelegateVestOperation)(nil), func(delegate ApplyDelegate, op prototype.BaseOperation) BaseEvaluator {
+		return &UnDelegateVestEvaluator {BaseDelegate: BaseDelegate{delegate:delegate}, op: op.(*prototype.UnDelegateVestOperation)}
 	})
 }
 
@@ -1306,4 +1324,75 @@ func (ev *VoteByTicketEvaluator) Apply() {
 			prop.TotalVest = prop.TotalVest.Add(equalValue)
 		})
 	}
+}
+
+func (ev *DelegateVestEvaluator) Apply() {
+	op := ev.op
+
+	fromAccount := table.NewSoAccountWrap(ev.Database(), op.GetFrom()).MustExist()
+	toAccount := table.NewSoAccountWrap(ev.Database(), op.GetFrom()).MustExist()
+	amount := op.GetAmount()
+	opAssert(fromAccount.GetName().GetValue() != toAccount.GetName().GetValue(), "self delegation not allowed")
+	opAssert(amount.GetValue() > 0, "zero delegation")
+	maxAmount := fromAccount.GetVest().Sub(fromAccount.GetBorrowedVest())
+	props := ev.GlobalProp().GetProps()
+	accountFee := prototype.NewVest(props.GetAccountCreateFee().GetValue())
+	opAssert(maxAmount.GetValue() > accountFee.GetValue(), "insufficient account vest")
+	maxAmount.Sub(accountFee)
+	if nextPowerDown := fromAccount.GetEachPowerdownRate(); nextPowerDown.GetValue() > 0 {
+		maxPowerDown := fromAccount.GetToPowerdown().Sub(fromAccount.GetHasPowerdown())
+		if nextPowerDown.GetValue() > maxPowerDown.GetValue() {
+			nextPowerDown = maxPowerDown
+		}
+		if nextPowerDown.GetValue() > maxAmount.GetValue() {
+			maxAmount.Value = 0
+		} else {
+			maxAmount.Sub(nextPowerDown)
+		}
+	}
+	opAssert(maxAmount.GetValue() > amount.GetValue(), "insufficient account vest")
+
+	orderId := ev.VMInjector().NewRecordID()
+	table.NewSoVestDelegationWrap(ev.Database(), &orderId).Create(func(r *table.SoVestDelegation) {
+		r.Id = orderId
+		r.FromAccount = fromAccount.GetName()
+		r.ToAccount = toAccount.GetName()
+		r.Amount = amount
+		r.CreatedBlock = props.GetHeadBlockNumber()
+		r.MaturityBlock = r.CreatedBlock + op.GetExpiration()
+		r.DeliveryBlock = math.MaxInt64
+		r.Delivering = false
+	})
+	fromAccount.Modify(func(r *table.SoAccount) {
+		r.LentVest.Add(amount)
+		r.Vest.Sub(amount)
+	})
+	toAccount.Modify(func(r *table.SoAccount) {
+		r.BorrowedVest.Add(amount)
+		r.Vest.Add(amount)
+	})
+}
+
+func (ev *UnDelegateVestEvaluator) Apply() {
+	op := ev.op
+
+	fromAccount := table.NewSoAccountWrap(ev.Database(), op.GetAccount()).MustExist()
+	rec := table.NewSoVestDelegationWrap(ev.Database(), &op.OrderId).MustExist("order id not found")
+	opAssert(rec.GetFromAccount().GetValue() == fromAccount.GetName().GetValue(), "order owner mismatch")
+	currentBlock := ev.GlobalProp().GetProps().GetHeadBlockNumber()
+	opAssert(currentBlock >= rec.GetMaturityBlock(), "order not matured")
+	opAssert(!rec.GetDelivering(), "order delivering")
+	toAccount := table.NewSoAccountWrap(ev.Database(), rec.GetToAccount()).MustExist()
+	vest := rec.GetAmount()
+	fromAccount.Modify(func(r *table.SoAccount) {
+		r.LentVest.Sub(vest)
+		r.DeliveringVest.Add(vest)
+	})
+	toAccount.Modify(func(r *table.SoAccount) {
+		r.BorrowedVest.Sub(vest)
+	})
+	rec.Modify(func(r *table.SoVestDelegation) {
+		r.Delivering = true
+		r.DeliveryBlock = currentBlock + constants.VestDelegationDeliveryInBlocks
+	})
 }

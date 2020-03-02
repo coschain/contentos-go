@@ -23,4 +23,5 @@ type Injector interface {
 	DiscardAccountCache(name string)
 	VmCache() *vmcache.VmCache
 	StateChangeContext() *blocklog.StateChangeContext
+	NewRecordID() uint64
 }

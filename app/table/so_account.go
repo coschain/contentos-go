@@ -23,6 +23,9 @@ var (
 	AccountPostCountTable             uint32 = 1518203339
 	AccountCreatedTrxCountTable       uint32 = 2604810499
 	AccountNextPowerdownBlockNumTable uint32 = 1928824877
+	AccountBorrowedVestTable          uint32 = 950437627
+	AccountLentVestTable              uint32 = 2206981604
+	AccountDeliveringVestTable        uint32 = 2943579622
 	AccountNameUniTable               uint32 = 2528390520
 	AccountPubKeyUniTable             uint32 = 598545409
 
@@ -263,6 +266,16 @@ func (s *SoAccountWrap) SetBalance(p *prototype.Coin, errArgs ...interface{}) *S
 	return s
 }
 
+func (s *SoAccountWrap) SetBorrowedVest(p *prototype.Vest, errArgs ...interface{}) *SoAccountWrap {
+	err := s.modify(func(r *SoAccount) {
+		r.BorrowedVest = p
+	})
+	if err != nil {
+		panic(bindErrorInfo(fmt.Sprintf("SoAccountWrap.SetBorrowedVest( %v ) failed: %s", p, err.Error()), errArgs...))
+	}
+	return s
+}
+
 func (s *SoAccountWrap) SetBpVoteCount(p uint32, errArgs ...interface{}) *SoAccountWrap {
 	err := s.modify(func(r *SoAccount) {
 		r.BpVoteCount = p
@@ -309,6 +322,16 @@ func (s *SoAccountWrap) SetCreator(p *prototype.AccountName, errArgs ...interfac
 	})
 	if err != nil {
 		panic(bindErrorInfo(fmt.Sprintf("SoAccountWrap.SetCreator( %v ) failed: %s", p, err.Error()), errArgs...))
+	}
+	return s
+}
+
+func (s *SoAccountWrap) SetDeliveringVest(p *prototype.Vest, errArgs ...interface{}) *SoAccountWrap {
+	err := s.modify(func(r *SoAccount) {
+		r.DeliveringVest = p
+	})
+	if err != nil {
+		panic(bindErrorInfo(fmt.Sprintf("SoAccountWrap.SetDeliveringVest( %v ) failed: %s", p, err.Error()), errArgs...))
 	}
 	return s
 }
@@ -379,6 +402,16 @@ func (s *SoAccountWrap) SetLastVoteTime(p *prototype.TimePointSec, errArgs ...in
 	})
 	if err != nil {
 		panic(bindErrorInfo(fmt.Sprintf("SoAccountWrap.SetLastVoteTime( %v ) failed: %s", p, err.Error()), errArgs...))
+	}
+	return s
+}
+
+func (s *SoAccountWrap) SetLentVest(p *prototype.Vest, errArgs ...interface{}) *SoAccountWrap {
+	err := s.modify(func(r *SoAccount) {
+		r.LentVest = p
+	})
+	if err != nil {
+		panic(bindErrorInfo(fmt.Sprintf("SoAccountWrap.SetLentVest( %v ) failed: %s", p, err.Error()), errArgs...))
 	}
 	return s
 }
@@ -548,6 +581,18 @@ func (s *SoAccountWrap) checkSortAndUniFieldValidity(curTable *SoAccount, fields
 			return errors.New("sort field Vest can't be modified to nil")
 		}
 
+		if fields["BorrowedVest"] && curTable.BorrowedVest == nil {
+			return errors.New("sort field BorrowedVest can't be modified to nil")
+		}
+
+		if fields["LentVest"] && curTable.LentVest == nil {
+			return errors.New("sort field LentVest can't be modified to nil")
+		}
+
+		if fields["DeliveringVest"] && curTable.DeliveringVest == nil {
+			return errors.New("sort field DeliveringVest can't be modified to nil")
+		}
+
 		if fields["PubKey"] && curTable.PubKey == nil {
 			return errors.New("unique field PubKey can't be modified to nil")
 		}
@@ -567,6 +612,11 @@ func (s *SoAccountWrap) getModifiedFields(oriTable *SoAccount, curTable *SoAccou
 	if !reflect.DeepEqual(oriTable.Balance, curTable.Balance) {
 		fields["Balance"] = true
 		hasWatcher = hasWatcher || s.watcherFlag.HasBalanceWatcher
+	}
+
+	if !reflect.DeepEqual(oriTable.BorrowedVest, curTable.BorrowedVest) {
+		fields["BorrowedVest"] = true
+		hasWatcher = hasWatcher || s.watcherFlag.HasBorrowedVestWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.BpVoteCount, curTable.BpVoteCount) {
@@ -592,6 +642,11 @@ func (s *SoAccountWrap) getModifiedFields(oriTable *SoAccount, curTable *SoAccou
 	if !reflect.DeepEqual(oriTable.Creator, curTable.Creator) {
 		fields["Creator"] = true
 		hasWatcher = hasWatcher || s.watcherFlag.HasCreatorWatcher
+	}
+
+	if !reflect.DeepEqual(oriTable.DeliveringVest, curTable.DeliveringVest) {
+		fields["DeliveringVest"] = true
+		hasWatcher = hasWatcher || s.watcherFlag.HasDeliveringVestWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.EachPowerdownRate, curTable.EachPowerdownRate) {
@@ -627,6 +682,11 @@ func (s *SoAccountWrap) getModifiedFields(oriTable *SoAccount, curTable *SoAccou
 	if !reflect.DeepEqual(oriTable.LastVoteTime, curTable.LastVoteTime) {
 		fields["LastVoteTime"] = true
 		hasWatcher = hasWatcher || s.watcherFlag.HasLastVoteTimeWatcher
+	}
+
+	if !reflect.DeepEqual(oriTable.LentVest, curTable.LentVest) {
+		fields["LentVest"] = true
+		hasWatcher = hasWatcher || s.watcherFlag.HasLentVestWatcher
 	}
 
 	if !reflect.DeepEqual(oriTable.NextPowerdownBlockNum, curTable.NextPowerdownBlockNum) {
@@ -737,6 +797,23 @@ func (s *SoAccountWrap) handleFieldMd(t FieldMdHandleType, so *SoAccount, fields
 		}
 	}
 
+	if fields["BorrowedVest"] {
+		res := true
+		if t == FieldMdHandleTypeCheck {
+			res = s.mdFieldBorrowedVest(so.BorrowedVest, true, false, false, so)
+			errStr = fmt.Sprintf("fail to modify exist value of %v", "BorrowedVest")
+		} else if t == FieldMdHandleTypeDel {
+			res = s.mdFieldBorrowedVest(so.BorrowedVest, false, true, false, so)
+			errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", "BorrowedVest")
+		} else if t == FieldMdHandleTypeInsert {
+			res = s.mdFieldBorrowedVest(so.BorrowedVest, false, false, true, so)
+			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "BorrowedVest")
+		}
+		if !res {
+			return errors.New(errStr)
+		}
+	}
+
 	if fields["BpVoteCount"] {
 		res := true
 		if t == FieldMdHandleTypeCheck {
@@ -816,6 +893,23 @@ func (s *SoAccountWrap) handleFieldMd(t FieldMdHandleType, so *SoAccount, fields
 		} else if t == FieldMdHandleTypeInsert {
 			res = s.mdFieldCreator(so.Creator, false, false, true, so)
 			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "Creator")
+		}
+		if !res {
+			return errors.New(errStr)
+		}
+	}
+
+	if fields["DeliveringVest"] {
+		res := true
+		if t == FieldMdHandleTypeCheck {
+			res = s.mdFieldDeliveringVest(so.DeliveringVest, true, false, false, so)
+			errStr = fmt.Sprintf("fail to modify exist value of %v", "DeliveringVest")
+		} else if t == FieldMdHandleTypeDel {
+			res = s.mdFieldDeliveringVest(so.DeliveringVest, false, true, false, so)
+			errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", "DeliveringVest")
+		} else if t == FieldMdHandleTypeInsert {
+			res = s.mdFieldDeliveringVest(so.DeliveringVest, false, false, true, so)
+			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "DeliveringVest")
 		}
 		if !res {
 			return errors.New(errStr)
@@ -935,6 +1029,23 @@ func (s *SoAccountWrap) handleFieldMd(t FieldMdHandleType, so *SoAccount, fields
 		} else if t == FieldMdHandleTypeInsert {
 			res = s.mdFieldLastVoteTime(so.LastVoteTime, false, false, true, so)
 			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "LastVoteTime")
+		}
+		if !res {
+			return errors.New(errStr)
+		}
+	}
+
+	if fields["LentVest"] {
+		res := true
+		if t == FieldMdHandleTypeCheck {
+			res = s.mdFieldLentVest(so.LentVest, true, false, false, so)
+			errStr = fmt.Sprintf("fail to modify exist value of %v", "LentVest")
+		} else if t == FieldMdHandleTypeDel {
+			res = s.mdFieldLentVest(so.LentVest, false, true, false, so)
+			errStr = fmt.Sprintf("fail to delete  sort or unique field  %v", "LentVest")
+		} else if t == FieldMdHandleTypeInsert {
+			res = s.mdFieldLentVest(so.LentVest, false, false, true, so)
+			errStr = fmt.Sprintf("fail to insert  sort or unique field  %v", "LentVest")
 		}
 		if !res {
 			return errors.New(errStr)
@@ -1481,6 +1592,126 @@ func (s *SoAccountWrap) insertSortKeyNextPowerdownBlockNum(sa *SoAccount) bool {
 	return ordErr == nil
 }
 
+func (s *SoAccountWrap) delSortKeyBorrowedVest(sa *SoAccount) bool {
+	if s.dba == nil || s.mainKey == nil {
+		return false
+	}
+	val := SoListAccountByBorrowedVest{}
+	if sa == nil {
+		val.BorrowedVest = s.GetBorrowedVest()
+		val.Name = s.mainKey
+
+	} else {
+		val.BorrowedVest = sa.BorrowedVest
+		val.Name = sa.Name
+	}
+	subBuf, err := val.OpeEncode()
+	if err != nil {
+		return false
+	}
+	ordErr := s.dba.Delete(subBuf)
+	return ordErr == nil
+}
+
+func (s *SoAccountWrap) insertSortKeyBorrowedVest(sa *SoAccount) bool {
+	if s.dba == nil || sa == nil {
+		return false
+	}
+	val := SoListAccountByBorrowedVest{}
+	val.Name = sa.Name
+	val.BorrowedVest = sa.BorrowedVest
+	buf, err := proto.Marshal(&val)
+	if err != nil {
+		return false
+	}
+	subBuf, err := val.OpeEncode()
+	if err != nil {
+		return false
+	}
+	ordErr := s.dba.Put(subBuf, buf)
+	return ordErr == nil
+}
+
+func (s *SoAccountWrap) delSortKeyLentVest(sa *SoAccount) bool {
+	if s.dba == nil || s.mainKey == nil {
+		return false
+	}
+	val := SoListAccountByLentVest{}
+	if sa == nil {
+		val.LentVest = s.GetLentVest()
+		val.Name = s.mainKey
+
+	} else {
+		val.LentVest = sa.LentVest
+		val.Name = sa.Name
+	}
+	subBuf, err := val.OpeEncode()
+	if err != nil {
+		return false
+	}
+	ordErr := s.dba.Delete(subBuf)
+	return ordErr == nil
+}
+
+func (s *SoAccountWrap) insertSortKeyLentVest(sa *SoAccount) bool {
+	if s.dba == nil || sa == nil {
+		return false
+	}
+	val := SoListAccountByLentVest{}
+	val.Name = sa.Name
+	val.LentVest = sa.LentVest
+	buf, err := proto.Marshal(&val)
+	if err != nil {
+		return false
+	}
+	subBuf, err := val.OpeEncode()
+	if err != nil {
+		return false
+	}
+	ordErr := s.dba.Put(subBuf, buf)
+	return ordErr == nil
+}
+
+func (s *SoAccountWrap) delSortKeyDeliveringVest(sa *SoAccount) bool {
+	if s.dba == nil || s.mainKey == nil {
+		return false
+	}
+	val := SoListAccountByDeliveringVest{}
+	if sa == nil {
+		val.DeliveringVest = s.GetDeliveringVest()
+		val.Name = s.mainKey
+
+	} else {
+		val.DeliveringVest = sa.DeliveringVest
+		val.Name = sa.Name
+	}
+	subBuf, err := val.OpeEncode()
+	if err != nil {
+		return false
+	}
+	ordErr := s.dba.Delete(subBuf)
+	return ordErr == nil
+}
+
+func (s *SoAccountWrap) insertSortKeyDeliveringVest(sa *SoAccount) bool {
+	if s.dba == nil || sa == nil {
+		return false
+	}
+	val := SoListAccountByDeliveringVest{}
+	val.Name = sa.Name
+	val.DeliveringVest = sa.DeliveringVest
+	buf, err := proto.Marshal(&val)
+	if err != nil {
+		return false
+	}
+	subBuf, err := val.OpeEncode()
+	if err != nil {
+		return false
+	}
+	ordErr := s.dba.Put(subBuf, buf)
+	return ordErr == nil
+}
+
 func (s *SoAccountWrap) delAllSortKeys(br bool, val *SoAccount) bool {
 	if s.dba == nil {
 		return false
@@ -1535,6 +1766,27 @@ func (s *SoAccountWrap) delAllSortKeys(br bool, val *SoAccount) bool {
 			res = false
 		}
 	}
+	if !s.delSortKeyBorrowedVest(val) {
+		if br {
+			return false
+		} else {
+			res = false
+		}
+	}
+	if !s.delSortKeyLentVest(val) {
+		if br {
+			return false
+		} else {
+			res = false
+		}
+	}
+	if !s.delSortKeyDeliveringVest(val) {
+		if br {
+			return false
+		} else {
+			res = false
+		}
+	}
 
 	return res
 }
@@ -1566,6 +1818,15 @@ func (s *SoAccountWrap) insertAllSortKeys(val *SoAccount) error {
 	}
 	if !s.insertSortKeyNextPowerdownBlockNum(val) {
 		return errors.New("insert sort Field NextPowerdownBlockNum fail while insert table ")
+	}
+	if !s.insertSortKeyBorrowedVest(val) {
+		return errors.New("insert sort Field BorrowedVest fail while insert table ")
+	}
+	if !s.insertSortKeyLentVest(val) {
+		return errors.New("insert sort Field LentVest fail while insert table ")
+	}
+	if !s.insertSortKeyDeliveringVest(val) {
+		return errors.New("insert sort Field DeliveringVest fail while insert table ")
 	}
 
 	return nil
@@ -1708,6 +1969,96 @@ func (s *SoAccountWrap) insertFieldBalance(so *SoAccount) bool {
 }
 
 func (s *SoAccountWrap) checkBalanceIsMetMdCondition(p *prototype.Coin) bool {
+	if s.dba == nil {
+		return false
+	}
+
+	return true
+}
+
+func (s *SoAccountWrap) GetBorrowedVest() *prototype.Vest {
+	res := true
+	msg := &SoAccount{}
+	if s.dba == nil {
+		res = false
+	} else {
+		key, err := s.encodeMainKey()
+		if err != nil {
+			res = false
+		} else {
+			buf, err := s.dba.Get(key)
+			if err != nil {
+				res = false
+			}
+			err = proto.Unmarshal(buf, msg)
+			if err != nil {
+				res = false
+			} else {
+				return msg.BorrowedVest
+			}
+		}
+	}
+	if !res {
+		return nil
+
+	}
+	return msg.BorrowedVest
+}
+
+func (s *SoAccountWrap) mdFieldBorrowedVest(p *prototype.Vest, isCheck bool, isDel bool, isInsert bool,
+	so *SoAccount) bool {
+	if s.dba == nil {
+		return false
+	}
+
+	if isCheck {
+		res := s.checkBorrowedVestIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
+
+	if isDel {
+		res := s.delFieldBorrowedVest(so)
+		if !res {
+			return false
+		}
+	}
+
+	if isInsert {
+		res := s.insertFieldBorrowedVest(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoAccountWrap) delFieldBorrowedVest(so *SoAccount) bool {
+	if s.dba == nil {
+		return false
+	}
+
+	if !s.delSortKeyBorrowedVest(so) {
+		return false
+	}
+
+	return true
+}
+
+func (s *SoAccountWrap) insertFieldBorrowedVest(so *SoAccount) bool {
+	if s.dba == nil {
+		return false
+	}
+
+	if !s.insertSortKeyBorrowedVest(so) {
+		return false
+	}
+
+	return true
+}
+
+func (s *SoAccountWrap) checkBorrowedVestIsMetMdCondition(p *prototype.Vest) bool {
 	if s.dba == nil {
 		return false
 	}
@@ -2142,6 +2493,96 @@ func (s *SoAccountWrap) insertFieldCreator(so *SoAccount) bool {
 }
 
 func (s *SoAccountWrap) checkCreatorIsMetMdCondition(p *prototype.AccountName) bool {
+	if s.dba == nil {
+		return false
+	}
+
+	return true
+}
+
+func (s *SoAccountWrap) GetDeliveringVest() *prototype.Vest {
+	res := true
+	msg := &SoAccount{}
+	if s.dba == nil {
+		res = false
+	} else {
+		key, err := s.encodeMainKey()
+		if err != nil {
+			res = false
+		} else {
+			buf, err := s.dba.Get(key)
+			if err != nil {
+				res = false
+			}
+			err = proto.Unmarshal(buf, msg)
+			if err != nil {
+				res = false
+			} else {
+				return msg.DeliveringVest
+			}
+		}
+	}
+	if !res {
+		return nil
+
+	}
+	return msg.DeliveringVest
+}
+
+func (s *SoAccountWrap) mdFieldDeliveringVest(p *prototype.Vest, isCheck bool, isDel bool, isInsert bool,
+	so *SoAccount) bool {
+	if s.dba == nil {
+		return false
+	}
+
+	if isCheck {
+		res := s.checkDeliveringVestIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
+
+	if isDel {
+		res := s.delFieldDeliveringVest(so)
+		if !res {
+			return false
+		}
+	}
+
+	if isInsert {
+		res := s.insertFieldDeliveringVest(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoAccountWrap) delFieldDeliveringVest(so *SoAccount) bool {
+	if s.dba == nil {
+		return false
+	}
+
+	if !s.delSortKeyDeliveringVest(so) {
+		return false
+	}
+
+	return true
+}
+
+func (s *SoAccountWrap) insertFieldDeliveringVest(so *SoAccount) bool {
+	if s.dba == nil {
+		return false
+	}
+
+	if !s.insertSortKeyDeliveringVest(so) {
+		return false
+	}
+
+	return true
+}
+
+func (s *SoAccountWrap) checkDeliveringVestIsMetMdCondition(p *prototype.Vest) bool {
 	if s.dba == nil {
 		return false
 	}
@@ -2716,6 +3157,96 @@ func (s *SoAccountWrap) insertFieldLastVoteTime(so *SoAccount) bool {
 }
 
 func (s *SoAccountWrap) checkLastVoteTimeIsMetMdCondition(p *prototype.TimePointSec) bool {
+	if s.dba == nil {
+		return false
+	}
+
+	return true
+}
+
+func (s *SoAccountWrap) GetLentVest() *prototype.Vest {
+	res := true
+	msg := &SoAccount{}
+	if s.dba == nil {
+		res = false
+	} else {
+		key, err := s.encodeMainKey()
+		if err != nil {
+			res = false
+		} else {
+			buf, err := s.dba.Get(key)
+			if err != nil {
+				res = false
+			}
+			err = proto.Unmarshal(buf, msg)
+			if err != nil {
+				res = false
+			} else {
+				return msg.LentVest
+			}
+		}
+	}
+	if !res {
+		return nil
+
+	}
+	return msg.LentVest
+}
+
+func (s *SoAccountWrap) mdFieldLentVest(p *prototype.Vest, isCheck bool, isDel bool, isInsert bool,
+	so *SoAccount) bool {
+	if s.dba == nil {
+		return false
+	}
+
+	if isCheck {
+		res := s.checkLentVestIsMetMdCondition(p)
+		if !res {
+			return false
+		}
+	}
+
+	if isDel {
+		res := s.delFieldLentVest(so)
+		if !res {
+			return false
+		}
+	}
+
+	if isInsert {
+		res := s.insertFieldLentVest(so)
+		if !res {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *SoAccountWrap) delFieldLentVest(so *SoAccount) bool {
+	if s.dba == nil {
+		return false
+	}
+
+	if !s.delSortKeyLentVest(so) {
+		return false
+	}
+
+	return true
+}
+
+func (s *SoAccountWrap) insertFieldLentVest(so *SoAccount) bool {
+	if s.dba == nil {
+		return false
+	}
+
+	if !s.insertSortKeyLentVest(so) {
+		return false
+	}
+
+	return true
+}
+
+func (s *SoAccountWrap) checkLentVestIsMetMdCondition(p *prototype.Vest) bool {
 	if s.dba == nil {
 		return false
 	}
@@ -4880,6 +5411,495 @@ func (s *SAccountNextPowerdownBlockNumWrap) ForEachByOrder(start *uint64, end *u
 	return nil
 }
 
+////////////// SECTION List Keys ///////////////
+type SAccountBorrowedVestWrap struct {
+	Dba iservices.IDatabaseRW
+}
+
+func NewAccountBorrowedVestWrap(db iservices.IDatabaseRW) *SAccountBorrowedVestWrap {
+	if db == nil {
+		return nil
+	}
+	wrap := SAccountBorrowedVestWrap{Dba: db}
+	return &wrap
+}
+
+func (s *SAccountBorrowedVestWrap) GetMainVal(val []byte) *prototype.AccountName {
+	res := &SoListAccountByBorrowedVest{}
+	err := proto.Unmarshal(val, res)
+
+	if err != nil {
+		return nil
+	}
+	return res.Name
+
+}
+
+func (s *SAccountBorrowedVestWrap) GetSubVal(val []byte) *prototype.Vest {
+	res := &SoListAccountByBorrowedVest{}
+	err := proto.Unmarshal(val, res)
+	if err != nil {
+		return nil
+	}
+	return res.BorrowedVest
+
+}
+
+func (m *SoListAccountByBorrowedVest) OpeEncode() ([]byte, error) {
+	pre := AccountBorrowedVestTable
+	sub := m.BorrowedVest
+	if sub == nil {
+		return nil, errors.New("the pro BorrowedVest is nil")
+	}
+	sub1 := m.Name
+	if sub1 == nil {
+		return nil, errors.New("the mainkey Name is nil")
+	}
+	kList := []interface{}{pre, sub, sub1}
+	kBuf, cErr := kope.EncodeSlice(kList)
+	return kBuf, cErr
+}
+
+//Query srt by order
+//
+//start = nil  end = nil (query the db from start to end)
+//start = nil (query from start the db)
+//end = nil (query to the end of db)
+//
+//f: callback for each traversal , primary 、sub key、idx(the number of times it has been iterated)
+//as arguments to the callback function
+//if the return value of f is true,continue iterating until the end iteration;
+//otherwise stop iteration immediately
+//
+//lastMainKey: the main key of the last one of last page
+//lastSubVal: the value  of the last one of last page
+//
+func (s *SAccountBorrowedVestWrap) ForEachByOrder(start *prototype.Vest, end *prototype.Vest, lastMainKey *prototype.AccountName,
+	lastSubVal *prototype.Vest, f func(mVal *prototype.AccountName, sVal *prototype.Vest, idx uint32) bool) error {
+	if s.Dba == nil {
+		return errors.New("the db is nil")
+	}
+	if (lastSubVal != nil && lastMainKey == nil) || (lastSubVal == nil && lastMainKey != nil) {
+		return errors.New("last query param error")
+	}
+	if f == nil {
+		return nil
+	}
+	pre := AccountBorrowedVestTable
+	skeyList := []interface{}{pre}
+	if start != nil {
+		skeyList = append(skeyList, start)
+		if lastMainKey != nil {
+			skeyList = append(skeyList, lastMainKey, kope.MinimalKey)
+		}
+	} else {
+		if lastMainKey != nil && lastSubVal != nil {
+			skeyList = append(skeyList, lastSubVal, lastMainKey, kope.MinimalKey)
+		}
+		skeyList = append(skeyList, kope.MinimalKey)
+	}
+	sBuf, cErr := kope.EncodeSlice(skeyList)
+	if cErr != nil {
+		return cErr
+	}
+	eKeyList := []interface{}{pre}
+	if end != nil {
+		eKeyList = append(eKeyList, end)
+	} else {
+		eKeyList = append(eKeyList, kope.MaximumKey)
+	}
+	eBuf, cErr := kope.EncodeSlice(eKeyList)
+	if cErr != nil {
+		return cErr
+	}
+	var idx uint32 = 0
+	s.Dba.Iterate(sBuf, eBuf, false, func(key, value []byte) bool {
+		idx++
+		return f(s.GetMainVal(value), s.GetSubVal(value), idx)
+	})
+	return nil
+}
+
+//Query srt by reverse order
+//
+//f: callback for each traversal , primary 、sub key、idx(the number of times it has been iterated)
+//as arguments to the callback function
+//if the return value of f is true,continue iterating until the end iteration;
+//otherwise stop iteration immediately
+//
+//lastMainKey: the main key of the last one of last page
+//lastSubVal: the value  of the last one of last page
+//
+func (s *SAccountBorrowedVestWrap) ForEachByRevOrder(start *prototype.Vest, end *prototype.Vest, lastMainKey *prototype.AccountName,
+	lastSubVal *prototype.Vest, f func(mVal *prototype.AccountName, sVal *prototype.Vest, idx uint32) bool) error {
+	if s.Dba == nil {
+		return errors.New("the db is nil")
+	}
+	if (lastSubVal != nil && lastMainKey == nil) || (lastSubVal == nil && lastMainKey != nil) {
+		return errors.New("last query param error")
+	}
+	if f == nil {
+		return nil
+	}
+	pre := AccountBorrowedVestTable
+	skeyList := []interface{}{pre}
+	if start != nil {
+		skeyList = append(skeyList, start)
+		if lastMainKey != nil {
+			skeyList = append(skeyList, lastMainKey)
+		}
+	} else {
+		if lastMainKey != nil && lastSubVal != nil {
+			skeyList = append(skeyList, lastSubVal, lastMainKey)
+		}
+		skeyList = append(skeyList, kope.MaximumKey)
+	}
+	sBuf, cErr := kope.EncodeSlice(skeyList)
+	if cErr != nil {
+		return cErr
+	}
+	eKeyList := []interface{}{pre}
+	if end != nil {
+		eKeyList = append(eKeyList, end)
+	}
+	eBuf, cErr := kope.EncodeSlice(eKeyList)
+	if cErr != nil {
+		return cErr
+	}
+	var idx uint32 = 0
+	s.Dba.Iterate(eBuf, sBuf, true, func(key, value []byte) bool {
+		idx++
+		return f(s.GetMainVal(value), s.GetSubVal(value), idx)
+	})
+	return nil
+}
+
+////////////// SECTION List Keys ///////////////
+type SAccountLentVestWrap struct {
+	Dba iservices.IDatabaseRW
+}
+
+func NewAccountLentVestWrap(db iservices.IDatabaseRW) *SAccountLentVestWrap {
+	if db == nil {
+		return nil
+	}
+	wrap := SAccountLentVestWrap{Dba: db}
+	return &wrap
+}
+
+func (s *SAccountLentVestWrap) GetMainVal(val []byte) *prototype.AccountName {
+	res := &SoListAccountByLentVest{}
+	err := proto.Unmarshal(val, res)
+
+	if err != nil {
+		return nil
+	}
+	return res.Name
+
+}
+
+func (s *SAccountLentVestWrap) GetSubVal(val []byte) *prototype.Vest {
+	res := &SoListAccountByLentVest{}
+	err := proto.Unmarshal(val, res)
+	if err != nil {
+		return nil
+	}
+	return res.LentVest
+
+}
+
+func (m *SoListAccountByLentVest) OpeEncode() ([]byte, error) {
+	pre := AccountLentVestTable
+	sub := m.LentVest
+	if sub == nil {
+		return nil, errors.New("the pro LentVest is nil")
+	}
+	sub1 := m.Name
+	if sub1 == nil {
+		return nil, errors.New("the mainkey Name is nil")
+	}
+	kList := []interface{}{pre, sub, sub1}
+	kBuf, cErr := kope.EncodeSlice(kList)
+	return kBuf, cErr
+}
+
+//Query srt by order
+//
+//start = nil  end = nil (query the db from start to end)
+//start = nil (query from start the db)
+//end = nil (query to the end of db)
+//
+//f: callback for each traversal , primary 、sub key、idx(the number of times it has been iterated)
+//as arguments to the callback function
+//if the return value of f is true,continue iterating until the end iteration;
+//otherwise stop iteration immediately
+//
+//lastMainKey: the main key of the last one of last page
+//lastSubVal: the value  of the last one of last page
+//
+func (s *SAccountLentVestWrap) ForEachByOrder(start *prototype.Vest, end *prototype.Vest, lastMainKey *prototype.AccountName,
+	lastSubVal *prototype.Vest, f func(mVal *prototype.AccountName, sVal *prototype.Vest, idx uint32) bool) error {
+	if s.Dba == nil {
+		return errors.New("the db is nil")
+	}
+	if (lastSubVal != nil && lastMainKey == nil) || (lastSubVal == nil && lastMainKey != nil) {
+		return errors.New("last query param error")
+	}
+	if f == nil {
+		return nil
+	}
+	pre := AccountLentVestTable
+	skeyList := []interface{}{pre}
+	if start != nil {
+		skeyList = append(skeyList, start)
+		if lastMainKey != nil {
+			skeyList = append(skeyList, lastMainKey, kope.MinimalKey)
+		}
+	} else {
+		if lastMainKey != nil && lastSubVal != nil {
+			skeyList = append(skeyList, lastSubVal, lastMainKey, kope.MinimalKey)
+		}
+		skeyList = append(skeyList, kope.MinimalKey)
+	}
+	sBuf, cErr := kope.EncodeSlice(skeyList)
+	if cErr != nil {
+		return cErr
+	}
+	eKeyList := []interface{}{pre}
+	if end != nil {
+		eKeyList = append(eKeyList, end)
+	} else {
+		eKeyList = append(eKeyList, kope.MaximumKey)
+	}
+	eBuf, cErr := kope.EncodeSlice(eKeyList)
+	if cErr != nil {
+		return cErr
+	}
+	var idx uint32 = 0
+	s.Dba.Iterate(sBuf, eBuf, false, func(key, value []byte) bool {
+		idx++
+		return f(s.GetMainVal(value), s.GetSubVal(value), idx)
+	})
+	return nil
+}
+
+//Query srt by reverse order
+//
+//f: callback for each traversal , primary 、sub key、idx(the number of times it has been iterated)
+//as arguments to the callback function
+//if the return value of f is true,continue iterating until the end iteration;
+//otherwise stop iteration immediately
+//
+//lastMainKey: the main key of the last one of last page
+//lastSubVal: the value  of the last one of last page
+//
+func (s *SAccountLentVestWrap) ForEachByRevOrder(start *prototype.Vest, end *prototype.Vest, lastMainKey *prototype.AccountName,
+	lastSubVal *prototype.Vest, f func(mVal *prototype.AccountName, sVal *prototype.Vest, idx uint32) bool) error {
+	if s.Dba == nil {
+		return errors.New("the db is nil")
+	}
+	if (lastSubVal != nil && lastMainKey == nil) || (lastSubVal == nil && lastMainKey != nil) {
+		return errors.New("last query param error")
+	}
+	if f == nil {
+		return nil
+	}
+	pre := AccountLentVestTable
+	skeyList := []interface{}{pre}
+	if start != nil {
+		skeyList = append(skeyList, start)
+		if lastMainKey != nil {
+			skeyList = append(skeyList, lastMainKey)
+		}
+	} else {
+		if lastMainKey != nil && lastSubVal != nil {
+			skeyList = append(skeyList, lastSubVal, lastMainKey)
+		}
+		skeyList = append(skeyList, kope.MaximumKey)
+	}
+	sBuf, cErr := kope.EncodeSlice(skeyList)
+	if cErr != nil {
+		return cErr
+	}
+	eKeyList := []interface{}{pre}
+	if end != nil {
+		eKeyList = append(eKeyList, end)
+	}
+	eBuf, cErr := kope.EncodeSlice(eKeyList)
+	if cErr != nil {
+		return cErr
+	}
+	var idx uint32 = 0
+	s.Dba.Iterate(eBuf, sBuf, true, func(key, value []byte) bool {
+		idx++
+		return f(s.GetMainVal(value), s.GetSubVal(value), idx)
+	})
+	return nil
+}
+
+////////////// SECTION List Keys ///////////////
+type SAccountDeliveringVestWrap struct {
+	Dba iservices.IDatabaseRW
+}
+
+func NewAccountDeliveringVestWrap(db iservices.IDatabaseRW) *SAccountDeliveringVestWrap {
+	if db == nil {
+		return nil
+	}
+	wrap := SAccountDeliveringVestWrap{Dba: db}
+	return &wrap
+}
+
+func (s *SAccountDeliveringVestWrap) GetMainVal(val []byte) *prototype.AccountName {
+	res := &SoListAccountByDeliveringVest{}
+	err := proto.Unmarshal(val, res)
+
+	if err != nil {
+		return nil
+	}
+	return res.Name
+
+}
+
+func (s *SAccountDeliveringVestWrap) GetSubVal(val []byte) *prototype.Vest {
+	res := &SoListAccountByDeliveringVest{}
+	err := proto.Unmarshal(val, res)
+	if err != nil {
+		return nil
+	}
+	return res.DeliveringVest
+
+}
+
+func (m *SoListAccountByDeliveringVest) OpeEncode() ([]byte, error) {
+	pre := AccountDeliveringVestTable
+	sub := m.DeliveringVest
+	if sub == nil {
+		return nil, errors.New("the pro DeliveringVest is nil")
+	}
+	sub1 := m.Name
+	if sub1 == nil {
+		return nil, errors.New("the mainkey Name is nil")
+	}
+	kList := []interface{}{pre, sub, sub1}
+	kBuf, cErr := kope.EncodeSlice(kList)
+	return kBuf, cErr
+}
+
+//Query srt by order
+//
+//start = nil  end = nil (query the db from start to end)
+//start = nil (query from start the db)
+//end = nil (query to the end of db)
+//
+//f: callback for each traversal , primary 、sub key、idx(the number of times it has been iterated)
+//as arguments to the callback function
+//if the return value of f is true,continue iterating until the end iteration;
+//otherwise stop iteration immediately
+//
+//lastMainKey: the main key of the last one of last page
+//lastSubVal: the value  of the last one of last page
+//
+func (s *SAccountDeliveringVestWrap) ForEachByOrder(start *prototype.Vest, end *prototype.Vest, lastMainKey *prototype.AccountName,
+	lastSubVal *prototype.Vest, f func(mVal *prototype.AccountName, sVal *prototype.Vest, idx uint32) bool) error {
+	if s.Dba == nil {
+		return errors.New("the db is nil")
+	}
+	if (lastSubVal != nil && lastMainKey == nil) || (lastSubVal == nil && lastMainKey != nil) {
+		return errors.New("last query param error")
+	}
+	if f == nil {
+		return nil
+	}
+	pre := AccountDeliveringVestTable
+	skeyList := []interface{}{pre}
+	if start != nil {
+		skeyList = append(skeyList, start)
+		if lastMainKey != nil {
+			skeyList = append(skeyList, lastMainKey, kope.MinimalKey)
+		}
+	} else {
+		if lastMainKey != nil && lastSubVal != nil {
+			skeyList = append(skeyList, lastSubVal, lastMainKey, kope.MinimalKey)
+		}
+		skeyList = append(skeyList, kope.MinimalKey)
+	}
+	sBuf, cErr := kope.EncodeSlice(skeyList)
+	if cErr != nil {
+		return cErr
+	}
+	eKeyList := []interface{}{pre}
+	if end != nil {
+		eKeyList = append(eKeyList, end)
+	} else {
+		eKeyList = append(eKeyList, kope.MaximumKey)
+	}
+	eBuf, cErr := kope.EncodeSlice(eKeyList)
+	if cErr != nil {
+		return cErr
+	}
+	var idx uint32 = 0
+	s.Dba.Iterate(sBuf, eBuf, false, func(key, value []byte) bool {
+		idx++
+		return f(s.GetMainVal(value), s.GetSubVal(value), idx)
+	})
+	return nil
+}
+
+//Query srt by reverse order
+//
+//f: callback for each traversal , primary 、sub key、idx(the number of times it has been iterated)
+//as arguments to the callback function
+//if the return value of f is true,continue iterating until the end iteration;
+//otherwise stop iteration immediately
+//
+//lastMainKey: the main key of the last one of last page
+//lastSubVal: the value  of the last one of last page
+//
+func (s *SAccountDeliveringVestWrap) ForEachByRevOrder(start *prototype.Vest, end *prototype.Vest, lastMainKey *prototype.AccountName,
+	lastSubVal *prototype.Vest, f func(mVal *prototype.AccountName, sVal *prototype.Vest, idx uint32) bool) error {
+	if s.Dba == nil {
+		return errors.New("the db is nil")
+	}
+	if (lastSubVal != nil && lastMainKey == nil) || (lastSubVal == nil && lastMainKey != nil) {
+		return errors.New("last query param error")
+	}
+	if f == nil {
+		return nil
+	}
+	pre := AccountDeliveringVestTable
+	skeyList := []interface{}{pre}
+	if start != nil {
+		skeyList = append(skeyList, start)
+		if lastMainKey != nil {
+			skeyList = append(skeyList, lastMainKey)
+		}
+	} else {
+		if lastMainKey != nil && lastSubVal != nil {
+			skeyList = append(skeyList, lastSubVal, lastMainKey)
+		}
+		skeyList = append(skeyList, kope.MaximumKey)
+	}
+	sBuf, cErr := kope.EncodeSlice(skeyList)
+	if cErr != nil {
+		return cErr
+	}
+	eKeyList := []interface{}{pre}
+	if end != nil {
+		eKeyList = append(eKeyList, end)
+	}
+	eBuf, cErr := kope.EncodeSlice(eKeyList)
+	if cErr != nil {
+		return cErr
+	}
+	var idx uint32 = 0
+	s.Dba.Iterate(eBuf, sBuf, true, func(key, value []byte) bool {
+		idx++
+		return f(s.GetMainVal(value), s.GetSubVal(value), idx)
+	})
+	return nil
+}
+
 /////////////// SECTION Private function ////////////////
 
 func (s *SoAccountWrap) update(sa *SoAccount) bool {
@@ -5223,6 +6243,8 @@ func (s *UniAccountPubKeyWrap) UniQueryPubKey(start *prototype.PublicKeyType) *S
 type AccountWatcherFlag struct {
 	HasBalanceWatcher bool
 
+	HasBorrowedVestWatcher bool
+
 	HasBpVoteCountWatcher bool
 
 	HasChargedTicketWatcher bool
@@ -5232,6 +6254,8 @@ type AccountWatcherFlag struct {
 	HasCreatedTrxCountWatcher bool
 
 	HasCreatorWatcher bool
+
+	HasDeliveringVestWatcher bool
 
 	HasEachPowerdownRateWatcher bool
 
@@ -5246,6 +6270,8 @@ type AccountWatcherFlag struct {
 	HasLastStakeTimeWatcher bool
 
 	HasLastVoteTimeWatcher bool
+
+	HasLentVestWatcher bool
 
 	HasNextPowerdownBlockNumWatcher bool
 
@@ -5305,6 +6331,9 @@ func AccountRecordWatcherChanged(dbSvcId uint32) {
 	flag.HasBalanceWatcher = HasTableRecordWatcher(dbSvcId, AccountTable.Record, "Balance")
 	flag.AnyWatcher = flag.AnyWatcher || flag.HasBalanceWatcher
 
+	flag.HasBorrowedVestWatcher = HasTableRecordWatcher(dbSvcId, AccountTable.Record, "BorrowedVest")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasBorrowedVestWatcher
+
 	flag.HasBpVoteCountWatcher = HasTableRecordWatcher(dbSvcId, AccountTable.Record, "BpVoteCount")
 	flag.AnyWatcher = flag.AnyWatcher || flag.HasBpVoteCountWatcher
 
@@ -5319,6 +6348,9 @@ func AccountRecordWatcherChanged(dbSvcId uint32) {
 
 	flag.HasCreatorWatcher = HasTableRecordWatcher(dbSvcId, AccountTable.Record, "Creator")
 	flag.AnyWatcher = flag.AnyWatcher || flag.HasCreatorWatcher
+
+	flag.HasDeliveringVestWatcher = HasTableRecordWatcher(dbSvcId, AccountTable.Record, "DeliveringVest")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasDeliveringVestWatcher
 
 	flag.HasEachPowerdownRateWatcher = HasTableRecordWatcher(dbSvcId, AccountTable.Record, "EachPowerdownRate")
 	flag.AnyWatcher = flag.AnyWatcher || flag.HasEachPowerdownRateWatcher
@@ -5340,6 +6372,9 @@ func AccountRecordWatcherChanged(dbSvcId uint32) {
 
 	flag.HasLastVoteTimeWatcher = HasTableRecordWatcher(dbSvcId, AccountTable.Record, "LastVoteTime")
 	flag.AnyWatcher = flag.AnyWatcher || flag.HasLastVoteTimeWatcher
+
+	flag.HasLentVestWatcher = HasTableRecordWatcher(dbSvcId, AccountTable.Record, "LentVest")
+	flag.AnyWatcher = flag.AnyWatcher || flag.HasLentVestWatcher
 
 	flag.HasNextPowerdownBlockNumWatcher = HasTableRecordWatcher(dbSvcId, AccountTable.Record, "NextPowerdownBlockNum")
 	flag.AnyWatcher = flag.AnyWatcher || flag.HasNextPowerdownBlockNumWatcher

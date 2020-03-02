@@ -139,6 +139,14 @@ const (
 
 	ForkDBSnapshot = "forkdb_snapshot"
 	CheckPoint = "checkpoint"
+
+	MinVestDelegationInBlocks = 1 * 60 * 60 * 24 / BlockInterval
+	MaxVestDelegationInBlocks = 1000 * 365 * 60 * 60 * 24 / BlockInterval
+	VestDelegationDeliveryInBlocks = 7 * 60 * 60 * 24 / BlockInterval
+)
+
+const (
+
 )
 
 var GlobalId int32 = 1

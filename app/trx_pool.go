@@ -745,6 +745,12 @@ func (c *TrxPool) initGenesis() {
 		tInfo.PubKey = append(tInfo.PubKey, pubKey)
 		tInfo.Seq = 0
 	})
+
+	// create global incremental counter
+	table.NewSoIncIdWrap(c.db, &SingleId).Create(func(rec *table.SoIncId) {
+		rec.Id = SingleId
+		rec.Counter = 0
+	})
 }
 
 func (c *TrxPool) validateBlockHeader(blk *prototype.SignedBlock) {

@@ -385,3 +385,11 @@ func (p *TrxContext) StateChangeContext() *blocklog.StateChangeContext {
 func (p *TrxContext) HardFork() uint64 {
 	return p.control.HardFork()
 }
+
+func (p *TrxContext) NewRecordID() (rid uint64) {
+	table.NewSoIncIdWrap(p.db, &SingleId).Modify(func(rec *table.SoIncId) {
+		rec.Counter++
+		rid = rec.Counter
+	})
+	return
+}
