@@ -1342,9 +1342,17 @@ func (ev *DelegateVestEvaluator) Apply() {
 	opAssert(amount.GetValue() >= constants.MinVestDelegationAmount, "delegation amount too small")
 
 	// check if amount <= maxAmount,
-	// where maxAmount = effective_amount - borrowed - account_creation_fee
+	// where maxAmount = effective_amount - borrowed - account_creation_fee - vest_in_power_down
 	props := ev.GlobalProp().GetProps()
 	maxAmount := fromAccount.GetVest().Sub(fromAccount.GetBorrowedVest()).Sub(props.GetAccountCreateFee().ToVest())
+	if fromAccount.GetEachPowerdownRate().GetValue() > 0 {
+		inPowerDown := fromAccount.GetToPowerdown().Sub(fromAccount.GetHasPowerdown())
+		if maxAmount.GetValue() <= inPowerDown.GetValue() {
+			maxAmount.Value = 0
+		} else {
+			maxAmount.Sub(inPowerDown)
+		}
+	}
 	opAssert(maxAmount.GetValue() >= amount.GetValue(), "insufficient account vest")
 
 	// create a delegation order
