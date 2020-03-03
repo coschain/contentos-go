@@ -235,12 +235,12 @@ func init() {
 	RegisterEvaluator((*prototype.VoteByTicketOperation)(nil), func(delegate ApplyDelegate, op prototype.BaseOperation) BaseEvaluator {
 		return &VoteByTicketEvaluator {BaseDelegate: BaseDelegate{delegate:delegate}, op: op.(*prototype.VoteByTicketOperation)}
 	})
-	RegisterEvaluator((*prototype.DelegateVestOperation)(nil), func(delegate ApplyDelegate, op prototype.BaseOperation) BaseEvaluator {
+	RegisterEvaluatorWithMinHardFork((*prototype.DelegateVestOperation)(nil), func(delegate ApplyDelegate, op prototype.BaseOperation) BaseEvaluator {
 		return &DelegateVestEvaluator {BaseDelegate: BaseDelegate{delegate:delegate}, op: op.(*prototype.DelegateVestOperation)}
-	})
-	RegisterEvaluator((*prototype.UnDelegateVestOperation)(nil), func(delegate ApplyDelegate, op prototype.BaseOperation) BaseEvaluator {
+	}, constants.HardFork3)
+	RegisterEvaluatorWithMinHardFork((*prototype.UnDelegateVestOperation)(nil), func(delegate ApplyDelegate, op prototype.BaseOperation) BaseEvaluator {
 		return &UnDelegateVestEvaluator {BaseDelegate: BaseDelegate{delegate:delegate}, op: op.(*prototype.UnDelegateVestOperation)}
-	})
+	}, constants.HardFork3)
 }
 
 func (ev *AccountCreateEvaluator) Apply() {

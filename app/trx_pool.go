@@ -479,7 +479,7 @@ func (c *TrxPool) applyOperation(trxCtx *TrxContext, op *prototype.Operation) {
 }
 
 func (c *TrxPool) getEvaluator(trxCtx *TrxContext, op *prototype.Operation) BaseEvaluator {
-	return GetBaseEvaluator(trxCtx, op)
+	return GetBaseEvaluator(trxCtx, op, c.HardFork())
 }
 
 func (c *TrxPool) applyBlock(blk *prototype.SignedBlock, skip prototype.SkipFlag) {

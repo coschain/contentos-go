@@ -24,4 +24,5 @@ const (
 	Original uint64 = 0
 	HardFork1 uint64 = 1732100	// around 2019-10-15 15:30 +0800
 	HardFork2 uint64 = 11314200	// around 2020-02-03 15:00 +0800
+	HardFork3 uint64 = 99999999	// TODO: SET CORRECT BLOCK NUMBER
 )
