@@ -842,7 +842,7 @@ func (ev *ConvertVestEvaluator) Apply() {
 	accWrap := table.NewSoAccountWrap(ev.Database(), op.From)
 	accWrap.MustExist("account do not exist")
 
-	opAssert(accWrap.GetVest().Sub( globalProps.AccountCreateFee.ToVest() ).Value >= op.Amount.Value, "VEST balance not enough")
+	opAssert(accWrap.GetVest().Sub( accWrap.GetBorrowedVest() ).Sub( globalProps.AccountCreateFee.ToVest() ).Value >= op.Amount.Value, "VEST balance not enough")
 	currentBlock := globalProps.HeadBlockNumber
 	var eachRate uint64
 	if ev.HardFork() < constants.HardFork2 {
@@ -1330,28 +1330,21 @@ func (ev *DelegateVestEvaluator) Apply() {
 	op := ev.op
 
 	fromAccount := table.NewSoAccountWrap(ev.Database(), op.GetFrom()).MustExist()
-	toAccount := table.NewSoAccountWrap(ev.Database(), op.GetFrom()).MustExist()
+	toAccount := table.NewSoAccountWrap(ev.Database(), op.GetTo()).MustExist()
 	amount := op.GetAmount()
-	opAssert(fromAccount.GetName().GetValue() != toAccount.GetName().GetValue(), "self delegation not allowed")
-	opAssert(amount.GetValue() > 0, "zero delegation")
-	maxAmount := fromAccount.GetVest().Sub(fromAccount.GetBorrowedVest())
-	props := ev.GlobalProp().GetProps()
-	accountFee := prototype.NewVest(props.GetAccountCreateFee().GetValue())
-	opAssert(maxAmount.GetValue() > accountFee.GetValue(), "insufficient account vest")
-	maxAmount.Sub(accountFee)
-	if nextPowerDown := fromAccount.GetEachPowerdownRate(); nextPowerDown.GetValue() > 0 {
-		maxPowerDown := fromAccount.GetToPowerdown().Sub(fromAccount.GetHasPowerdown())
-		if nextPowerDown.GetValue() > maxPowerDown.GetValue() {
-			nextPowerDown = maxPowerDown
-		}
-		if nextPowerDown.GetValue() > maxAmount.GetValue() {
-			maxAmount.Value = 0
-		} else {
-			maxAmount.Sub(nextPowerDown)
-		}
-	}
-	opAssert(maxAmount.GetValue() > amount.GetValue(), "insufficient account vest")
 
+	// self delegation check
+	opAssert(fromAccount.GetName().GetValue() != toAccount.GetName().GetValue(), "self delegation not allowed")
+	// basic amount check
+	opAssert(amount.GetValue() >= constants.MinVestDelegationAmount, "delegation amount too small")
+
+	// check if amount <= maxAmount,
+	// where maxAmount = effective_amount - borrowed - account_creation_fee
+	props := ev.GlobalProp().GetProps()
+	maxAmount := fromAccount.GetVest().Sub(fromAccount.GetBorrowedVest()).Sub(props.GetAccountCreateFee().ToVest())
+	opAssert(maxAmount.GetValue() >= amount.GetValue(), "insufficient account vest")
+
+	// create a delegation order
 	orderId := ev.VMInjector().NewRecordID()
 	table.NewSoVestDelegationWrap(ev.Database(), &orderId).Create(func(r *table.SoVestDelegation) {
 		r.Id = orderId
@@ -1363,14 +1356,19 @@ func (ev *DelegateVestEvaluator) Apply() {
 		r.DeliveryBlock = math.MaxInt64
 		r.Delivering = false
 	})
+	// modify the vest attributes of relevant accounts
+	oldFromAccountVest := fromAccount.GetVest()
+	oldToAccountVest := toAccount.GetVest()
 	fromAccount.Modify(func(r *table.SoAccount) {
 		r.LentVest.Add(amount)
 		r.Vest.Sub(amount)
 	})
+	updateBpVoteValue(ev.Database(), op.GetFrom(), oldFromAccountVest, fromAccount.GetVest())
 	toAccount.Modify(func(r *table.SoAccount) {
 		r.BorrowedVest.Add(amount)
 		r.Vest.Add(amount)
 	})
+	updateBpVoteValue(ev.Database(), op.GetTo(), oldToAccountVest, toAccount.GetVest())
 }
 
 func (ev *UnDelegateVestEvaluator) Apply() {
@@ -1384,15 +1382,18 @@ func (ev *UnDelegateVestEvaluator) Apply() {
 	opAssert(!rec.GetDelivering(), "order delivering")
 	toAccount := table.NewSoAccountWrap(ev.Database(), rec.GetToAccount()).MustExist()
 	vest := rec.GetAmount()
-	fromAccount.Modify(func(r *table.SoAccount) {
-		r.LentVest.Sub(vest)
-		r.DeliveringVest.Add(vest)
-	})
-	toAccount.Modify(func(r *table.SoAccount) {
-		r.BorrowedVest.Sub(vest)
-	})
 	rec.Modify(func(r *table.SoVestDelegation) {
 		r.Delivering = true
 		r.DeliveryBlock = currentBlock + constants.VestDelegationDeliveryInBlocks
 	})
+	fromAccount.Modify(func(r *table.SoAccount) {
+		r.LentVest.Sub(vest)
+		r.DeliveringVest.Add(vest)
+	})
+	oldVest := toAccount.GetVest()
+	toAccount.Modify(func(r *table.SoAccount) {
+		r.BorrowedVest.Sub(vest)
+		r.Vest.Sub(vest)
+	})
+	updateBpVoteValue(ev.Database(), toAccount.GetName(), oldVest, toAccount.GetVest())
 }

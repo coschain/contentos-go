@@ -140,6 +140,7 @@ const (
 	ForkDBSnapshot = "forkdb_snapshot"
 	CheckPoint = "checkpoint"
 
+	MinVestDelegationAmount = 10 * COSTokenDecimals
 	MinVestDelegationInBlocks = 1 * 60 * 60 * 24 / BlockInterval
 	MaxVestDelegationInBlocks = 1000 * 365 * 60 * 60 * 24 / BlockInterval
 	VestDelegationDeliveryInBlocks = 7 * 60 * 60 * 24 / BlockInterval

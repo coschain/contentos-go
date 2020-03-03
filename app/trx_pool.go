@@ -592,6 +592,8 @@ func (c *TrxPool) applyBlock(blk *prototype.SignedBlock, skip prototype.SkipFlag
 	c.economist.Do()
 	eTiming.Mark()
 	c.economist.PowerDown()
+	eTiming.Mark()
+	c.economist.DeliverDelegatedVests()
 	eTiming.End()
 	c.economist.SetStateChangeContext(nil)
 	c.blockLogWatcher.CurrentBlockContext().SetCause("")
