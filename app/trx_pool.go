@@ -666,6 +666,9 @@ func (c *TrxPool) initGenesis() {
 		tInfo.Reputation = constants.DefaultReputation
 		tInfo.ChargedTicket = 0
 		tInfo.VotePower = constants.FullVP
+		tInfo.BorrowedVest = prototype.NewVest(0)
+		tInfo.LentVest = prototype.NewVest(0)
+		tInfo.DeliveringVest = prototype.NewVest(0)
 	})
 
 	// create block_producer_object

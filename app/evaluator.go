@@ -286,6 +286,9 @@ func (ev *AccountCreateEvaluator) Apply() {
 		tInfo.Reputation = constants.DefaultReputation
 		tInfo.ChargedTicket = 0
 		tInfo.VotePower = constants.FullVP
+		tInfo.BorrowedVest = prototype.NewVest(0)
+		tInfo.LentVest = prototype.NewVest(0)
+		tInfo.DeliveringVest = prototype.NewVest(0)
 	})
 
 	// sub dynamic glaobal properties's total fee
