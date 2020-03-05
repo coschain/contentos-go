@@ -324,12 +324,22 @@ func (this *NetServer) Connect(addr string, isConsensus bool) error {
 			this.RemoveFromConnectingList(addr)
 			return err
 		}
+		if conn.RemoteAddr() == nil {
+			this.log.Debug("conn.RemoteAddr() return nil")
+			this.RemoveFromConnectingList(addr)
+			return errors.New("conn.RemoteAddr() return nil")
+		}
 	} else {
 		conn, err = nonTLSDial(addr)
 		if err != nil {
 			this.log.Debugf("[p2p] connect %s failed:%s", addr, err.Error())
 			this.RemoveFromConnectingList(addr)
 			return err
+		}
+		if conn.RemoteAddr() == nil {
+			this.log.Debug("conn.RemoteAddr() return nil")
+			this.RemoveFromConnectingList(addr)
+			return errors.New("conn.RemoteAddr() return nil")
 		}
 	}
 
@@ -478,6 +488,12 @@ func (this *NetServer) startSyncAccept(listener net.Listener) {
 			return
 		}
 
+		if conn.RemoteAddr() == nil {
+			this.log.Debug("conn.RemoteAddr() return nil")
+			conn.Close()
+			continue
+		}
+
 		this.log.Debug("[p2p] remote sync node connect with ",
 			conn.RemoteAddr(), conn.LocalAddr())
 		if !this.AddrValid(conn.RemoteAddr().String()) {
@@ -535,6 +551,13 @@ func (this *NetServer) startConsAccept(listener net.Listener) {
 			this.log.Error("[p2p] error accepting ", err.Error())
 			return
 		}
+
+		if conn.RemoteAddr() == nil {
+			this.log.Debug("conn.RemoteAddr() return nil")
+			conn.Close()
+			continue
+		}
+
 		this.log.Debug("[p2p] remote cons node connect with ",
 			conn.RemoteAddr(), conn.LocalAddr())
 		if !this.AddrValid(conn.RemoteAddr().String()) {

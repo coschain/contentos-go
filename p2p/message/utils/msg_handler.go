@@ -1,7 +1,6 @@
 package utils
 
 import (
-	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/gobft/message"
 	"math"
 	"net"
@@ -21,38 +20,38 @@ import (
 	"github.com/coschain/contentos-go/p2p/peer"
 )
 
-const (
-	MaxBlockQueriesPerSecond      = 1500
-	MaxCheckPointQueriesPerSecond = 1500
-	MaxBlobSizePerSecond          = 10 * 1024 * 1024
-)
+//const (
+//	MaxBlockQueriesPerSecond      = 1500
+//	MaxCheckPointQueriesPerSecond = 1500
+//	MaxBlobSizePerSecond          = 10 * 1024 * 1024
+//)
 
 type MsgHandler struct {
 	blockCache        map[common.BlockID]common.ISignedBlock
 
-	blockQueryLimiter      *msgCommon.RateLimiter
-	checkpointQueryLimiter *msgCommon.RateLimiter
-	blobSizeLimiter        *msgCommon.RateLimiter
+	//blockQueryLimiter      *msgCommon.RateLimiter
+	//checkpointQueryLimiter *msgCommon.RateLimiter
+	//blobSizeLimiter        *msgCommon.RateLimiter
 
 	sync.Mutex
 	syncPushBlock sync.Mutex
 }
 
 func NewMsgHandler() *MsgHandler {
-	const (
-		checkPointSize = 8192	// estimated size of a checkpoint in bytes
-	)
+	//const (
+	//	checkPointSize = 8192	// estimated size of a checkpoint in bytes
+	//)
 	blockCache := make(map[common.BlockID]common.ISignedBlock)
 
-	maxBytesPerSecond := uint64(checkPointSize * MaxCheckPointQueriesPerSecond) + uint64(constants.MaxBlockSize * 5)
-	if maxBytesPerSecond > MaxBlobSizePerSecond {
-		maxBytesPerSecond = MaxBlobSizePerSecond
-	}
+	//maxBytesPerSecond := uint64(checkPointSize * MaxCheckPointQueriesPerSecond) + uint64(constants.MaxBlockSize * 5)
+	//if maxBytesPerSecond > MaxBlobSizePerSecond {
+	//	maxBytesPerSecond = MaxBlobSizePerSecond
+	//}
 	return &MsgHandler{
 		blockCache:             blockCache,
-		blockQueryLimiter:      msgCommon.NewRateLimiter(MaxBlockQueriesPerSecond),
-		checkpointQueryLimiter: msgCommon.NewRateLimiter(MaxCheckPointQueriesPerSecond),
-		blobSizeLimiter:        msgCommon.NewRateLimiter(uint32(maxBytesPerSecond)),
+		//blockQueryLimiter:      msgCommon.NewRateLimiter(MaxBlockQueriesPerSecond),
+		//checkpointQueryLimiter: msgCommon.NewRateLimiter(MaxCheckPointQueriesPerSecond),
+		//blobSizeLimiter:        msgCommon.NewRateLimiter(uint32(maxBytesPerSecond)),
 	}
 }
 
@@ -347,70 +346,70 @@ func (p *MsgHandler) VersionHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args 
 	//ctrl := service.(iservices.IConsensus)
 
 	if version.IsConsensus == true {
-		if ctx.Config().P2P.DualPortSupport == false {
-			log.Warn("[p2p] consensus port not surpport ", data.Addr)
-			remotePeer.CloseCons()
-			return
-		}
-
-		p := p2p.GetPeer(version.Nonce)
-
-		if p == nil {
-			log.Warn("[p2p] sync link is not exist: ", version.Nonce, data.Addr)
-			p2p.RemoveFromInConnRecord(remotePeer.GetAddr())
-			p2p.RemoveFromOutConnRecord(remotePeer.GetAddr())
-			p2p.RemoveFromConnectingList(remotePeer.GetAddr())
-			p2p.RemovePeerSyncAddress(remotePeer.GetAddr())
-			remotePeer.CloseCons()
-			remotePeer.CloseSync()
-			return
-		} else {
-			//p synclink must exist,merged
-			p.ConsLink = remotePeer.ConsLink
-			p.ConsLink.SetID(version.Nonce)
-			p.SetConsState(remotePeer.GetConsState())
-			remotePeer = p
-
-		}
-		if version.Nonce == p2p.GetID() {
-			log.Warn("[p2p] the node handshake with itself ", data.Addr)
-			p2p.SetOwnAddress(nodeAddr)
-			p2p.RemoveFromInConnRecord(remotePeer.GetAddr())
-			p2p.RemoveFromOutConnRecord(remotePeer.GetAddr())
-			p2p.RemoveFromConnectingList(remotePeer.GetAddr())
-			p2p.RemovePeerSyncAddress(remotePeer.GetAddr())
-			remotePeer.CloseCons()
-			return
-		}
-
-		s := remotePeer.GetConsState()
-		if s != msgCommon.INIT && s != msgCommon.HAND {
-			log.Warnf("[p2p] unknown status to received version,%d,%s\n", s, data.Addr)
-			remotePeer.CloseCons()
-			return
-		}
-
-		// Todo: change the method of input parameters
-		remotePeer.UpdateInfo(time.Now(), version.Version,
-			version.Services, version.SyncPort,
-			version.ConsPort, version.Nonce,
-			version.Relay, version.StartHeight, version.RunningCodeVersion)
-
-		var msg msgTypes.Message
-		if s == msgCommon.INIT {
-			remotePeer.SetConsState(msgCommon.HAND_SHAKE)
-			//msg = msgpack.NewVersion(p2p, true, ctrl.GetHeadBlockId().BlockNum())
-			msg = msgpack.NewVersion(p2p, true, uint64(0), ctx.Config().P2P.RunningCodeVersion)
-		} else if s == msgCommon.HAND {
-			remotePeer.SetConsState(msgCommon.HAND_SHAKED)
-			msg = msgpack.NewVerAck(true)
-
-		}
-		err := p2p.Send(remotePeer, msg, true)
-		if err != nil {
-			log.Error("[p2p] send message error: ", err)
-			return
-		}
+		//if ctx.Config().P2P.DualPortSupport == false {
+		//	log.Warn("[p2p] consensus port not surpport ", data.Addr)
+		//	remotePeer.CloseCons()
+		//	return
+		//}
+		//
+		//p := p2p.GetPeer(version.Nonce)
+		//
+		//if p == nil {
+		//	log.Warn("[p2p] sync link is not exist: ", version.Nonce, data.Addr)
+		//	p2p.RemoveFromInConnRecord(remotePeer.GetAddr())
+		//	p2p.RemoveFromOutConnRecord(remotePeer.GetAddr())
+		//	p2p.RemoveFromConnectingList(remotePeer.GetAddr())
+		//	p2p.RemovePeerSyncAddress(remotePeer.GetAddr())
+		//	remotePeer.CloseCons()
+		//	remotePeer.CloseSync()
+		//	return
+		//} else {
+		//	//p synclink must exist,merged
+		//	p.ConsLink = remotePeer.ConsLink
+		//	p.ConsLink.SetID(version.Nonce)
+		//	p.SetConsState(remotePeer.GetConsState())
+		//	remotePeer = p
+		//
+		//}
+		//if version.Nonce == p2p.GetID() {
+		//	log.Warn("[p2p] the node handshake with itself ", data.Addr)
+		//	p2p.SetOwnAddress(nodeAddr)
+		//	p2p.RemoveFromInConnRecord(remotePeer.GetAddr())
+		//	p2p.RemoveFromOutConnRecord(remotePeer.GetAddr())
+		//	p2p.RemoveFromConnectingList(remotePeer.GetAddr())
+		//	p2p.RemovePeerSyncAddress(remotePeer.GetAddr())
+		//	remotePeer.CloseCons()
+		//	return
+		//}
+		//
+		//s := remotePeer.GetConsState()
+		//if s != msgCommon.INIT && s != msgCommon.HAND {
+		//	log.Warnf("[p2p] unknown status to received version,%d,%s\n", s, data.Addr)
+		//	remotePeer.CloseCons()
+		//	return
+		//}
+		//
+		//// Todo: change the method of input parameters
+		//remotePeer.UpdateInfo(time.Now(), version.Version,
+		//	version.Services, version.SyncPort,
+		//	version.ConsPort, version.Nonce,
+		//	version.Relay, version.StartHeight, version.RunningCodeVersion)
+		//
+		//var msg msgTypes.Message
+		//if s == msgCommon.INIT {
+		//	remotePeer.SetConsState(msgCommon.HAND_SHAKE)
+		//	//msg = msgpack.NewVersion(p2p, true, ctrl.GetHeadBlockId().BlockNum())
+		//	msg = msgpack.NewVersion(p2p, true, uint64(0), ctx.Config().P2P.RunningCodeVersion)
+		//} else if s == msgCommon.HAND {
+		//	remotePeer.SetConsState(msgCommon.HAND_SHAKED)
+		//	msg = msgpack.NewVerAck(true)
+		//
+		//}
+		//err := p2p.Send(remotePeer, msg, true)
+		//if err != nil {
+		//	log.Error("[p2p] send message error: ", err)
+		//	return
+		//}
 	} else {
 		if version.Nonce == p2p.GetID() {
 			p2p.RemoveFromInConnRecord(remotePeer.GetAddr())
@@ -520,24 +519,24 @@ func (p *MsgHandler) VerAckHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args .
 	}
 
 	if verAck.IsConsensus == true {
-		if ctx.Config().P2P.DualPortSupport == false {
-			log.Warn("[p2p] consensus port not surpport")
-			return
-		}
-		s := remotePeer.GetConsState()
-		if s != msgCommon.HAND_SHAKE && s != msgCommon.HAND_SHAKED {
-			log.Warnf("[p2p] unknown status to received verAck,state:%d,%s\n", s, data.Addr)
-			return
-		}
-
-		remotePeer.SetConsState(msgCommon.ESTABLISH)
-		//p2p.RemoveFromConnectingList(data.Addr)
-		remotePeer.SetConsConn(remotePeer.GetConsConn())
-
-		if s == msgCommon.HAND_SHAKE {
-			msg := msgpack.NewVerAck(true)
-			p2p.Send(remotePeer, msg, true)
-		}
+		//if ctx.Config().P2P.DualPortSupport == false {
+		//	log.Warn("[p2p] consensus port not surpport")
+		//	return
+		//}
+		//s := remotePeer.GetConsState()
+		//if s != msgCommon.HAND_SHAKE && s != msgCommon.HAND_SHAKED {
+		//	log.Warnf("[p2p] unknown status to received verAck,state:%d,%s\n", s, data.Addr)
+		//	return
+		//}
+		//
+		//remotePeer.SetConsState(msgCommon.ESTABLISH)
+		////p2p.RemoveFromConnectingList(data.Addr)
+		//remotePeer.SetConsConn(remotePeer.GetConsConn())
+		//
+		//if s == msgCommon.HAND_SHAKE {
+		//	msg := msgpack.NewVerAck(true)
+		//	p2p.Send(remotePeer, msg, true)
+		//}
 	} else {
 		s := remotePeer.GetSyncState()
 		if s != msgCommon.HAND_SHAKE && s != msgCommon.HAND_SHAKED {
@@ -667,7 +666,8 @@ func (p *MsgHandler) IdMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ..
 		var blkId common.BlockID
 		copy(blkId.Data[:], msgdata.Value[0])
 
-		p.blockQueryLimiter.Request(1, false)
+		//p.blockQueryLimiter.Request(1, false)
+		remotePeer.BlockQueryLimiter.Request(1, false)
 		if !ctrl.HasBlock(blkId) {
 			var reqmsg msgTypes.TransferMsg
 			reqdata := new(msgTypes.IdMsg)
@@ -705,7 +705,8 @@ func (p *MsgHandler) IdMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ..
 				continue
 			}
 
-			if p.blockQueryLimiter.Request(1, false) == 0 {
+			//if p.blockQueryLimiter.Request(1, false) == 0 {
+			if remotePeer.BlockQueryLimiter.Request(1, false) == 0 {
 				break
 			}
 
@@ -717,7 +718,8 @@ func (p *MsgHandler) IdMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ..
 			sigBlk := IsigBlk.(*prototype.SignedBlock)
 
 			size := sigBlk.GetBlockSize()
-			if size > 0 && size < math.MaxInt32 && p.blobSizeLimiter.Request(uint32(size), true) == 0 {
+			//if size > 0 && size < math.MaxInt32 && p.blobSizeLimiter.Request(uint32(size), true) == 0 {
+			if size > 0 && size < math.MaxInt32 && remotePeer.BlobSizeLimiter.Request(uint32(size), true) == 0 {
 				break
 			}
 
@@ -752,7 +754,8 @@ func (p *MsgHandler) IdMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ..
 				continue
 			}
 
-			p.blockQueryLimiter.Request(1, false)
+			//p.blockQueryLimiter.Request(1, false)
+			remotePeer.BlockQueryLimiter.Request(1, false)
 			if !ctrl.HasBlock(blkId) {
 				var tmp []byte
 				reqdata.Value = append(reqdata.Value, tmp)
@@ -784,7 +787,8 @@ func (p *MsgHandler) IdMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ..
 			//	continue
 			//}
 
-			p.blockQueryLimiter.Request(1, false)
+			//p.blockQueryLimiter.Request(1, false)
+			remotePeer.BlockQueryLimiter.Request(1, false)
 			if !ctrl.HasBlock(blkId) {
 				if idx == 0 {
 					remotePeer.OutOfRangeState.Lock()
@@ -892,7 +896,8 @@ func (p *MsgHandler) ReqIdHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ..
 		if batchStart > end {
 			break
 		}
-		batchEnd := batchStart + uint64(p.blockQueryLimiter.Request(msgCommon.BATCH_LENGTH, false))
+		//batchEnd := batchStart + uint64(p.blockQueryLimiter.Request(msgCommon.BATCH_LENGTH, false))
+		batchEnd := batchStart + uint64(remotePeer.BlockQueryLimiter.Request(msgCommon.BATCH_LENGTH, false))
 		if batchEnd == batchStart {
 			break
 		}
@@ -1026,7 +1031,8 @@ func (p *MsgHandler) RequestCheckpointBatchHandle(data *msgTypes.MsgPayload, p2p
 		if startNum >= endNum {
 			return
 		}
-		if p.checkpointQueryLimiter.Request(1, false) == 0 {
+		//if p.checkpointQueryLimiter.Request(1, false) == 0 {
+		if remotePeer.CheckpointQueryLimiter.Request(1, false) == 0 {
 			break
 		}
 		cp := ctrl.GetNextBFTCheckPoint(startNum)
@@ -1086,14 +1092,16 @@ func (p *MsgHandler) FetchOutOfRangeHandle(data *msgTypes.MsgPayload, p2p p2p.P2
 	}
 	ctrl := s.(iservices.IConsensus)
 
-	p.blockQueryLimiter.Request(1, false)
+	//p.blockQueryLimiter.Request(1, false)
+	remotePeer.BlockQueryLimiter.Request(1, false)
 	ret1, err := ctrl.IsOnMainBranch(startID)
 	if err != nil {
 		log.Error("can not check whether startID on main branch, ", err)
 		ret1 = false
 	}
 
-	p.blockQueryLimiter.Request(1, false)
+	//p.blockQueryLimiter.Request(1, false)
+	remotePeer.BlockQueryLimiter.Request(1, false)
 	ret2, err := ctrl.IsOnMainBranch(targetID)
 	if err != nil {
 		log.Error("can not check whether targetID on main branch, ", err)
@@ -1112,7 +1120,8 @@ func (p *MsgHandler) FetchOutOfRangeHandle(data *msgTypes.MsgPayload, p2p p2p.P2
 			if batchStart > endNum {
 				break
 			}
-			batchEnd := batchStart + uint64(p.blockQueryLimiter.Request(msgCommon.BATCH_LENGTH, false))
+			//batchEnd := batchStart + uint64(p.blockQueryLimiter.Request(msgCommon.BATCH_LENGTH, false))
+			batchEnd := batchStart + uint64(remotePeer.BlockQueryLimiter.Request(msgCommon.BATCH_LENGTH, false))
 			if batchEnd == batchStart {
 				break
 			}
@@ -1137,7 +1146,8 @@ func (p *MsgHandler) FetchOutOfRangeHandle(data *msgTypes.MsgPayload, p2p p2p.P2
 			for i := 0; i < len(blockBatchList); i++ {
 				sigBlk := blockBatchList[i].(*prototype.SignedBlock)
 				size := sigBlk.GetBlockSize()
-				if size > 0 && size < math.MaxInt32 && p.blobSizeLimiter.Request(uint32(size), true) > 0 {
+				//if size > 0 && size < math.MaxInt32 && p.blobSizeLimiter.Request(uint32(size), true) > 0 {
+				if size > 0 && size < math.MaxInt32 && remotePeer.BlobSizeLimiter.Request(uint32(size), true) > 0 {
 					blockList = append(blockList, blockBatchList[i])
 				} else {
 					stopFetchBlock = true
@@ -1187,7 +1197,8 @@ func (p *MsgHandler) FetchOutOfRangeHandle(data *msgTypes.MsgPayload, p2p p2p.P2
 				break
 			}
 
-			p.blockQueryLimiter.Request(1, false)
+			//p.blockQueryLimiter.Request(1, false)
+			remotePeer.BlockQueryLimiter.Request(1, false)
 			IsigBlk, err := ctrl.FetchBlock(blkId)
 			if err != nil {
 				log.Error("[p2p] can't get IsigBlk from consensus, block number: ", blkId.BlockNum(), " error: ", err)
@@ -1255,7 +1266,8 @@ func (p *MsgHandler) RequestBlockBatchHandle(data *msgTypes.MsgPayload, p2p p2p.
 		if blkId == startID {
 			break
 		}
-		if p.blockQueryLimiter.Request(1, false) == 0 {
+		//if p.blockQueryLimiter.Request(1, false) == 0 {
+		if remotePeer.BlockQueryLimiter.Request(1, false) == 0 {
 			break
 		}
 		IsigBlk, err := ctrl.FetchBlock(blkId)
@@ -1281,7 +1293,8 @@ func (p *MsgHandler) RequestBlockBatchHandle(data *msgTypes.MsgPayload, p2p p2p.
 		sigBlk := IsigBlkList[i].(*prototype.SignedBlock)
 
 		size := sigBlk.GetBlockSize()
-		if size > 0 && size < math.MaxInt32 && p.blobSizeLimiter.Request(uint32(size), true) == 0 {
+		//if size > 0 && size < math.MaxInt32 && p.blobSizeLimiter.Request(uint32(size), true) == 0 {
+		if size > 0 && size < math.MaxInt32 && remotePeer.BlobSizeLimiter.Request(uint32(size), true) == 0 {
 			break
 		}
 
@@ -1334,7 +1347,8 @@ func (p *MsgHandler) DetectFormerIdsHandle(data *msgTypes.MsgPayload, p2p p2p.P2
 		if count == msgCommon.BATCH_LENGTH {
 			break
 		}
-		if p.blockQueryLimiter.Request(1, false) == 0 {
+		//if p.blockQueryLimiter.Request(1, false) == 0 {
+		if remotePeer.BlockQueryLimiter.Request(1, false) == 0 {
 			break
 		}
 
