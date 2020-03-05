@@ -835,6 +835,26 @@ func (mr *MockApiServiceClientMockRecorder) GetBlockProducerVoterList(ctx, in in
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBlockProducerVoterList", reflect.TypeOf((*MockApiServiceClient)(nil).GetBlockProducerVoterList), varargs...)
 }
 
+// GetVestDelegationOrderList mocks base method
+func (m *MockApiServiceClient) GetVestDelegationOrderList(ctx context.Context, in *pb.GetVestDelegationOrderListRequest, opts ...grpc.CallOption) (*pb.GetVestDelegationOrderListResponse, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{ctx, in}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "GetVestDelegationOrderList", varargs...)
+	ret0, _ := ret[0].(*pb.GetVestDelegationOrderListResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetVestDelegationOrderList indicates an expected call of GetVestDelegationOrderList
+func (mr *MockApiServiceClientMockRecorder) GetVestDelegationOrderList(ctx, in interface{}, opts ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{ctx, in}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetVestDelegationOrderList", reflect.TypeOf((*MockApiServiceClient)(nil).GetVestDelegationOrderList), varargs...)
+}
+
 // MockApiServiceServer is a mock of ApiServiceServer interface
 type MockApiServiceServer struct {
 	ctrl     *gomock.Controller
@@ -1456,4 +1476,19 @@ func (m *MockApiServiceServer) GetBlockProducerVoterList(arg0 context.Context, a
 func (mr *MockApiServiceServerMockRecorder) GetBlockProducerVoterList(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetBlockProducerVoterList", reflect.TypeOf((*MockApiServiceServer)(nil).GetBlockProducerVoterList), arg0, arg1)
+}
+
+// GetVestDelegationOrderList mocks base method
+func (m *MockApiServiceServer) GetVestDelegationOrderList(arg0 context.Context, arg1 *pb.GetVestDelegationOrderListRequest) (*pb.GetVestDelegationOrderListResponse, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetVestDelegationOrderList", arg0, arg1)
+	ret0, _ := ret[0].(*pb.GetVestDelegationOrderListResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetVestDelegationOrderList indicates an expected call of GetVestDelegationOrderList
+func (mr *MockApiServiceServerMockRecorder) GetVestDelegationOrderList(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetVestDelegationOrderList", reflect.TypeOf((*MockApiServiceServer)(nil).GetVestDelegationOrderList), arg0, arg1)
 }

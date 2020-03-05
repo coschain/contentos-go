@@ -1362,7 +1362,7 @@ func (ev *DelegateVestEvaluator) Apply() {
 		r.FromAccount = fromAccount.GetName()
 		r.ToAccount = toAccount.GetName()
 		r.Amount = amount
-		r.CreatedBlock = props.GetHeadBlockNumber()
+		r.CreatedBlock = props.GetHeadBlockNumber() + 1    // head block number is actually the number of last block
 		r.MaturityBlock = r.CreatedBlock + op.GetExpiration()
 		r.DeliveryBlock = math.MaxInt64
 		r.Delivering = false
