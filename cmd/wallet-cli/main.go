@@ -170,6 +170,7 @@ func addCommands() {
 	rootCmd.AddCommand(commands.NodeNeighboursCmd())
 	rootCmd.AddCommand(commands.StakerListCmd())
 	rootCmd.AddCommand(commands.QueryCmd())
+	rootCmd.AddCommand(commands.DelegateCmd())
 }
 
 func init() {
