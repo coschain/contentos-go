@@ -36,6 +36,7 @@ func TestOperations(t *testing.T) {
 	t.Run("reputation", NewDandelionContractTest(new(ReputationTester).Test, 8, "actor0.reputation"))
 	t.Run("copyright", NewDandelionContractTest(new(CopyrightTester).Test, 7, "actor0.copyright"))
 	t.Run("freeze", NewDandelionContractTest(new(FreezeTester).Test, 7, "actor0.freeze"))
+	t.Run("vest_delegate", dandelion.NewDandelionTest(new(VestDelegationTester).Test, 5))
 }
 
 func TestContractGasUsage(t *testing.T) {

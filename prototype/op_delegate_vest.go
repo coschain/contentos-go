@@ -20,8 +20,8 @@ func (m *DelegateVestOperation) Validate() error {
 	if err := m.GetTo().Validate(); err != nil {
 		return errors.WithMessage(err, "to account error")
 	}
-	if m.GetExpiration() < constants.MinVestDelegationInBlocks {
-		return errors.New("expiration too short")
+	if m.GetAmount().GetValue() < constants.MinVestDelegationAmount {
+		return errors.New("amount too small")
 	}
 	if m.GetExpiration() < constants.MinVestDelegationInBlocks {
 		return errors.New("expiration too short")

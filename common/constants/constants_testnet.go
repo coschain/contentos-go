@@ -17,6 +17,10 @@ const (
 	PerTicketWeight = uint64(1e7)
 
 	ClientName              = "Cos-go-testnet"
+
+	// vest delegation
+	MinVestDelegationInBlocks = 1 * 60 * 60 / BlockInterval		// 1 hour
+	VestDelegationDeliveryInBlocks = 1 * 60 * 60 * 24 / BlockInterval	// 1 day
 )
 
 // hard forks

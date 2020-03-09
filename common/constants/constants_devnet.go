@@ -18,6 +18,9 @@ const (
 
 	ClientName              = "Cos-go-devnet"
 
+	// vest delegation
+	MinVestDelegationInBlocks = 5 * 60 / BlockInterval			// 5 minutes
+	VestDelegationDeliveryInBlocks = 5 * 60 / BlockInterval		// 5 minutes
 )
 
 // hard forks

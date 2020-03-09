@@ -230,3 +230,19 @@ func VoteByTicket(name string, idx, count uint64) *prototype.Operation {
 		Count: count,
 	})
 }
+
+func DelegateVest(from, to string, amount, expirationBlocks uint64) *prototype.Operation {
+	return prototype.GetPbOperation(&prototype.DelegateVestOperation{
+		From: prototype.NewAccountName(from),
+		To: prototype.NewAccountName(to),
+		Amount: prototype.NewVest(amount),
+		Expiration: expirationBlocks,
+	})
+}
+
+func UnDelegateVest(name string, orderId uint64) *prototype.Operation {
+	return prototype.GetPbOperation(&prototype.UnDelegateVestOperation{
+		OrderId: orderId,
+		Account: prototype.NewAccountName(name),
+	})
+}

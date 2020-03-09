@@ -1336,6 +1336,9 @@ func (ev *DelegateVestEvaluator) Apply() {
 	toAccount := table.NewSoAccountWrap(ev.Database(), op.GetTo()).MustExist()
 	amount := op.GetAmount()
 
+	// reputation check
+	opAssert(fromAccount.GetReputation() > constants.MinReputation, "reputation too low")
+
 	// self delegation check
 	opAssert(fromAccount.GetName().GetValue() != toAccount.GetName().GetValue(), "self delegation not allowed")
 	// basic amount check
@@ -1386,6 +1389,10 @@ func (ev *UnDelegateVestEvaluator) Apply() {
 	op := ev.op
 
 	fromAccount := table.NewSoAccountWrap(ev.Database(), op.GetAccount()).MustExist()
+
+	// reputation check
+	opAssert(fromAccount.GetReputation() > constants.MinReputation, "reputation too low")
+
 	rec := table.NewSoVestDelegationWrap(ev.Database(), &op.OrderId).MustExist("order id not found")
 	opAssert(rec.GetFromAccount().GetValue() == fromAccount.GetName().GetValue(), "order owner mismatch")
 	currentBlock := ev.GlobalProp().GetProps().GetHeadBlockNumber()
@@ -1395,7 +1402,7 @@ func (ev *UnDelegateVestEvaluator) Apply() {
 	vest := rec.GetAmount()
 	rec.Modify(func(r *table.SoVestDelegation) {
 		r.Delivering = true
-		r.DeliveryBlock = currentBlock + constants.VestDelegationDeliveryInBlocks
+		r.DeliveryBlock = currentBlock + 1 + constants.VestDelegationDeliveryInBlocks
 	})
 	fromAccount.Modify(func(r *table.SoAccount) {
 		r.LentVest.Sub(vest)

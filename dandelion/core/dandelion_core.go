@@ -28,6 +28,8 @@ import (
 
 const sTrxReceiptCacheSize = 10000
 
+var ErrorTransactionNotFound = errors.New("transaction not found in block")
+
 type DandelionCore struct {
 	node *node.Node
 	cfg node.Config
@@ -291,7 +293,7 @@ func (d *DandelionCore) SendTrxEx2(privateKey *prototype.PrivateKeyType, operati
 			return trx, r.(*prototype.TransactionReceiptWithInfo), nil
 		}
 	}
-	return trx, nil, errors.New("transaction not found in block")
+	return trx, nil, ErrorTransactionNotFound
 }
 
 func (d *DandelionCore) SendTrxEx(privateKey *prototype.PrivateKeyType, operations...*prototype.Operation) (*prototype.TransactionReceiptWithInfo, error) {

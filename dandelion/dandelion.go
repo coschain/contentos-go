@@ -232,6 +232,10 @@ func (d *Dandelion) BlockProducerVote(voter string, blockProducer string) *table
 	})
 }
 
+func (d *Dandelion) VestDelegation(orderId uint64) *table.SoVestDelegationWrap {
+	return table.NewSoVestDelegationWrap(d.Database(), &orderId)
+}
+
 //
 // Contract tables
 //
