@@ -13,6 +13,9 @@ type Holder struct {
 	Balance uint64				`gorm:"index"`
 	Vest uint64					`gorm:"index"`
 	StakeVestFromMe uint64		`gorm:"index"`
+	BorrowedVest uint64			`gorm:"index"`
+	LentVest uint64				`gorm:"index"`
+	DeliveringVest uint64		`gorm:"index"`
 }
 
 type HolderProcessor struct {
@@ -37,7 +40,8 @@ func (p *HolderProcessor) Prepare(db *gorm.DB, blockLog *blocklog.BlockLog) (err
 }
 
 func (p *HolderProcessor) ProcessChange(db *gorm.DB, change *blocklog.StateChange, blockLog *blocklog.BlockLog, changeIdx, opIdx, trxIdx int) (err error) {
-	if change.What != "Account.Balance" && change.What != "Account.Vest" && change.What != "Account.StakeVestFromMe" && change.What != "Contract.Balance" {
+	if change.What != "Account.Balance" && change.What != "Account.Vest" && change.What != "Account.StakeVestFromMe" && change.What != "Contract.Balance" &&
+		change.What != "Account.BorrowedVest" && change.What != "Account.LentVest" && change.What != "Account.DeliveringVest" {
 		return nil
 	}
 	rec := new(Holder)
@@ -54,6 +58,12 @@ func (p *HolderProcessor) ProcessChange(db *gorm.DB, change *blocklog.StateChang
 		rec.Balance = value
 	case "Account.Vest":
 		rec.Vest = value
+	case "Account.BorrowedVest":
+		rec.BorrowedVest = value
+	case "Account.LentVest":
+		rec.LentVest = value
+	case "Account.DeliveringVest":
+		rec.DeliveringVest = value
 	case "Account.StakeVestFromMe":
 		rec.StakeVestFromMe = value
 	case "Contract.Balance":
