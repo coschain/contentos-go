@@ -10,19 +10,21 @@ import (
 )
 
 //Peer address package
-func NewAddrs(nodeAddrs []*mt.PeerAddr) mt.Message {
+func NewAddrs(nodeAddrs []*mt.PeerAddr, authnumber uint64) mt.Message {
 	var reqmsg mt.TransferMsg
 	data := new(mt.Address)
 	data.Addr = nodeAddrs
+	data.AuthNumber = authnumber
 
 	reqmsg.Msg = &mt.TransferMsg_Msg5{Msg5:data}
 	return &reqmsg
 }
 
 //Peer address request package
-func NewAddrReq() mt.Message {
+func NewAddrReq(authNumber uint64) mt.Message {
 	var reqmsg mt.TransferMsg
 	data := new(mt.AddrReq)
+	data.AuthNumber = authNumber
 
 	reqmsg.Msg = &mt.TransferMsg_Msg6{Msg6:data}
 	return &reqmsg

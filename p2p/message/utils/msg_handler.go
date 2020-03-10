@@ -80,6 +80,9 @@ func (p *MsgHandler) popFirstBlock() common.ISignedBlock {
 
 // AddrReqHandle handles the neighbor address request from peer
 func (p *MsgHandler) AddrReqHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...interface{}) {
+	var raw = data.Payload.(*msgTypes.TransferMsg)
+	var msgdata = raw.Msg.(*msgTypes.TransferMsg_Msg6).Msg6
+
 	log := p2p.GetLog()
 	remotePeer := p2p.GetPeer(data.Id)
 	if remotePeer == nil {
@@ -111,7 +114,7 @@ func (p *MsgHandler) AddrReqHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args 
 		}
 
 	}
-	msg := msgpack.NewAddrs(addrStr)
+	msg := msgpack.NewAddrs(addrStr, msgdata.AuthNumber)
 	err := p2p.Send(remotePeer, msg, false)
 	if err != nil {
 		log.Error("[p2p] send message error: ", err)
@@ -567,8 +570,9 @@ func (p *MsgHandler) VerAckHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args .
 			//}
 		}
 
-		msg := msgpack.NewAddrReq()
-		go p2p.Send(remotePeer, msg, false)
+		p2p.ReqNbrList(remotePeer, false)
+		//msg := msgpack.NewAddrReq()
+		//go p2p.Send(remotePeer, msg, false)
 	}
 
 }
@@ -580,7 +584,23 @@ func (p *MsgHandler) AddrHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...
 
 	log := p2p.GetLog()
 
+	remotePeer := p2p.GetPeer(data.Id)
+	if remotePeer == nil {
+		log.Error("[p2p] peer is not exist: ", data.Addr)
+		return
+	}
+
+	if remotePeer.ReqNbrList.AuthNumber != msgdata.AuthNumber {
+		log.Error("[p2p] message auth number mismatch, source ", data.Addr)
+		return
+	}
+
+	count := 0
 	for _, v := range msgdata.Addr {
+		if !msgCommon.RandomSelect(msgCommon.OneOfTwo) {
+			continue
+		}
+
 		var ip net.IP
 		ip = v.IpAddr[:]
 		address := ip.To16().String() + ":" + strconv.Itoa(int(v.Port))
@@ -605,7 +625,17 @@ func (p *MsgHandler) AddrHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...
 		}
 		log.Info("[p2p] connect ip address:", address)
 		go p2p.Connect(address, false)
+		count++
+		if count == msgCommon.MaxConnectOneTime {
+			break
+		}
 	}
+
+	// clear last require neighbours state
+	remotePeer.ReqNbrList.Lock()
+	remotePeer.ReqNbrList.LastAskTime = 0
+	remotePeer.ReqNbrList.AuthNumber = 0
+	remotePeer.ReqNbrList.Unlock()
 }
 
 // DisconnectHandle handles the disconnect events

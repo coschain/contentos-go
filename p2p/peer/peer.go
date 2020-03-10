@@ -110,6 +110,12 @@ type FetchOutOfRangeState struct {
 	sync.Mutex
 }
 
+type RequireNbrListState struct {
+	LastAskTime int64
+	AuthNumber  uint64
+	sync.Mutex
+}
+
 //Peer represent the node in p2p
 type Peer struct {
 	log                *logrus.Logger
@@ -132,6 +138,8 @@ type Peer struct {
 	connLock           sync.RWMutex
 	busy			   int32
 	busyFetchingCP     int32
+
+	ReqNbrList         RequireNbrListState
 
 	BlockQueryLimiter      *common.RateLimiter
 	CheckpointQueryLimiter *common.RateLimiter

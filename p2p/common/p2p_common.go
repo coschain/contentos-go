@@ -2,8 +2,10 @@ package common
 
 import (
 	"errors"
+	"math/rand"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/coschain/contentos-go/common/constants"
 )
@@ -93,6 +95,14 @@ const (
 	BATCH_LENGTH = 50   // length of id batch or block batch
 	BLOCKS_SIZE_LIMIT = constants.MaxBlockSize + constants.MaxBlockSizeTolerance
 	MAX_BLOCK_COUNT = 50           // max block count
+
+	MaxConnectOneTime = 10
+)
+
+// random type
+const (
+	OneOfTwo = "one of two"
+	OneOfThree = "one of three"
 )
 
 //ParseIPAddr return ip address
@@ -118,4 +128,25 @@ func ParseIPPort(s string) (string, error) {
 		return "", errors.New("[p2p]port out of bound")
 	}
 	return s[i:], nil
+}
+
+func RandomSelect (p string) bool {
+	rand.Seed(time.Now().Unix())
+	switch p {
+	case OneOfTwo:
+		seed := rand.Intn(2)
+		if seed % 2 == 0 {
+			return true
+		} else {
+			return false
+		}
+	case OneOfThree:
+		seed := rand.Intn(3)
+		if seed % 3 == 0 {
+			return true
+		} else {
+			return false
+		}
+	}
+	return true
 }

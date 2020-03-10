@@ -180,7 +180,8 @@ func (this *P2PServer) connectSeeds() {
 				pList = append(pList, tn)
 			}
 			if needAskAddr && tn.GetSyncState() == common.ESTABLISH {
-				this.reqNbrList(tn)
+				this.Network.ReqNbrList(tn, true)
+				//this.reqNbrList(tn)
 			}
 		}
 		np.Unlock()
@@ -320,10 +321,10 @@ func (this *P2PServer) connectSeedService() {
 //}
 
 //reqNbrList ask the peer for its neighbor list
-func (this *P2PServer) reqNbrList(p *peer.Peer) {
-	msg := msgpack.NewAddrReq()
-	go this.Send(p, msg, false)
-}
+//func (this *P2PServer) reqNbrList(p *peer.Peer) {
+//	msg := msgpack.NewAddrReq()
+//	go this.Send(p, msg, false)
+//}
 
 //heartBeat send ping to nbr peers and check the timeout
 func (this *P2PServer) heartBeatService() {

@@ -33,9 +33,12 @@ message req_id_msg {
 
 message address {
     repeated peer_addr addr = 1;
+    uint64   auth_number = 2;
 }
 
-message addr_req {}
+message addr_req {
+    uint64 auth_number = 1;
+}
 
 message disconnected {}
 

@@ -892,3 +892,27 @@ func (this *NetServer) GetMagic() uint32 {
 func (this *NetServer) RememberMsg(hash [common.HashSize]byte) bool {
 	return this.msgCache.PutIfNotFound(hash)
 }
+
+//reqNbrList ask the peer for its neighbor list
+func (this *NetServer) ReqNbrList(p *peer.Peer, randomSignal bool) {
+	// open random signal and random select not pass
+	if randomSignal && !common.RandomSelect(common.OneOfThree) {
+		return
+	}
+
+	now := time.Now().Unix()
+	if p.ReqNbrList.LastAskTime == 0 ||
+		( p.ReqNbrList.LastAskTime != 0 && (now - p.ReqNbrList.LastAskTime > common.KEEPALIVE_TIMEOUT) ) {
+		rand.Seed(time.Now().UnixNano())
+		authNumber := rand.Uint64()
+
+		// set require neighbours state
+		p.ReqNbrList.Lock()
+		p.ReqNbrList.LastAskTime = now
+		p.ReqNbrList.AuthNumber = authNumber
+		p.ReqNbrList.Unlock()
+
+		msg := msgpack.NewAddrReq(authNumber)
+		go this.Send(p, msg, false)
+	}
+}

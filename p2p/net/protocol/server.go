@@ -56,4 +56,6 @@ type P2P interface {
 	RememberMsg(hash [common.HashSize]byte) (isNew bool)
 
 	CheckStartUpFinished() bool
+
+	ReqNbrList(p *peer.Peer, randomSignal bool)
 }
