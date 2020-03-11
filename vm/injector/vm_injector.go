@@ -24,4 +24,5 @@ type Injector interface {
 	VmCache() *vmcache.VmCache
 	StateChangeContext() *blocklog.StateChangeContext
 	NewRecordID() uint64
+	CurrentRecordID() uint64
 }

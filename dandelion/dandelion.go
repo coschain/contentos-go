@@ -3,6 +3,7 @@ package dandelion
 import (
 	"errors"
 	"fmt"
+	"github.com/coschain/contentos-go/app"
 	"github.com/coschain/contentos-go/app/table"
 	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/dandelion/core"
@@ -234,6 +235,10 @@ func (d *Dandelion) BlockProducerVote(voter string, blockProducer string) *table
 
 func (d *Dandelion) VestDelegation(orderId uint64) *table.SoVestDelegationWrap {
 	return table.NewSoVestDelegationWrap(d.Database(), &orderId)
+}
+
+func (d *Dandelion) CurrentRecordID() uint64 {
+	return table.NewSoIncIdWrap(d.Database(), &app.SingleId).GetCounter()
 }
 
 //

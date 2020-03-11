@@ -393,3 +393,13 @@ func (p *TrxContext) NewRecordID() (rid uint64) {
 	})
 	return
 }
+
+func (p *TrxContext) CurrentRecordID() (rid uint64) {
+	rec := table.NewSoIncIdWrap(p.db, &SingleId)
+	if rec.CheckExist() {
+		rid = rec.GetCounter()
+	} else {
+		rid = 0
+	}
+	return
+}
