@@ -19,6 +19,61 @@ func (tester *VestDelegationTester) Test(t *testing.T, d *Dandelion) {
 	tester.acc3 = d.Account("actor3")
 	tester.acc4 = d.Account("actor4")
 
+// ===== test cases list
+// case 1: hardFork3Switch
+//         ===== before hardFork3 block number, although all nodes have been upgraded, delegate or undelegate vest transaction still illegal
+//
+// case 2: base function test
+//         ===== actor0 has 10000.1 vest, actor1 has 0.1 vest, actor2 has 0.1 vest
+//         1). actor0 delegate 0 vest -> failed
+//         2). actor0 delegate 20000 vest -> failed
+//         3). actor0 delegate 10000.1 vest -> failed
+//         4). actor0 delegate to himself -> failed
+//         5). actor0 delegate 10000 vest to actor1 but his reputation is 0  -> failed
+//         6). actor0 delegate 10000 vest to actor1 and has enough reputation -> success
+//         ===== actor0's vest decrease 10000 and actor1's vest increase 10000 immediately
+//         7). actor1 delegate 10000 vest to actor2 -> failed
+//         8). before maturity actor0 undelegate -> failed
+//         9). after maturity actor0 undelegate 10000 vest -> success
+//         ===== actor1's vest decrease 10000 immediately and actor0's vest not change,
+//         ===== before 7 days actor0 delegate 10000 vest -> failed
+//         ===== after 7 days actor0's vest increase 10000
+//         10). after maturity actor0 undelegate and use the budget id which has already been undelegated -> failed
+//
+// case 3: bp related
+//         ===== actor0 has 10000.1 vest， actor1 has 0.1 vest
+//         ===== actor3 and actor4 are producers, actor0 vote actor3, actor1 vote actor4
+//         1). actor0 delegate 10000 vest to actor1 and has enough reputation -> success
+//         ===== vote count of actor3 decrease 10000 and vote count of actor4 increase 10000 immediately
+//         2). after maturity actor0 undelegate 10000 vest -> success
+//         ===== vote count of actor4 decrease 10000 immediately and vote count of actor3 not change
+//         ===== before 7 days actor1 vote actor3, vote count of actor3 increase only 0.1 vest
+//         ===== after 7 days vote count of actor4 increase 10000
+//
+// case 4: power down related
+//         ===== actor0 has 10000.1 vest and power down 5000, actor1 has 0.1 vest
+//         ===== before 5000 vest power down finish
+//         1). actor0 delegate 10000 vest -> failed
+//         2). actor0 delegate 5000 vest to actor1 and has enough reputation -> success
+//         ===== actor0's vest decrease 5000 and actor1's vest increase 5000 immediately
+//         3). actor0 cancel old power down and delegate rest -> success
+//         4). actor1 power down 5000 vest -> failed
+//         5). after first delegate maturity actor0 undelegate 5000 vest -> success
+//         ===== actor1's vest decrease 5000 immediately
+//         6). before 7 days actor0 power down 5000 vest -> failed
+//         ===== after 7 days actor0's vest increase 5000
+//         7). actor0 power down -> success
+//
+// case 5: multi delegate
+//         ===== actor0 has 10000.1 vest, actor1 has 10000.1 vest, actor2 and actor3 has 0.1 vest
+//         1). actor0 delegate 5000 vest to actor1 -> success
+//         ===== actor0's vest decrease 5000 and actor1's vest increase 5000 immediately
+//         2). actor0 delegate 5000 vest to actor2 -> success
+//         ===== actor0's vest decrease 5000 and actor2's vest increase 5000 immediately
+//         3). actor1 delegate 15000 vest to actor2 -> failed
+//         4). actor2 delegate 5000 vest to actor3 -> failed
+
+
 	// vest delegation only works after hard fork 3.
 	t.Run("hard_fork3_switch", d.Test(tester.hardFork3Switch))
 
