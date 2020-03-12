@@ -32,8 +32,8 @@ var DelegateCmd = func() *cobra.Command {
 	newCmd := &cobra.Command{
 		Use: "new",
 		Short: "create a new delegation order",
-		Example: "delegate new alice bob 100.000000",
-		Args: cobra.ExactArgs(3),
+		Example: "delegate new alice bob 100.000000 86400",
+		Args: cobra.ExactArgs(4),
 		Run: newDelegation,
 	}
 
@@ -69,7 +69,7 @@ func listDelegations(cmd *cobra.Command, args []string) {
 	}
 	var orders []*grpcpb.VestDelegationOrder
 	for len(orders) < maxOrders {
-		if resp, err := client.GetVestDelegationOrderList(context.Background(), req); err != nil {
+		if resp, err := client.GetVestDelegationOrderList(context.Background(), req); err == nil {
 			if resp == nil || len(resp.GetOrders()) == 0 {
 				break
 			}
@@ -84,14 +84,14 @@ func listDelegations(cmd *cobra.Command, args []string) {
 		fmt.Println("no orders found.")
 		return
 	}
+	fmt.Printf("%10s %16s %16s %18s %10s %10s %10s\n",
+		"Order-ID", "From", "To", "Vests", "Created", "Maturity", "Delivery")
+	fmt.Println(strings.Repeat("-", 96))
 	for _, order := range orders {
 		delivery := "-"
 		if order.Delivering {
 			delivery = strconv.FormatUint(order.DeliveryBlock, 10)
 		}
-		fmt.Printf("%10s %16s %16s %18s %10s %10s %10s\n",
-			"Order-ID", "From", "To", "Vests", "Created", "Matured", "Delivered")
-		fmt.Println(strings.Repeat("-", 96))
 		fmt.Printf("%10d %16s %16s %11d.%06d %10d %10d %10s\n",
 			order.Id,
 			order.FromAccount.Value,
@@ -121,6 +121,11 @@ func newDelegation(cmd *cobra.Command, args []string) {
 		fmt.Println(err)
 		return
 	}
+	expiration, err := strconv.ParseUint(args[3], 10, 64)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
 	fromAccount, ok := mywallet.GetUnlockedAccount(fromAccountName)
 	if !ok {
 		fmt.Println(fmt.Sprintf("account: %s should be loaded or created first", fromAccountName))
@@ -130,6 +135,7 @@ func newDelegation(cmd *cobra.Command, args []string) {
 		From: &prototype.AccountName{Value: fromAccountName},
 		To: &prototype.AccountName{Value: toAccountName},
 		Amount: &prototype.Vest{Value: amount},
+		Expiration: expiration,
 	}
 	signTx, err := utils.GenerateSignedTxAndValidate(cmd, []interface{}{op}, fromAccount)
 	if err != nil {

@@ -1622,22 +1622,24 @@ func (as *APIService) GetVestDelegationOrderList(ctx context.Context, req *grpcp
 	resp = new(grpcpb.GetVestDelegationOrderListResponse)
 	accountNameEnd := &prototype.AccountName{ Value: req.Account.GetValue() + " " }
 	var lastOrder *uint64
+	var lastAccount *prototype.AccountName
 	if req.LastOrderId != 0 {
 		lastOrder = &req.LastOrderId
+		lastAccount = req.Account
 	}
 	var iterFunc func(*prototype.AccountName, *prototype.AccountName, *uint64, *prototype.AccountName, func(*uint64, *prototype.AccountName, uint32)bool)error
 	if req.IsFrom {
-		iterFunc = table.NewVestDelegationFromAccountWrap(as.db).ForEachByRevOrder
+		iterFunc = table.NewVestDelegationFromAccountWrap(as.db).ForEachByOrder
 	} else {
-		iterFunc = table.NewVestDelegationToAccountWrap(as.db).ForEachByRevOrder
+		iterFunc = table.NewVestDelegationToAccountWrap(as.db).ForEachByOrder
 	}
 
 	var orders []uint64
-	err = iterFunc(accountNameEnd, req.Account, lastOrder, req.Account, func(orderId *uint64, name *prototype.AccountName, idx uint32) bool {
+	err = iterFunc(req.Account, accountNameEnd, lastOrder, lastAccount, func(orderId *uint64, name *prototype.AccountName, idx uint32) bool {
 		orders = append(orders, *orderId)
 		return len(orders) < int(req.Limit)
 	})
-	if err == nil {
+	if err != nil {
 		return
 	}
 
