@@ -1,0 +1,18 @@
+
+syntax = "proto3";
+
+package table;
+
+option go_package = "github.com/coschain/contentos-go/app/table";
+
+
+message so_incId {
+	int32                          id        =      1;
+    uint64                         counter     =      2;
+      
+}
+
+
+message so_unique_incId_by_id {
+	int32                       	id    = 1;
+}

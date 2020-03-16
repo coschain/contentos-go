@@ -82,6 +82,8 @@ func (tester *BlockLogTester) doSomething() {
 		waits = constants.VoteCashOutDelayBlock
 	}
 	tester.a.NoError(tester.d.ProduceBlocks(waits))
+
+	//tester.testVestDelegation()
 }
 
 func (tester *BlockLogTester) prepare() {
@@ -128,4 +130,15 @@ func (tester *BlockLogTester) onBlockLog(blockLog *blocklog.BlockLog, blockProdu
 	j, err := json.MarshalIndent(blockLog, "", "    ")
 	tester.a.NoError(err)
 	fmt.Printf("block log #%d\n%s\n", blockLog.BlockNum, string(j))
+}
+
+func (tester *BlockLogTester) testVestDelegation() {
+	a := tester.a
+	if tester.d.TrxPool().HardFork() < constants.HardFork3 {
+		a.NoError(tester.d.ProduceBlocks(int(constants.HardFork3) - int(tester.d.GlobalProps().HeadBlockNumber)))
+	}
+	tester.actors[0].SendTrxEx(DelegateVest(tester.actors[0].Name, tester.actors[1].Name, 1000 * constants.COSTokenDecimals, constants.MinVestDelegationInBlocks))
+	_ = tester.d.ProduceBlocks(constants.MinVestDelegationInBlocks + 5)
+	tester.actors[0].SendTrxEx(UnDelegateVest(tester.actors[0].Name, 1))
+	_ = tester.d.ProduceBlocks(constants.VestDelegationDeliveryInBlocks + 5)
 }

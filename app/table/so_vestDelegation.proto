@@ -1,0 +1,55 @@
+
+syntax = "proto3";
+
+package table;
+
+option go_package = "github.com/coschain/contentos-go/app/table";
+
+import "prototype/type.proto";
+
+message so_vestDelegation {
+	uint64                      id                    =      1;
+    prototype.account_name      from_account          =      2;
+    prototype.account_name      to_account            =      3;
+    prototype.vest              amount                =      4;
+    uint64                      created_block         =      5;
+    uint64                      maturity_block        =      6;
+    uint64                      delivery_block        =      7;
+    bool                        delivering            =      8;
+      
+}
+
+
+message so_list_vestDelegation_by_from_account {
+	prototype.account_name   	from_account      = 1;
+	uint64                   	id                = 2;
+}
+
+
+message so_list_vestDelegation_by_to_account {
+	prototype.account_name   	to_account        = 1;
+	uint64                   	id                = 2;
+}
+
+
+message so_list_vestDelegation_by_maturity_block {
+	uint64                   	maturity_block    = 1;
+	uint64                   	id                = 2;
+}
+
+
+message so_list_vestDelegation_by_delivery_block {
+	uint64                   	delivery_block    = 1;
+	uint64                   	id                = 2;
+}
+
+
+message so_list_vestDelegation_by_delivering {
+	bool                     	delivering        = 1;
+	uint64                   	id                = 2;
+}
+
+
+message so_unique_vestDelegation_by_id {
+	uint64                   	id                = 1;
+}

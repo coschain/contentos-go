@@ -127,6 +127,9 @@ service ApiService {
 
     rpc GetBlockProducerVoterList(GetBlockProducerVoterListRequest) returns (GetBlockProducerVoterListResponse) {
     }
+
+    rpc GetVestDelegationOrderList(GetVestDelegationOrderListRequest) returns (GetVestDelegationOrderListResponse) {
+    }
 }
 
 
@@ -213,6 +216,11 @@ message AccountInfo {
     string                                  freeze_memo = 27;
     prototype.vest                          stake_vest_from_me = 28;
     prototype.account_name                  voted_block_producer = 29;
+    prototype.vest                          vest_borrowed            = 30;
+    prototype.vest                          vest_lent            = 31;
+    prototype.vest                          vest_delivering      = 32;
+    prototype.vest                          vest_owned           = 33;
+    prototype.vest                          vest_self            = 34;
 }
 
 message AccountResponse {
@@ -710,4 +718,26 @@ message BlockProducerVoterResponse {
 
 message GetBlockProducerVoterListResponse {
     repeated BlockProducerVoterResponse voter = 1;
+}
+
+message VestDelegationOrder {
+    uint64 id = 1;
+    prototype.account_name from_account = 2;
+    prototype.account_name to_account = 3;
+    prototype.vest amount = 4;
+    uint64 created_block = 5;
+    uint64 maturity_block = 6;
+    uint64 delivery_block = 7;
+    bool delivering = 8;
+}
+
+message GetVestDelegationOrderListRequest {
+    prototype.account_name account = 1;
+    bool is_from = 2;
+    uint32 limit = 3;
+    uint64 last_order_id = 4;
+}
+
+message GetVestDelegationOrderListResponse {
+    repeated VestDelegationOrder orders = 1;
 }

@@ -18,6 +18,9 @@ const (
 
 	ClientName              = "Cos-go-devnet"
 
+	// vest delegation
+	MinVestDelegationInBlocks = 3 * 60 / BlockInterval			// 3 minutes
+	VestDelegationDeliveryInBlocks = 3 * 60 / BlockInterval		// 3 minutes
 )
 
 // hard forks
@@ -25,4 +28,5 @@ const (
 	Original uint64 = 0
 	HardFork1 uint64 = 3600
 	HardFork2 uint64 = 8330951
+	HardFork3 uint64 = 99999999	// TODO: SET CORRECT BLOCK NUMBER
 )

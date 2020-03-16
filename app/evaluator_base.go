@@ -1,6 +1,8 @@
 package app
 
 import (
+	"fmt"
+	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/coschain/contentos-go/vm/injector"
@@ -64,8 +66,15 @@ type BaseEvaluator interface {
 type EvaluatorCreator func(delegate ApplyDelegate, op prototype.BaseOperation) BaseEvaluator
 
 const sMetaKeyEvaluatorCreator = "op_meta_evaluator_creator"
+const sMetaKeyEvaluatorHardFork = "op_meta_evaluator_hard_fork"
 
-func GetBaseEvaluator(delegate ApplyDelegate, op *prototype.Operation) BaseEvaluator {
+func GetBaseEvaluator(delegate ApplyDelegate, op *prototype.Operation, currentHardfork uint64) BaseEvaluator {
+	if value := prototype.GetGenericOperationMeta(op, sMetaKeyEvaluatorHardFork); value != nil {
+		minHardFork := value.(uint64)
+		if currentHardfork < minHardFork {
+			panic(fmt.Sprintf("evaluator only works after hard_fork = %d", minHardFork))
+		}
+	}
 	if value := prototype.GetGenericOperationMeta(op, sMetaKeyEvaluatorCreator); value != nil {
 		evalCreator := value.(EvaluatorCreator)
 		return evalCreator(delegate, prototype.GetBaseOperation(op))
@@ -74,5 +83,10 @@ func GetBaseEvaluator(delegate ApplyDelegate, op *prototype.Operation) BaseEvalu
 }
 
 func RegisterEvaluator(opPtr interface{}, evalCreator EvaluatorCreator) {
+	RegisterEvaluatorWithMinHardFork(opPtr, evalCreator, constants.Original)
+}
+
+func RegisterEvaluatorWithMinHardFork(opPtr interface{}, evalCreator EvaluatorCreator, minHardFork uint64) {
 	prototype.RegisterOperationMeta(opPtr, sMetaKeyEvaluatorCreator, evalCreator)
+	prototype.RegisterOperationMeta(opPtr, sMetaKeyEvaluatorHardFork, minHardFork)
 }

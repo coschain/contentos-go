@@ -173,7 +173,11 @@ func (w *Watcher) recordChange(branch string, event int, what string, change *Ge
 
 func (w *Watcher) setupWatchers() {
 	for _, e := range sInterestedChanges {
-		table.AddTableRecordFieldWatcher(w.dbSvc, e.Table.Record, e.Table.Primary, e.Field, w.makeWatcherFunc(strings.Join([]string{e.Table.Name, e.Field}, "."), e.Maker))
+		what := e.Table.Name
+		if len(e.Field) > 0 {
+			what = what + "." + e.Field
+		}
+		table.AddTableRecordFieldWatcher(w.dbSvc, e.Table.Record, e.Table.Primary, e.Field, w.makeWatcherFunc(what, e.Maker))
 	}
 }
 

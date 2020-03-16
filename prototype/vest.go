@@ -88,7 +88,7 @@ func VestFromString(buf string) (*Coin, error) {
 		return nil, ErrVestFormatErr
 	}
 
-	low, err := strconv.Atoi(res[0])
+	low, err := strconv.Atoi(res[1])
 	if err != nil {
 		return nil, ErrVestFormatErr
 	}

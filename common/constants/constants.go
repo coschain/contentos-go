@@ -139,6 +139,10 @@ const (
 
 	ForkDBSnapshot = "forkdb_snapshot"
 	CheckPoint = "checkpoint"
+
+	// vest delegation
+	MinVestDelegationAmount = 10 * COSTokenDecimals		// 10 COS. to prevent tiny delegation flood.
+	MaxVestDelegationInBlocks = 1000 * 365 * 60 * 60 * 24 / BlockInterval	// ~forever, say 1000 years
 )
 
 var GlobalId int32 = 1

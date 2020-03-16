@@ -691,13 +691,18 @@ func (e *Economist) PowerDown() {
 	timing.Mark()
 
 	var powerdownQuota uint64 = 0
+	accountFee := globalProps.GetAccountCreateFee().ToVest().GetValue()
 	for _, accountName := range accountNames {
 		accountWrap := table.NewSoAccountWrap(e.db, accountName)
-		if accountWrap.GetToPowerdown().Value-accountWrap.GetHasPowerdown().Value < accountWrap.GetEachPowerdownRate().Value {
-			powerdownQuota = Min(accountWrap.GetVest().Value, accountWrap.GetToPowerdown().Value-accountWrap.GetHasPowerdown().Value)
+		max := accountWrap.GetVest().Sub(accountWrap.GetBorrowedVest()).GetValue()
+		if max < accountFee {
+			max = 0
 		} else {
-			powerdownQuota = Min(accountWrap.GetVest().Value, accountWrap.GetEachPowerdownRate().Value)
+			max -= accountFee
 		}
+		remaining := accountWrap.GetToPowerdown().Sub(accountWrap.GetHasPowerdown()).GetValue()
+		planned := accountWrap.GetEachPowerdownRate().GetValue()
+		powerdownQuota = Min(max, Min(planned, remaining))
 
 		oldVest := accountWrap.GetVest()
 		powerDownQuotaVest := &prototype.Vest{Value: powerdownQuota}
@@ -720,7 +725,7 @@ func (e *Economist) PowerDown() {
 			props.TotalCos.Add(powerDownQuotaCoin)
 			props.TotalVest.Sub(powerDownQuotaVest)
 		})
-		if accountWrap.GetHasPowerdown().Value >= accountWrap.GetToPowerdown().Value || accountWrap.GetVest().Value == 0 {
+		if accountWrap.GetHasPowerdown().Value >= accountWrap.GetToPowerdown().Value || accountWrap.GetVest().Value <= accountFee {
 			accountWrap.Modify(func(acc *table.SoAccount) {
 				acc.EachPowerdownRate = &prototype.Vest{Value: 0}
 				acc.StartPowerdownBlockNum = 0
@@ -736,4 +741,48 @@ func (e *Economist) PowerDown() {
 
 func (e *Economist) SetStateChangeContext(ctx *blocklog.StateChangeContext) {
 	e.stateChange = ctx
+}
+
+func (e *Economist) DeliverDelegatedVests() {
+	e.stateChange.PushCause("deliver_vest")
+	defer e.stateChange.PopCause()
+
+	globalProps := e.dgp.GetProps()
+	if !globalProps.GetBlockProducerBootCompleted() {
+		return
+	}
+
+	timing := common.NewTiming()
+	timing.Begin()
+
+	// fetch matured delivering delegation orders
+	currentBlock := globalProps.GetHeadBlockNumber()
+	var orders []uint64
+	err := table.NewVestDelegationDeliveryBlockWrap(e.db).
+		ForEachByOrder(nil, &currentBlock, nil, nil, func(mVal *uint64, sVal *uint64, idx uint32) bool {
+			orders = append(orders, *mVal)
+			return true
+	})
+	if err != nil {
+		panic("economist failed fetching vest delegation orders")
+	}
+	e.log.Debugf("deliver_vest: %d orders", len(orders))
+	timing.Mark()
+
+	// for each order, delete it after paying the lender
+	for _, orderId := range orders {
+		rec := table.NewSoVestDelegationWrap(e.db, &orderId)
+		accountName := rec.GetFromAccount()
+		account := table.NewSoAccountWrap(e.db, accountName)
+		oldVest := account.GetVest()
+		amount := rec.GetAmount()
+		account.Modify(func(r *table.SoAccount) {
+			r.DeliveringVest.Sub(amount)
+			r.Vest.Add(amount)
+		})
+		updateBpVoteValue(e.db, accountName, oldVest, account.GetVest())
+		rec.RemoveVestDelegation()
+	}
+	timing.End()
+	e.log.Debugf("deliver_vest: %s", timing.String())
 }

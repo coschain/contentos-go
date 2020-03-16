@@ -32,6 +32,8 @@ message operation{
         account_update_operation op20 = 20;
         acquire_ticket_operation op21 = 21;
         vote_by_ticket_operation op22 = 22;
+        delegate_vest_operation op23 = 23;
+        un_delegate_vest_operation op24 = 24;
     }
 }
 

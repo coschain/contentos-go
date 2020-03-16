@@ -170,3 +170,15 @@ message vote_by_ticket_operation {
     uint64 idx = 2 [jstype = JS_STRING];
     uint64 count = 3;
 }
+
+message delegate_vest_operation {
+    account_name from = 1;
+    account_name to = 2;
+    vest amount = 3;
+    uint64 expiration = 4;
+}
+
+message un_delegate_vest_operation {
+    account_name account = 1;
+    uint64 order_id = 2;
+}
