@@ -19,8 +19,8 @@ const (
 	ClientName              = "Cos-go-testnet"
 
 	// vest delegation
-	MinVestDelegationInBlocks = 1 * 60 * 60 / BlockInterval		// 1 hour
-	VestDelegationDeliveryInBlocks = 1 * 60 * 60 * 24 / BlockInterval	// 1 day
+	MinVestDelegationInBlocks = 3 * 60 / BlockInterval		// 3 minutes
+	VestDelegationDeliveryInBlocks = 3 * 60 / BlockInterval	// 3 minutes
 )
 
 // hard forks
