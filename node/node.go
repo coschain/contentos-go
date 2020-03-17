@@ -29,6 +29,8 @@ type Node struct {
 
 	//log log.Logger
 	Log *logrus.Logger
+
+	StartArgs map[string]interface{}
 }
 
 type NamedServiceConstructor struct {
@@ -60,6 +62,7 @@ func New(conf *Config) (*Node, error) {
 		config:       conf,
 		serviceNames: []string{},
 		serviceFuncs: []NamedServiceConstructor{},
+		StartArgs: make(map[string]interface{}),
 	}, nil
 }
 
@@ -72,11 +75,17 @@ func (n *Node) Register(name string, constructor ServiceConstructor) error {
 }
 
 func (n *Node) Start() error {
+	noArgs := make(map[string]interface{})
+	return n.StartWithArgs(noArgs)
+}
+
+func (n *Node) StartWithArgs(args map[string]interface{}) error {
 	n.lock.Lock()
 	defer n.lock.Unlock()
 
 	// which confs should be assigned to p2p configuration
 
+	n.StartArgs = args
 	n.MainLoop = eventloop.NewEventLoop()
 	n.EvBus = EventBus.New()
 	n.services, n.serviceNames = nil, nil
