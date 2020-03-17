@@ -31,6 +31,7 @@ func NewBlockLogService(ctx *node.ServiceContext, config *service_configs.Databa
 }
 
 func (s *BlockLogService) Start(node *node.Node) error  {
+	s.logger.Debugf("BlockLogService: Start()")
 	if err := s.initDatabase(); err != nil {
 		return err
 	}
@@ -44,6 +45,7 @@ func (s *BlockLogService) Start(node *node.Node) error  {
 }
 
 func (s *BlockLogService) Stop() error {
+	s.logger.Debugf("BlockLogService: Stop()")
 	_ = s.bus.Unsubscribe(constants.NoticeBlockLog, s.onBlockLog)
 	_ = s.bus.Unsubscribe(constants.NoticeLibChange, s.onLibChange)
 	_ = s.db.Close()
@@ -117,14 +119,18 @@ func (s *BlockLogService) onLibChange(blocks []common.ISignedBlock) {
 }
 
 func (s *BlockLogService) checkReuse(node *node.Node) error {
+	s.logger.Debug("BlockLogService: checkReuse()")
 	// check 'reuse_sql' flag from node starting arguments
 	if node.StartArgs == nil {
+		s.logger.Debug("BlockLogService: no start args")
 		return nil
 	}
 	flag, ok := node.StartArgs["reuse_sql"]
 	if !ok || !flag.(bool) {
+		s.logger.Debug("BlockLogService: no reuse flag")
 		return nil
 	}
+	s.logger.Debug("BlockLogService: reuse flag")
 
 	// get block log table names
 	rows, err := s.db.Raw("SHOW TABLES").Rows()
@@ -144,6 +150,7 @@ func (s *BlockLogService) checkReuse(node *node.Node) error {
 			}
 		}
 	}
+	s.logger.Debugf("BlockLogService: block log tables: %v", tables)
 	_ = rows.Close()
 
 	// go over block log tables and get latest finalized block number
@@ -153,6 +160,7 @@ func (s *BlockLogService) checkReuse(node *node.Node) error {
 			for rows.Next() {
 				var blockNum uint64
 				if rows.Scan(&blockNum) == nil {
+					s.logger.Debugf("BlockLogService: found finalized block %v", blockNum)
 					if maxFinalBlock < blockNum {
 						maxFinalBlock = blockNum
 					}
