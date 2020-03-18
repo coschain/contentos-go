@@ -204,3 +204,14 @@ func ProcessVoteByTicketOperation(baseOp prototype.BaseOperation, baseRecord int
 	return []interface{}{ioTrx}, nil
 }
 
+func ProcessDelegateVestOperation(baseOp prototype.BaseOperation, baseRecord interface{}) ([]interface{}, error) {
+	op, ok := baseOp.(*prototype.DelegateVestOperation)
+	if !ok {
+		return nil, errors.New("failed conversion to DelegateVestOperation")
+	}
+	ioTrx := baseRecord.(iservices.IOTrxRecord)
+	ioTrx.From = op.GetFrom().GetValue()
+	ioTrx.To = op.GetTo().GetValue()
+	ioTrx.Amount = op.GetAmount().GetValue()
+	return []interface{}{ioTrx}, nil
+}

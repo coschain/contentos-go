@@ -110,3 +110,21 @@ func ProcessContractTransferToContractChangeProcessor(opType string, operation p
 	}
 	return nil, nil
 }
+
+func ProcessUnDelegateVestChangeProcessor(opType string, operation prototype.BaseOperation, change *blocklog.StateChange, baseRecord interface{}) ([]interface{}, error) {
+	if opType != "un_delegate_vest" || change.What != "Account.BorrowedVest" {
+		return nil, nil
+	}
+	op, ok := operation.(*prototype.UnDelegateVestOperation)
+	if !ok {
+		return nil, errors.New("failed conversion to UnDelegateVestOperation")
+	}
+	borrower := change.Change.Id.(string)
+	before := common.JsonNumberUint64(change.Change.Before.(json.Number))
+	after := common.JsonNumberUint64(change.Change.After.(json.Number))
+	ioTrx := baseRecord.(iservices.IOTrxRecord)
+	ioTrx.From = op.GetAccount().GetValue()
+	ioTrx.To = borrower
+	ioTrx.Amount = before - after
+	return []interface{}{ioTrx}, nil
+}

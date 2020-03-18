@@ -756,10 +756,10 @@ func (e *Economist) DeliverDelegatedVests() {
 	timing.Begin()
 
 	// fetch matured delivering delegation orders
-	currentBlock := globalProps.GetHeadBlockNumber()
+	blockNumber := globalProps.GetHeadBlockNumber() + 1
 	var orders []uint64
 	err := table.NewVestDelegationDeliveryBlockWrap(e.db).
-		ForEachByOrder(nil, &currentBlock, nil, nil, func(mVal *uint64, sVal *uint64, idx uint32) bool {
+		ForEachByOrder(nil, &blockNumber, nil, nil, func(mVal *uint64, sVal *uint64, idx uint32) bool {
 			orders = append(orders, *mVal)
 			return true
 	})
