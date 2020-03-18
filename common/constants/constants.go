@@ -141,7 +141,8 @@ const (
 	CheckPoint = "checkpoint"
 
 	// vest delegation
-	MinVestDelegationAmount = 10 * COSTokenDecimals		// 10 COS. to prevent tiny delegation flood.
+	MinVestDelegationAmount = 1
+	MinVestDelegationInBlocks = 1
 	MaxVestDelegationInBlocks = 1000 * 365 * 60 * 60 * 24 / BlockInterval	// ~forever, say 1000 years
 )
 

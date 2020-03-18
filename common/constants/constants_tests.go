@@ -18,7 +18,6 @@ const (
 	ClientName              = "Cos-go-tests"
 
 	// vest delegation
-	MinVestDelegationInBlocks = 60 / BlockInterval			// 1 minute
 	VestDelegationDeliveryInBlocks = 60 / BlockInterval		// 1 minute
 )
 
