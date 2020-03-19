@@ -73,7 +73,8 @@ You need to wait for your node to sync to the latest state, this will take some 
 
 You can observe your node status through our [blockchain browser](http://explorer.contentos.io/#/)
 and the following image shows you how to get the browser to connect to your own node
-![browser](doc/technical-whitepaper/assets/5.png)
+
+![browser](../technical-whitepaper/assets/browser.png)
 
 **Be careful, just enter your IP and do not change the port(8080), use http and do not use https**
 
