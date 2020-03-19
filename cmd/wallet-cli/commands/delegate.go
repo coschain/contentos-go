@@ -18,6 +18,7 @@ var delegationListOptionTo bool
 var DelegateCmd = func() *cobra.Command {
 	cmd := &cobra.Command{
 		Use: "delegate",
+		Short: "vest delegation, claiming and order list",
 	}
 
 	listCmd := &cobra.Command{
@@ -84,15 +85,27 @@ func listDelegations(cmd *cobra.Command, args []string) {
 		fmt.Println("no orders found.")
 		return
 	}
-	fmt.Printf("%10s %16s %16s %18s %10s %10s %10s\n",
-		"Order-ID", "From", "To", "Vests", "Created", "Maturity", "Delivery")
-	fmt.Println(strings.Repeat("-", 96))
+	headBlock := uint64(0)
+	if chainStateResp, err := client.GetChainState(context.Background(), new(grpcpb.NonParamsRequest)); err == nil {
+		headBlock = chainStateResp.GetState().GetDgpo().GetHeadBlockNumber()
+	}
+	if len(orders) > maxOrders {
+		orders = orders[:maxOrders]
+		fmt.Printf("WARNING: Only %d orders are displayed.\n", maxOrders)
+	}
+	fmt.Printf("%10s %16s %16s %18s %10s %10s %8s %10s\n",
+		"Order-ID", "From", "To", "Vests", "Created", "Maturity", "Matured", "Delivery")
+	fmt.Println(strings.Repeat("-", 106))
 	for _, order := range orders {
 		delivery := "-"
 		if order.Delivering {
 			delivery = strconv.FormatUint(order.DeliveryBlock, 10)
 		}
-		fmt.Printf("%10d %16s %16s %11d.%06d %10d %10d %10s\n",
+		matured := "no"
+		if headBlock > order.MaturityBlock {
+			matured = "yes"
+		}
+		fmt.Printf("%10d %16s %16s %11d.%06d %10d %10d %8s %10s\n",
 			order.Id,
 			order.FromAccount.Value,
 			order.ToAccount.Value,
@@ -100,6 +113,7 @@ func listDelegations(cmd *cobra.Command, args []string) {
 			order.Amount.Value % constants.COSTokenDecimals,
 			order.CreatedBlock,
 			order.MaturityBlock,
+			matured,
 			delivery,
 		)
 	}
