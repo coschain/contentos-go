@@ -112,7 +112,7 @@ func (cp *BFTCheckPoint) Flush(bid common.BlockID) error {
 		}
 
 		//delete(cp.cache, cp.lastCommitted)
-		cp.cache.Commit(bid)
+		cp.cache.CommitOne()
 
 		cp.lastCommitted = cp.nextCP
 		cp.sabft.log.Info("checkpoint flushed at block height ", cp.nextCP.BlockNum())
