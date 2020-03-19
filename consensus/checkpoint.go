@@ -69,7 +69,7 @@ func NewBFTCheckPoint(dir string, sabft *SABFT) *BFTCheckPoint {
 		db:            db,
 		lastCommitted: lc,
 		nextCP:        common.EmptyBlockID,
-		cache:         NewCommitCache(lc.BlockNum()),
+		cache:         NewCommitCache(),
 		indexPrefix:   [8]byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
 	}
 }
