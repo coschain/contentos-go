@@ -17,10 +17,10 @@ var err error
 
 func TestMsgPack(t *testing.T) {
 	var addrStr []*msgTypes.PeerAddr
-	msgBefore = NewAddrs(addrStr)
+	msgBefore = NewAddrs(addrStr, 0)
 	processAndCheck(t)
 
-	msgBefore = NewAddrReq()
+	msgBefore = NewAddrReq(0)
 	processAndCheck(t)
 
 	sigBlk := new(prototype.SignedBlock)
