@@ -85,6 +85,31 @@ func (cp *BFTCheckPoint) getIdxKey(idx uint64) []byte {
 	return idxKey
 }
 
+func (cp *BFTCheckPoint) shrinkCommitCache(committedBlock common.BlockID) {
+	const CommitCacheFatSize = 100000
+
+	fat := len(cp.cache) > CommitCacheFatSize
+	remake := fat || committedBlock.Data[16] == 0	// a small chance of remaking cache map
+
+	// if cache is fat, try cleaning up garbage messages
+	if fat {
+		height := committedBlock.BlockNum()
+		for blockId := range cp.cache {
+			if blockId.BlockNum() < height {
+				delete(cp.cache, blockId)
+			}
+		}
+	}
+	// remake the cache map from time to time, coz delete(map,k) doesn't actually free up memory.
+	if remake {
+		newCache := make(map[common.BlockID]*message.Commit)
+		for k, v := range cp.cache {
+			newCache[k] = v
+		}
+		cp.cache = newCache
+	}
+}
+
 func (cp *BFTCheckPoint) Flush(bid common.BlockID) error {
 	key := make([]byte, 8)
 	for {
@@ -111,6 +136,7 @@ func (cp *BFTCheckPoint) Flush(bid common.BlockID) error {
 		}
 
 		delete(cp.cache, cp.lastCommitted)
+		cp.shrinkCommitCache(bid)
 
 		cp.lastCommitted = cp.nextCP
 		cp.sabft.log.Info("checkpoint flushed at block height ", cp.nextCP.BlockNum())
