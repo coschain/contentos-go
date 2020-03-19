@@ -144,6 +144,7 @@ type Peer struct {
 	BlockQueryLimiter      *common.RateLimiter
 	CheckpointQueryLimiter *common.RateLimiter
 	BlobSizeLimiter        *common.RateLimiter
+	IncomingConsMsgLimiter *common.RateLimiter
 }
 
 //NewPeer return new peer without publickey initial
@@ -170,6 +171,7 @@ func NewPeer(lg *logrus.Logger) *Peer {
 	p.BlockQueryLimiter        = common.NewRateLimiter(common.MaxBlockQueriesPerSecond)
 	p.CheckpointQueryLimiter   = common.NewRateLimiter(common.MaxCheckPointQueriesPerSecond)
 	p.BlobSizeLimiter          = common.NewRateLimiter(uint32(maxBytesPerSecond))
+	p.IncomingConsMsgLimiter   = common.NewRateLimiter(common.MaxIncomingConsensusMsgPerSecond)
 
 	p.SyncLink = conn.NewLink(p.log)
 	p.ConsLink = conn.NewLink(p.log)

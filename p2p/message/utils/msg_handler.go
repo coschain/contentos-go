@@ -989,6 +989,12 @@ func (p *MsgHandler) ConsMsgHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args 
 		return
 	}
 
+	// check if this peer is flooding with too frequent consensus messages
+	if remotePeer.IncomingConsMsgLimiter.Request(1, false) == 0 {
+		log.Error("[p2p] remotePeer invalid in ConsMsgHandle")
+		return
+	}
+
 	hash := msgdata.Hash()
 	if !p2p.RememberMsg(hash) {
 		//log.Infof("[p2p] ignored duplicate ConsMsg hash=%x", hash)

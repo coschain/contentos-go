@@ -9,6 +9,7 @@ const (
 	MaxBlockQueriesPerSecond      = 1500
 	MaxCheckPointQueriesPerSecond = 1500
 	MaxBlobSizePerSecond          = 10 * 1024 * 1024
+	MaxIncomingConsensusMsgPerSecond = 200
 )
 
 const (
