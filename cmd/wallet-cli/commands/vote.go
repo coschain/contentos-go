@@ -39,7 +39,7 @@ func vote(cmd *cobra.Command, args []string) {
 	}
 	voterAccount, ok := mywallet.GetUnlockedAccount(voter)
 	if !ok {
-		fmt.Println(fmt.Sprintf("account: %s should be loaded or created first", voter))
+		fmt.Println(fmt.Sprintf("account: %s should be unlocked or created first", voter))
 		return
 	}
 

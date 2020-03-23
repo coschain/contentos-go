@@ -142,7 +142,7 @@ func newDelegation(cmd *cobra.Command, args []string) {
 	}
 	fromAccount, ok := mywallet.GetUnlockedAccount(fromAccountName)
 	if !ok {
-		fmt.Println(fmt.Sprintf("account: %s should be loaded or created first", fromAccountName))
+		fmt.Println(fmt.Sprintf("account: %s should be unlocked or created first", fromAccountName))
 		return
 	}
 	op := &prototype.DelegateVestOperation{
@@ -193,7 +193,7 @@ func claimDelegation(cmd *cobra.Command, args []string) {
 	}
 	account, ok := mywallet.GetUnlockedAccount(accountName)
 	if !ok {
-		fmt.Println(fmt.Sprintf("account: %s should be loaded or created first", accountName))
+		fmt.Println(fmt.Sprintf("account: %s should be unlocked or created first", accountName))
 		return
 	}
 	op := &prototype.UnDelegateVestOperation{

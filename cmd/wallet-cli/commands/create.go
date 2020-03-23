@@ -56,7 +56,7 @@ func create(cmd *cobra.Command, args []string) {
 	creator := args[0]
 	creatorAccount, ok := mywallet.GetUnlockedAccount(creator)
 	if !ok {
-		fmt.Println(fmt.Sprintf("creator: %s should be loaded or created first", creator))
+		fmt.Println(fmt.Sprintf("creator: %s should be unlocked or created first", creator))
 		return
 	}
 	pubKeyStr, privKeyStr, err := mywallet.GenerateNewKey()
@@ -125,7 +125,7 @@ func createFromMnemonic(cmd *cobra.Command, args []string) {
 	creator := args[0]
 	creatorAccount, ok := mywallet.GetUnlockedAccount(creator)
 	if !ok {
-		fmt.Println(fmt.Sprintf("creator: %s should be loaded or created first", creator))
+		fmt.Println(fmt.Sprintf("creator: %s should be unlocked or created first", creator))
 		return
 	}
 	name := args[1]

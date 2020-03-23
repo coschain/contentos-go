@@ -40,7 +40,7 @@ func reply(cmd *cobra.Command, args []string) {
 	author := args[0]
 	authorAccount, ok := mywallet.GetUnlockedAccount(author)
 	if !ok {
-		fmt.Println(fmt.Sprintf("account: %s should be loaded or created first", author))
+		fmt.Println(fmt.Sprintf("account: %s should be unlocked or created first", author))
 		return
 	}
 	content := args[1]

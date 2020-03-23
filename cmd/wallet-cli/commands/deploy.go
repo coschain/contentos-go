@@ -44,7 +44,7 @@ func deploy(cmd *cobra.Command, args []string) {
 	author := args[0]
 	acc, ok := mywallet.GetUnlockedAccount(author)
 	if !ok {
-		fmt.Println(fmt.Sprintf("author: %s should be loaded or created first", author))
+		fmt.Println(fmt.Sprintf("author: %s should be unlocked or created first", author))
 		return
 	}
 	cname := args[1]

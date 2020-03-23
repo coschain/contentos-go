@@ -40,7 +40,7 @@ func stressCreAccount(cmd *cobra.Command, args []string) {
 	}
 	creatorAccount, ok := mywallet.GetUnlockedAccount(creator)
 	if !ok {
-		fmt.Println(fmt.Sprintf("account: %s should be loaded or created first", creator))
+		fmt.Println(fmt.Sprintf("account: %s should be unlocked or created first", creator))
 		return
 	}
 	isWait := true

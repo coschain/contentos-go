@@ -40,7 +40,7 @@ func unstake(cmd *cobra.Command, args []string) {
 	}
 	stakeAccount, ok := mywallet.GetUnlockedAccount(userCreditor)
 	if !ok {
-		fmt.Println(fmt.Sprintf("account: %s should be loaded or created first", userCreditor))
+		fmt.Println(fmt.Sprintf("account: %s should be unlocked or created first", userCreditor))
 		return
 	}
 
