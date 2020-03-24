@@ -903,8 +903,14 @@ func (this *NetServer) ReqNbrList(p *peer.Peer, randomSignal bool) {
 	now := time.Now().Unix()
 	if p.ReqNbrList.LastAskTime == 0 ||
 		( p.ReqNbrList.LastAskTime != 0 && (now - p.ReqNbrList.LastAskTime > common.KEEPALIVE_TIMEOUT) ) {
-		rand.Seed(time.Now().UnixNano())
-		authNumber := rand.Uint64()
+		var authNumber uint64
+		for {
+			rand.Seed(time.Now().UnixNano())
+			authNumber = rand.Uint64()
+			if authNumber != 0 {
+				break
+			}
+		}
 
 		// set require neighbours state
 		p.ReqNbrList.Lock()

@@ -590,6 +590,10 @@ func (p *MsgHandler) AddrHandle(data *msgTypes.MsgPayload, p2p p2p.P2P, args ...
 		return
 	}
 
+	if msgdata.AuthNumber == 0 {
+		log.Error("[p2p] invalid auth number, source ", data.Addr)
+		return
+	}
 	if remotePeer.ReqNbrList.AuthNumber != msgdata.AuthNumber {
 		log.Error("[p2p] message auth number mismatch, source ", data.Addr)
 		return
