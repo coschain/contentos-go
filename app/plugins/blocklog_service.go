@@ -12,6 +12,7 @@ import (
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
 	"github.com/sirupsen/logrus"
+	"regexp"
 	"time"
 )
 
@@ -22,6 +23,7 @@ type BlockLogService struct {
 	bus EventBus.Bus
 	db *gorm.DB
 	lastCommit string		// block id of latest committed block, as a hex-string
+	minProcessingBlock uint64	// blocks with block.number < minProcessingBlock will be ignored
 }
 
 func NewBlockLogService(ctx *node.ServiceContext, config *service_configs.DatabaseConfig, logger *logrus.Logger) (*BlockLogService, error) {
@@ -29,7 +31,11 @@ func NewBlockLogService(ctx *node.ServiceContext, config *service_configs.Databa
 }
 
 func (s *BlockLogService) Start(node *node.Node) error  {
+	s.logger.Debugf("BlockLogService: Start()")
 	if err := s.initDatabase(); err != nil {
+		return err
+	}
+	if err := s.checkReuse(node); err != nil {
 		return err
 	}
 	s.bus = node.EvBus
@@ -39,6 +45,7 @@ func (s *BlockLogService) Start(node *node.Node) error  {
 }
 
 func (s *BlockLogService) Stop() error {
+	s.logger.Debugf("BlockLogService: Stop()")
 	_ = s.bus.Unsubscribe(constants.NoticeBlockLog, s.onBlockLog)
 	_ = s.bus.Unsubscribe(constants.NoticeLibChange, s.onLibChange)
 	_ = s.db.Close()
@@ -56,6 +63,9 @@ func (s *BlockLogService) initDatabase() error {
 }
 
 func (s *BlockLogService) onBlockLog(blockLog *blocklog.BlockLog, blockProducer string) {
+	if blockLog.BlockNum < s.minProcessingBlock {
+		return
+	}
 	isGenesis := blockLog.BlockNum == 0
 
 	//
@@ -92,8 +102,12 @@ func (s *BlockLogService) onLibChange(blocks []common.ISignedBlock) {
 		updates := make(map[string][]string)
 		for _ , block := range blocks {
 			blockId := block.Id()
-			tableName := iservices.BlockLogTableNameForBlockHeight(blockId.BlockNum())
+			blockNum := blockId.BlockNum()
+			tableName := iservices.BlockLogTableNameForBlockHeight(blockNum)
 			s.lastCommit = fmt.Sprintf("%x", block.Id().Data)
+			if blockNum < s.minProcessingBlock {
+				continue
+			}
 			updates[tableName] = append(updates[tableName], s.lastCommit)
 		}
 		tx := s.db.Begin()
@@ -104,6 +118,67 @@ func (s *BlockLogService) onLibChange(blocks []common.ISignedBlock) {
 	}
 }
 
+func (s *BlockLogService) checkReuse(node *node.Node) error {
+	s.logger.Debug("BlockLogService: checkReuse()")
+	// check 'reuse_sql' flag from node starting arguments
+	if node.StartArgs == nil {
+		s.logger.Debug("BlockLogService: no start args")
+		return nil
+	}
+	flag, ok := node.StartArgs["reuse_sql"]
+	if !ok || !flag.(bool) {
+		s.logger.Debug("BlockLogService: no reuse flag")
+		return nil
+	}
+	s.logger.Debug("BlockLogService: reuse flag")
+
+	// get block log table names
+	rows, err := s.db.Raw("SHOW TABLES").Rows()
+	if err != nil {
+		return err
+	}
+	pattern, err := regexp.Compile(fmt.Sprintf("^%s\\w*$", iservices.BlockLogTable))
+	if err != nil {
+		return err
+	}
+	var tables []string
+	for rows.Next() {
+		var name string
+		if rows.Scan(&name) == nil {
+			if pattern.MatchString(name) {
+				tables = append(tables, name)
+			}
+		}
+	}
+	s.logger.Debugf("BlockLogService: block log tables: %v", tables)
+	_ = rows.Close()
+
+	// go over block log tables and get latest finalized block number
+	var maxFinalBlock uint64
+	for _, table := range tables {
+		if rows, err := s.db.Raw(fmt.Sprintf("SELECT MAX(block_height) FROM %s WHERE final=1", table)).Rows(); err == nil {
+			for rows.Next() {
+				var blockNum uint64
+				if rows.Scan(&blockNum) == nil {
+					s.logger.Debugf("BlockLogService: found finalized block %v", blockNum)
+					if maxFinalBlock < blockNum {
+						maxFinalBlock = blockNum
+					}
+				}
+			}
+			_ = rows.Close()
+		}
+	}
+	if maxFinalBlock > 0 {
+		// we'll reuse data from finalized blocks, so we only process later blocks.
+		s.minProcessingBlock = maxFinalBlock + 1
+		s.logger.Infof("BlockLogService: Ignoring blocks with height < %v", s.minProcessingBlock)
+	} else {
+		// there's no data from finalized blocks.
+		s.minProcessingBlock = 0
+	}
+	return nil
+}
 
 func init() {
 	RegisterSQLTableNamePattern(fmt.Sprintf("%s\\w*", iservices.BlockLogTable))

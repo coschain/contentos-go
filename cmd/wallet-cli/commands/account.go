@@ -69,7 +69,7 @@ func updateAccount(cmd *cobra.Command, args []string) {
 	newPriKeyStr := args[2]
 	updateAccount, ok := mywallet.GetUnlockedAccount(owner)
 	if !ok {
-		fmt.Println(fmt.Sprintf("account: %s should be loaded or created first", owner))
+		fmt.Println(fmt.Sprintf("account: %s should be unlocked or created first", owner))
 		return
 	}
 

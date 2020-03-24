@@ -966,6 +966,12 @@ func (as *APIService) getAccountResponseByName(name *prototype.AccountName, isNe
 			acctInfo.VotedBlockProducer = &prototype.AccountName{Value: ""}
 		}
 
+		acctInfo.VestBorrowed = accWrap.GetBorrowedVest()
+		acctInfo.VestLent = accWrap.GetLentVest()
+		acctInfo.VestDelivering = accWrap.GetDeliveringVest()
+		acctInfo.VestSelf = prototype.NewVest(acctInfo.Vest.Value - acctInfo.VestBorrowed.Value)
+		acctInfo.VestOwned = prototype.NewVest(acctInfo.VestSelf.Value + acctInfo.VestLent.Value + acctInfo.VestDelivering.Value)
+
 		acct.Info = acctInfo
 		acct.State = as.getState()
 
@@ -1590,4 +1596,66 @@ func (as *APIService) GetBlockProducerVoterList(ctx context.Context, req *grpcpb
 		return false
 	})
 	return &grpcpb.GetBlockProducerVoterListResponse{Voter:voterList}, err
+}
+
+func (as *APIService) getVestDelegationOrder(id uint64) (order *grpcpb.VestDelegationOrder) {
+	rec := table.NewSoVestDelegationWrap(as.db, &id)
+	if rec.CheckExist() {
+		order = &grpcpb.VestDelegationOrder{
+			Id: id,
+			FromAccount: rec.GetFromAccount(),
+			ToAccount: rec.GetToAccount(),
+			Amount: rec.GetAmount(),
+			CreatedBlock: rec.GetCreatedBlock(),
+			MaturityBlock: rec.GetMaturityBlock(),
+			DeliveryBlock: rec.GetDeliveryBlock(),
+			Delivering: rec.GetDelivering(),
+		}
+	}
+	return
+}
+
+func (as *APIService) GetVestDelegationOrderList(ctx context.Context, req *grpcpb.GetVestDelegationOrderListRequest) (resp *grpcpb.GetVestDelegationOrderListResponse, err error) {
+	as.db.RLock()
+	defer as.db.RUnlock()
+
+	resp = new(grpcpb.GetVestDelegationOrderListResponse)
+	accountNameEnd := &prototype.AccountName{ Value: req.Account.GetValue() + " " }
+	var lastOrder *uint64
+	var lastAccount *prototype.AccountName
+	if req.LastOrderId != 0 {
+		lastOrder = &req.LastOrderId
+		lastAccount = req.Account
+	}
+	var iterFunc func(*prototype.AccountName, *prototype.AccountName, *uint64, *prototype.AccountName, func(*uint64, *prototype.AccountName, uint32)bool)error
+	if req.IsFrom {
+		iterFunc = table.NewVestDelegationFromAccountWrap(as.db).ForEachByOrder
+	} else {
+		iterFunc = table.NewVestDelegationToAccountWrap(as.db).ForEachByOrder
+	}
+
+	var orders []uint64
+	err = iterFunc(req.Account, accountNameEnd, lastOrder, lastAccount, func(orderId *uint64, name *prototype.AccountName, idx uint32) bool {
+		orders = append(orders, *orderId)
+		return len(orders) < int(req.Limit)
+	})
+	if err != nil {
+		return
+	}
+
+	for _, orderId := range orders {
+		if rec := table.NewSoVestDelegationWrap(as.db, &orderId); rec.CheckExist() {
+			resp.Orders = append(resp.Orders, &grpcpb.VestDelegationOrder{
+				Id: orderId,
+				FromAccount: rec.GetFromAccount(),
+				ToAccount: rec.GetToAccount(),
+				Amount: rec.GetAmount(),
+				CreatedBlock: rec.GetCreatedBlock(),
+				MaturityBlock: rec.GetMaturityBlock(),
+				DeliveryBlock: rec.GetDeliveryBlock(),
+				Delivering: rec.GetDelivering(),
+			})
+		}
+	}
+	return
 }

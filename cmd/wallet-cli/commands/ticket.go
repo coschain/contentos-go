@@ -50,7 +50,7 @@ func acquireTicket(cmd *cobra.Command, args []string) {
 	}
 	account, ok := mywallet.GetUnlockedAccount(name)
 	if !ok {
-		fmt.Println(fmt.Sprintf("account: %s should be loaded or created first", name))
+		fmt.Println(fmt.Sprintf("account: %s should be unlocked or created first", name))
 		return
 	}
 	acquireTicketOp := &prototype.AcquireTicketOperation{
@@ -87,7 +87,7 @@ func voteByTicket(cmd *cobra.Command, args []string) {
 	}
 	account, ok := mywallet.GetUnlockedAccount(name)
 	if !ok {
-		fmt.Println(fmt.Sprintf("account: %s should be loaded or created first", name))
+		fmt.Println(fmt.Sprintf("account: %s should be unlocked or created first", name))
 		return
 	}
 	voteByTicketOp := &prototype.VoteByTicketOperation{

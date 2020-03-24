@@ -37,6 +37,50 @@ var sInterestedChanges = []InterestedChange{
 		},
 	},
 	{
+		Table: table.AccountTable,
+		Field: "BorrowedVest",
+		Maker: func(id, before, after interface{}) *GenericChange {
+			return &GenericChange{
+				Id: 	id.(*prototype.AccountName).GetValue(),
+				Before: before.(*prototype.Vest).GetValue(),
+				After: 	after.(*prototype.Vest).GetValue(),
+			}
+		},
+	},
+	{
+		Table: table.AccountTable,
+		Field: "LentVest",
+		Maker: func(id, before, after interface{}) *GenericChange {
+			return &GenericChange{
+				Id: 	id.(*prototype.AccountName).GetValue(),
+				Before: before.(*prototype.Vest).GetValue(),
+				After: 	after.(*prototype.Vest).GetValue(),
+			}
+		},
+	},
+	{
+		Table: table.AccountTable,
+		Field: "DeliveringVest",
+		Maker: func(id, before, after interface{}) *GenericChange {
+			return &GenericChange{
+				Id: 	id.(*prototype.AccountName).GetValue(),
+				Before: before.(*prototype.Vest).GetValue(),
+				After: 	after.(*prototype.Vest).GetValue(),
+			}
+		},
+	},
+	{
+		Table: table.VestDelegationTable,
+		Field: "",
+		Maker: func(id, before, after interface{}) *GenericChange {
+			return &GenericChange{
+				Id: 	id,
+				Before: before,
+				After: 	after,
+			}
+		},
+	},
+	{
 		Table: table.VoteTable,
 		Field: "WeightedVp",
 		Maker: func(id, before, after interface{}) *GenericChange {

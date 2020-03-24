@@ -479,7 +479,7 @@ func (c *TrxPool) applyOperation(trxCtx *TrxContext, op *prototype.Operation) {
 }
 
 func (c *TrxPool) getEvaluator(trxCtx *TrxContext, op *prototype.Operation) BaseEvaluator {
-	return GetBaseEvaluator(trxCtx, op)
+	return GetBaseEvaluator(trxCtx, op, c.HardFork())
 }
 
 func (c *TrxPool) applyBlock(blk *prototype.SignedBlock, skip prototype.SkipFlag) {
@@ -592,6 +592,8 @@ func (c *TrxPool) applyBlock(blk *prototype.SignedBlock, skip prototype.SkipFlag
 	c.economist.Do()
 	eTiming.Mark()
 	c.economist.PowerDown()
+	eTiming.Mark()
+	c.economist.DeliverDelegatedVests()
 	eTiming.End()
 	c.economist.SetStateChangeContext(nil)
 	c.blockLogWatcher.CurrentBlockContext().SetCause("")
@@ -664,6 +666,9 @@ func (c *TrxPool) initGenesis() {
 		tInfo.Reputation = constants.DefaultReputation
 		tInfo.ChargedTicket = 0
 		tInfo.VotePower = constants.FullVP
+		tInfo.BorrowedVest = prototype.NewVest(0)
+		tInfo.LentVest = prototype.NewVest(0)
+		tInfo.DeliveringVest = prototype.NewVest(0)
 	})
 
 	// create block_producer_object
@@ -744,6 +749,12 @@ func (c *TrxPool) initGenesis() {
 		tInfo.CurrentShuffledBlockProducer = append(tInfo.CurrentShuffledBlockProducer, constants.COSInitMiner)
 		tInfo.PubKey = append(tInfo.PubKey, pubKey)
 		tInfo.Seq = 0
+	})
+
+	// create global incremental counter
+	table.NewSoIncIdWrap(c.db, &SingleId).Create(func(rec *table.SoIncId) {
+		rec.Id = SingleId
+		rec.Counter = 0
 	})
 }
 

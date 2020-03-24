@@ -29,6 +29,7 @@ import (
 
 var pluginList []string
 var globalFile *os.File
+var optReplayReuseSQL bool
 
 var StartCmd = func() *cobra.Command {
 	cmd := &cobra.Command{
@@ -40,12 +41,13 @@ var StartCmd = func() *cobra.Command {
 	}
 	cmd.Flags().StringVarP(&cfgName, "name", "n", "", "node name (default is cosd)")
 	cmd.Flags().StringArrayVarP(&pluginList, "plugin", "", []string{}, "--plugin=[trxsqlservice, dailystatservice, statelogservice, tokeninfoservice]")
+	cmd.Flags().BoolVarP(&optReplayReuseSQL, "reuse-sql", "r", false, "reuse current sql data")
 	return cmd
 }
 
 var NodeName string
 const (
-	ClientTag  = "v1.0.7"
+	ClientTag  = "v1.0.8"
 
 	spacePrecision = 1024 * 1024 * 1024  // 1 GB in Bytes
 )
@@ -142,7 +144,8 @@ func startNode(cmd *cobra.Command, args []string) {
 		if err != nil {
 			panic("remove db fail when node replay")
 		}
-		if len(pluginList) > 0 {
+		// we won't remove sql tables if we want to reuse them
+		if len(pluginList) > 0 && !optReplayReuseSQL {
 			if err := plugins.RemoveSQLTables(cfg.Database); err != nil {
 				panic(fmt.Sprintf("remove sql tables fail when node replay: %s", err.Error()))
 			}
@@ -153,7 +156,10 @@ func startNode(cmd *cobra.Command, args []string) {
 
 	RegisterService(app, cfg)
 
-	if err := app.Start(); err != nil {
+	startArgs := make(map[string]interface{})
+	startArgs["reuse_sql"] = optReplayReuseSQL
+
+	if err := app.StartWithArgs(startArgs); err != nil {
 		common.Fatalf("start node failed, err: %v\n", err)
 	}
 

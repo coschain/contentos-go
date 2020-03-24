@@ -129,7 +129,7 @@ func registerBP(cmd *cobra.Command, args []string) {
 	pubKeyStr := args[1]
 	bpAccount, ok := mywallet.GetUnlockedAccount(name)
 	if !ok {
-		fmt.Println(fmt.Sprintf("account: %s should be loaded or created first", name))
+		fmt.Println(fmt.Sprintf("account: %s should be unlocked or created first", name))
 		return
 	}
 	pubKey, err := prototype.PublicKeyFromWIF(pubKeyStr)
@@ -202,7 +202,7 @@ func enableBP(cmd *cobra.Command, args []string) {
 	name := args[0]
 	bpAccount, ok := mywallet.GetUnlockedAccount(name)
 	if !ok {
-		fmt.Println(fmt.Sprintf("account: %s should be loaded or created first", name))
+		fmt.Println(fmt.Sprintf("account: %s should be unlocked or created first", name))
 		return
 	}
 	bpEnable_op := &prototype.BpEnableOperation{
@@ -248,7 +248,7 @@ func voteBp(cmd *cobra.Command, args []string) {
 	voterAccount, ok := mywallet.GetUnlockedAccount(voter)
 	bp := args[1]
 	if !ok {
-		fmt.Println(fmt.Sprintf("account: %s should be loaded or created first", voter))
+		fmt.Println(fmt.Sprintf("account: %s should be unlocked or created first", voter))
 		return
 	}
 	bpVote_op := &prototype.BpVoteOperation{
@@ -307,7 +307,7 @@ func updateBp(cmd *cobra.Command, args []string) {
 
 	bpAccount, ok := mywallet.GetUnlockedAccount(name)
 	if !ok {
-		fmt.Println(fmt.Sprintf("account: %s should be loaded or created first", name))
+		fmt.Println(fmt.Sprintf("account: %s should be unlocked or created first", name))
 		return
 	}
 

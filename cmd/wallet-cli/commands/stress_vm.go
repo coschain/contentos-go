@@ -40,7 +40,7 @@ func stressVM(cmd *cobra.Command, args []string) {
 	cname := args[3]
 	acc, ok := mywallet.GetUnlockedAccount(caller)
 	if !ok {
-		fmt.Println(fmt.Sprintf("caller: %s should be loaded or created first", caller))
+		fmt.Println(fmt.Sprintf("caller: %s should be unlocked or created first", caller))
 		return
 	}
 	wg := &sync.WaitGroup{}

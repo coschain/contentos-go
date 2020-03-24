@@ -37,6 +37,9 @@ message so_account {
     uint32                      charged_ticket      =      27;
     uint32                      freeze          =      28;
     string                      freeze_memo      =      29;
+    prototype.vest              borrowed_vest        =      30;
+    prototype.vest              lent_vest            =      31;
+    prototype.vest              delivering_vest      =      32;
       
 }
 
@@ -79,6 +82,24 @@ message so_list_account_by_created_trx_count {
 
 message so_list_account_by_next_powerdown_block_num {
 	uint64                   	next_powerdown_block_num = 1;
+	prototype.account_name   	name           = 2;
+}
+
+
+message so_list_account_by_borrowed_vest {
+	prototype.vest           	borrowed_vest    = 1;
+	prototype.account_name   	name           = 2;
+}
+
+
+message so_list_account_by_lent_vest {
+	prototype.vest           	lent_vest        = 1;
+	prototype.account_name   	name           = 2;
+}
+
+
+message so_list_account_by_delivering_vest {
+	prototype.vest           	delivering_vest  = 1;
 	prototype.account_name   	name           = 2;
 }
 

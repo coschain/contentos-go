@@ -28,3 +28,6 @@ string                   ,reputation_memo ,0  ,0     ,0    ,0    ,
 uint32                   ,charged_ticket , 0   ,0     ,0   ,0          ,
 uint32                   ,freeze     ,0  ,0     ,0    ,0    ,
 string                   ,freeze_memo ,0  ,0     ,0    ,0    ,
+prototype.vest           ,borrowed_vest   ,0 ,0 ,1 ,1 ,prototype/type.proto
+prototype.vest           ,lent_vest       ,0 ,0 ,1 ,1 ,prototype/type.proto
+prototype.vest           ,delivering_vest ,0 ,0 ,1 ,1 ,prototype/type.proto

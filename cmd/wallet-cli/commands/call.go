@@ -40,7 +40,7 @@ func call(cmd *cobra.Command, args []string) {
 	caller := args[0]
 	acc, ok := mywallet.GetUnlockedAccount(caller)
 	if !ok {
-		fmt.Println(fmt.Sprintf("caller: %s should be loaded or created first", caller))
+		fmt.Println(fmt.Sprintf("caller: %s should be unlocked or created first", caller))
 		return
 	}
 	owner := args[1]

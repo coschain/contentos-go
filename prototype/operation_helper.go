@@ -7,12 +7,14 @@ import (
 )
 
 func GetBaseOperation(op *Operation) BaseOperation {
-	if o := fromGenericOperation(op); o != nil {
-		if base, ok := o.(BaseOperation); ok {
-			return base
+	if op != nil && op.Op != nil {
+		if o := fromGenericOperation(op); o != nil {
+			if base, ok := o.(BaseOperation); ok {
+				return base
+			}
 		}
 	}
-	return UnknownOperation;
+	return UnknownOperation
 }
 
 //Get protoBuffer struct Operation by a interface of detail operation(such as TransferOperation)

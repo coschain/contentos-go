@@ -1,0 +1,9 @@
+type                     ,pName            ,mKey,unique,sort,reverseSort,importPath
+uint64                   ,id               ,1   ,1     ,0   ,0          ,
+prototype.account_name   ,from_account     ,0   ,0     ,1   ,1          ,prototype/type.proto
+prototype.account_name   ,to_account       ,0   ,0     ,1   ,1          ,prototype/type.proto
+prototype.vest           ,amount           ,0   ,0     ,0   ,1          ,prototype/type.proto
+uint64                   ,created_block    ,0   ,0     ,1   ,1          ,
+uint64                   ,maturity_block   ,0   ,0     ,1   ,1          ,
+uint64                   ,delivery_block   ,0   ,0     ,1   ,1          ,
+bool                     ,delivering       ,0   ,0     ,1   ,1          ,

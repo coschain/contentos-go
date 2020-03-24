@@ -59,6 +59,7 @@ func (p *IOTrxProcessor) registerOpProcessor() {
 	p.opProcessorManager.Register("un_stake", ProcessUnStakeOperation)
 	p.opProcessorManager.Register("vote", ProcessVoteOperation)
 	p.opProcessorManager.Register("vote_by_ticket", ProcessVoteByTicketOperation)
+	p.opProcessorManager.Register("delegate_vest", ProcessDelegateVestOperation)
 }
 
 func (p *IOTrxProcessor) registerChangeProcessor() {
@@ -66,7 +67,9 @@ func (p *IOTrxProcessor) registerChangeProcessor() {
 		ProcessContractTransferToUserChangeProcessor,
 		ProcessUserToContractChangeProcessor,
 		ProcessContractTransferToUserVestChangeProcessor,
-		ProcessContractTransferToContractChangeProcessor)
+		ProcessContractTransferToContractChangeProcessor,
+		ProcessUnDelegateVestChangeProcessor,
+		)
 }
 
 func (p *IOTrxProcessor) Prepare(db *gorm.DB, blockLog *blocklog.BlockLog) (err error) {

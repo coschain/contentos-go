@@ -162,6 +162,18 @@ type VoteByTicketEvaluator struct {
 	op *prototype.VoteByTicketOperation
 }
 
+type DelegateVestEvaluator struct {
+	BaseEvaluator
+	BaseDelegate
+	op *prototype.DelegateVestOperation
+}
+
+type UnDelegateVestEvaluator struct {
+	BaseEvaluator
+	BaseDelegate
+	op *prototype.UnDelegateVestOperation
+}
+
 func init() {
 	RegisterEvaluator((*prototype.AccountCreateOperation)(nil), func(delegate ApplyDelegate, op prototype.BaseOperation) BaseEvaluator {
 		return &AccountCreateEvaluator {BaseDelegate: BaseDelegate{delegate:delegate}, op: op.(*prototype.AccountCreateOperation)}
@@ -223,6 +235,12 @@ func init() {
 	RegisterEvaluator((*prototype.VoteByTicketOperation)(nil), func(delegate ApplyDelegate, op prototype.BaseOperation) BaseEvaluator {
 		return &VoteByTicketEvaluator {BaseDelegate: BaseDelegate{delegate:delegate}, op: op.(*prototype.VoteByTicketOperation)}
 	})
+	RegisterEvaluatorWithMinHardFork((*prototype.DelegateVestOperation)(nil), func(delegate ApplyDelegate, op prototype.BaseOperation) BaseEvaluator {
+		return &DelegateVestEvaluator {BaseDelegate: BaseDelegate{delegate:delegate}, op: op.(*prototype.DelegateVestOperation)}
+	}, constants.HardFork3)
+	RegisterEvaluatorWithMinHardFork((*prototype.UnDelegateVestOperation)(nil), func(delegate ApplyDelegate, op prototype.BaseOperation) BaseEvaluator {
+		return &UnDelegateVestEvaluator {BaseDelegate: BaseDelegate{delegate:delegate}, op: op.(*prototype.UnDelegateVestOperation)}
+	}, constants.HardFork3)
 }
 
 func (ev *AccountCreateEvaluator) Apply() {
@@ -268,6 +286,9 @@ func (ev *AccountCreateEvaluator) Apply() {
 		tInfo.Reputation = constants.DefaultReputation
 		tInfo.ChargedTicket = 0
 		tInfo.VotePower = constants.FullVP
+		tInfo.BorrowedVest = prototype.NewVest(0)
+		tInfo.LentVest = prototype.NewVest(0)
+		tInfo.DeliveringVest = prototype.NewVest(0)
 	})
 
 	// sub dynamic glaobal properties's total fee
@@ -824,7 +845,7 @@ func (ev *ConvertVestEvaluator) Apply() {
 	accWrap := table.NewSoAccountWrap(ev.Database(), op.From)
 	accWrap.MustExist("account do not exist")
 
-	opAssert(accWrap.GetVest().Sub( globalProps.AccountCreateFee.ToVest() ).Value >= op.Amount.Value, "VEST balance not enough")
+	opAssert(accWrap.GetVest().Sub( accWrap.GetBorrowedVest() ).Sub( globalProps.AccountCreateFee.ToVest() ).Value >= op.Amount.Value, "VEST balance not enough")
 	currentBlock := globalProps.HeadBlockNumber
 	var eachRate uint64
 	if ev.HardFork() < constants.HardFork2 {
@@ -1306,4 +1327,91 @@ func (ev *VoteByTicketEvaluator) Apply() {
 			prop.TotalVest = prop.TotalVest.Add(equalValue)
 		})
 	}
+}
+
+func (ev *DelegateVestEvaluator) Apply() {
+	op := ev.op
+
+	fromAccount := table.NewSoAccountWrap(ev.Database(), op.GetFrom()).MustExist()
+	toAccount := table.NewSoAccountWrap(ev.Database(), op.GetTo()).MustExist()
+	amount := op.GetAmount()
+
+	// reputation check
+	opAssert(fromAccount.GetReputation() > constants.MinReputation, "reputation too low")
+
+	// self delegation check
+	opAssert(fromAccount.GetName().GetValue() != toAccount.GetName().GetValue(), "self delegation not allowed")
+	// basic amount check
+	opAssert(amount.GetValue() >= constants.MinVestDelegationAmount, "delegation amount too small")
+
+	// check if amount <= maxAmount,
+	// where maxAmount = effective_amount - borrowed - account_creation_fee - vest_in_power_down
+	props := ev.GlobalProp().GetProps()
+	maxAmount := fromAccount.GetVest().Sub(fromAccount.GetBorrowedVest()).Sub(props.GetAccountCreateFee().ToVest())
+	if fromAccount.GetEachPowerdownRate().GetValue() > 0 {
+		inPowerDown := fromAccount.GetToPowerdown().Sub(fromAccount.GetHasPowerdown())
+		if maxAmount.GetValue() <= inPowerDown.GetValue() {
+			maxAmount.Value = 0
+		} else {
+			maxAmount.Sub(inPowerDown)
+		}
+	}
+	opAssert(maxAmount.GetValue() >= amount.GetValue(), "insufficient account vest")
+
+	// create a delegation order
+	orderId := ev.VMInjector().NewRecordID()
+	table.NewSoVestDelegationWrap(ev.Database(), &orderId).Create(func(r *table.SoVestDelegation) {
+		r.Id = orderId
+		r.FromAccount = fromAccount.GetName()
+		r.ToAccount = toAccount.GetName()
+		r.Amount = amount
+		r.CreatedBlock = props.GetHeadBlockNumber() + 1    // head block number is actually the number of last block
+		r.MaturityBlock = r.CreatedBlock + op.GetExpiration()
+		r.DeliveryBlock = math.MaxInt64
+		r.Delivering = false
+	})
+	// modify the vest attributes of relevant accounts
+	oldFromAccountVest := fromAccount.GetVest()
+	oldToAccountVest := toAccount.GetVest()
+	fromAccount.Modify(func(r *table.SoAccount) {
+		r.LentVest.Add(amount)
+		r.Vest.Sub(amount)
+	})
+	updateBpVoteValue(ev.Database(), op.GetFrom(), oldFromAccountVest, fromAccount.GetVest())
+	toAccount.Modify(func(r *table.SoAccount) {
+		r.BorrowedVest.Add(amount)
+		r.Vest.Add(amount)
+	})
+	updateBpVoteValue(ev.Database(), op.GetTo(), oldToAccountVest, toAccount.GetVest())
+}
+
+func (ev *UnDelegateVestEvaluator) Apply() {
+	op := ev.op
+
+	fromAccount := table.NewSoAccountWrap(ev.Database(), op.GetAccount()).MustExist()
+
+	// reputation check
+	opAssert(fromAccount.GetReputation() > constants.MinReputation, "reputation too low")
+
+	rec := table.NewSoVestDelegationWrap(ev.Database(), &op.OrderId).MustExist("order id not found")
+	opAssert(rec.GetFromAccount().GetValue() == fromAccount.GetName().GetValue(), "order owner mismatch")
+	currentBlock := ev.GlobalProp().GetProps().GetHeadBlockNumber()
+	opAssert(currentBlock >= rec.GetMaturityBlock(), "order not matured")
+	opAssert(!rec.GetDelivering(), "order delivering")
+	toAccount := table.NewSoAccountWrap(ev.Database(), rec.GetToAccount()).MustExist()
+	vest := rec.GetAmount()
+	rec.Modify(func(r *table.SoVestDelegation) {
+		r.Delivering = true
+		r.DeliveryBlock = currentBlock + 1 + constants.VestDelegationDeliveryInBlocks
+	})
+	fromAccount.Modify(func(r *table.SoAccount) {
+		r.LentVest.Sub(vest)
+		r.DeliveringVest.Add(vest)
+	})
+	oldVest := toAccount.GetVest()
+	toAccount.Modify(func(r *table.SoAccount) {
+		r.BorrowedVest.Sub(vest)
+		r.Vest.Sub(vest)
+	})
+	updateBpVoteValue(ev.Database(), toAccount.GetName(), oldVest, toAccount.GetVest())
 }

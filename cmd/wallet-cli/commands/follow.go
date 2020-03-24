@@ -38,7 +38,7 @@ func follow(cmd *cobra.Command, args []string) {
 	follower := args[0]
 	followerAccount, ok := mywallet.GetUnlockedAccount(follower)
 	if !ok {
-		fmt.Println(fmt.Sprintf("account: %s should be loaded or created first", follower))
+		fmt.Println(fmt.Sprintf("account: %s should be unlocked or created first", follower))
 		return
 	}
 	following := args[1]

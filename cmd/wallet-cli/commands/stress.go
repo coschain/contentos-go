@@ -48,7 +48,7 @@ func stress(cmd *cobra.Command, args []string) {
 	}
 	fromAccount, ok := mywallet.GetUnlockedAccount(from)
 	if !ok {
-		fmt.Println(fmt.Sprintf("account: %s should be loaded or created first", from))
+		fmt.Println(fmt.Sprintf("account: %s should be unlocked or created first", from))
 		return
 	}
 	wg := &sync.WaitGroup{}

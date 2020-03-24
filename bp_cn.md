@@ -23,15 +23,29 @@
 
 ### 2.编译节点程序
 
-保证代码处在`master`分支，我们将该分支作为稳定分支供外部使用，具体的步骤参考
-[编译流程](https://github.com/coschain/contentos-go#building-the-source)
-[初始化流程](https://github.com/coschain/contentos-go#initialization)
+保证代码处在`master`分支，我们将该分支作为稳定分支供外部使用。
+
+拉取代码
+```
+git clone git@github.com:coschain/contentos-go.git
+```
+编译cosd
+```
+cd cmd/cosd
+go build
+```
+初始化
+
+init将创建一个文件夹来保存cosd的运行数据，这将创建一个文件夹`$HOME/.coschain/cosd`
+```
+./cosd init
+```
 
 ### 3.修改配置文件、启动节点、注册账号成为block producer
 
 #### 修改配置文件
 
-在config.toml 修改以下内容:
+在config.toml 修改以下内容:（config.toml的路径为`$HOME/.coschain/cosd`）
 ```
   BootStrap = false (注意，这个值必须设置为false)
   LocalBpName = your_account_name (刚才第一步创建的账号名)
@@ -80,7 +94,11 @@ rpc error: code = Unknown desc = consensus not ready
 
 ### 1.解锁账户
 
-编译`wallet-cli`工具，具体的编译流程可以参考[编译流程](https://github.com/coschain/contentos-go#building-the-source)
+编译`wallet-cli`工具
+```
+cd contentos-go/cmd/wallet-cli/
+go build
+```
 
 编译完成后执行 `./wallet-cli` 将工具运行，首先将自己的账户导入到`wallet-cli` 中
 ```
@@ -110,7 +128,18 @@ bp enable YourAccountName --cancel
 
 ### 4.拉取代码、编译并运行
 
-从远端拉取最新代码，编译并运行，等待自己的节点同步完成，如果你对这些过程还不熟悉，请参考[如何搭建一个出块节点](https://github.com/coschain/contentos-go/blob/master/bp_cn.md#如何搭建一个出块节点)
+从远端拉取最新代码，编译并运行，等待自己的节点同步完成
+
+拉取最新代码
+```
+git pull
+```
+编译并运行cosd
+```
+cd cmd/cosd
+go build
+./cosd start
+```
 
 ### 5.重新参与到出块过程
 
@@ -143,8 +172,12 @@ bp enable YourAccountName
 ## 如何查看节点当前状态
 
 ### 1.编译并运行钱包
-
-钱包的编译可以参考[编译流程](https://github.com/coschain/contentos-go#building-the-source)，然后执行 `./wallet-cli` 将其运行
+编译wallet
+```
+cd contentos-go/cmd/wallet-cli/
+go build
+```
+然后执行 `./wallet-cli` 将其运行
 
 ### 2.查看节点状态
 

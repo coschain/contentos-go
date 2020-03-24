@@ -41,7 +41,7 @@ func randomTransfer(cmd *cobra.Command, args []string) {
 	rt.chainId = cmd.Context["chain_id"].(prototype.ChainId)
 	rt.creator, ok = rt.wallet.GetUnlockedAccount(args[0])
 	if !ok {
-		fmt.Println(fmt.Sprintf("creator: %s should be loaded or created first", args[0]))
+		fmt.Println(fmt.Sprintf("creator: %s should be unlocked or created first", args[0]))
 		return
 	}
 	rt.threads, _ = strconv.Atoi(args[1])
