@@ -191,15 +191,39 @@ func (tester *VestDelegationTester) baseFunction2(t *testing.T, d *Dandelion) {
 
 	// actor0 delegate 10000 vest to actor1 and has enough reputation -> success
 	// actor0's vest decrease 10000 and actor1's vest increase 10000 immediately
+	// actor0's vote power decrease and actor1's vote power increase immediately
+	usedVp := uint32(constants.FullVP / constants.VPMarks)
 	delegateAmount := uint64(10000000000)
 	oldVestAcc0 := tester.acc0.GetVest()
+	oldLentVestAcc0 := tester.acc0.GetLentVest()
+	oldBorrowedVestAcc0 := tester.acc0.GetBorrowedVest()
+	oldDeliveringVestAcc0 := tester.acc0.GetDeliveringVest()
 	oldVestAcc1 := tester.acc1.GetVest()
+	oldLentVestAcc1 := tester.acc1.GetLentVest()
+	oldBorrowedVestAcc1 := tester.acc1.GetBorrowedVest()
+	oldDeliveringVestAcc1 := tester.acc1.GetDeliveringVest()
 	opDelegation := DelegateVest(tester.acc0.Name, tester.acc1.Name, delegateAmount, constants.MinVestDelegationInBlocks)
 	a.NoError(tester.acc0.SendTrxAndProduceBlock(opDelegation))
 	newVestAcc0 := tester.acc0.GetVest()
+	newLentVestAcc0 := tester.acc0.GetLentVest()
+	newBorrowedVestAcc0 := tester.acc0.GetBorrowedVest()
+	newDeliveringVestAcc0 := tester.acc0.GetDeliveringVest()
 	newVestAcc1 := tester.acc1.GetVest()
+	newLentVestAcc1 := tester.acc1.GetLentVest()
+	newBorrowedVestAcc1 := tester.acc1.GetBorrowedVest()
+	newDeliveringVestAcc1 := tester.acc1.GetDeliveringVest()
 	a.Equal(oldVestAcc0.Value - newVestAcc0.Value, delegateAmount)
+	a.Equal(newLentVestAcc0.Value - oldLentVestAcc0.Value, delegateAmount)
+	a.Equal(oldBorrowedVestAcc0.Value, newBorrowedVestAcc0.Value)
+	a.Equal(oldDeliveringVestAcc0.Value, newDeliveringVestAcc0.Value)
+	a.Equal(uint64(usedVp) * Vest2VotePower(d, oldVestAcc0.Value),
+		uint64(usedVp) * Vest2VotePower(d, newVestAcc0.Value + delegateAmount))
 	a.Equal(newVestAcc1.Value - oldVestAcc1.Value, delegateAmount)
+	a.Equal(oldLentVestAcc1.Value, newLentVestAcc1.Value)
+	a.Equal(newBorrowedVestAcc1.Value - oldBorrowedVestAcc1.Value, delegateAmount)
+	a.Equal(oldDeliveringVestAcc1.Value, newDeliveringVestAcc1.Value)
+	a.Equal(uint64(usedVp) * Vest2VotePower(d, oldVestAcc1.Value),
+		uint64(usedVp) * Vest2VotePower(d, newVestAcc1.Value - delegateAmount))
 
 	// actor1's borrowed vest is 10000
 	a.Equal(tester.acc1.GetBorrowedVest().Value, delegateAmount)
@@ -214,16 +238,43 @@ func (tester *VestDelegationTester) baseFunction2(t *testing.T, d *Dandelion) {
 
 	a.NoError(d.ProduceBlocks( int(constants.MinVestDelegationInBlocks) + 1 ))
 
+	// mismatch undelegate
+	opUnDelegation = UnDelegateVest(tester.acc1.Name, 1)
+	a.Error(tester.acc1.SendTrxAndProduceBlock(opUnDelegation))
+
 	// after maturity actor0 undelegate 10000 vest -> success
 	// actor1's vest decrease 10000 immediately and actor0's vest not change
+	// actor1's vote power decrease immediately and actor0's vote power not change
 	oldVestAcc0 = tester.acc0.GetVest()
+	oldLentVestAcc0 = tester.acc0.GetLentVest()
+	oldBorrowedVestAcc0 = tester.acc0.GetBorrowedVest()
+	oldDeliveringVestAcc0 = tester.acc0.GetDeliveringVest()
 	oldVestAcc1 = tester.acc1.GetVest()
+	oldLentVestAcc1 = tester.acc1.GetLentVest()
+	oldBorrowedVestAcc1 = tester.acc1.GetBorrowedVest()
+	oldDeliveringVestAcc1 = tester.acc1.GetDeliveringVest()
 	opUnDelegation = UnDelegateVest(tester.acc0.Name, 1)
 	a.NoError(tester.acc0.SendTrxAndProduceBlock(opUnDelegation))
 	newVestAcc0 = tester.acc0.GetVest()
+	newLentVestAcc0 = tester.acc0.GetLentVest()
+	newBorrowedVestAcc0 = tester.acc0.GetBorrowedVest()
+	newDeliveringVestAcc0 = tester.acc0.GetDeliveringVest()
 	newVestAcc1 = tester.acc1.GetVest()
+	newLentVestAcc1 = tester.acc1.GetLentVest()
+	newBorrowedVestAcc1 = tester.acc1.GetBorrowedVest()
+	newDeliveringVestAcc1 = tester.acc1.GetDeliveringVest()
 	a.Equal(oldVestAcc0.Value,  newVestAcc0.Value)
+	a.Equal(oldLentVestAcc0.Value - newLentVestAcc0.Value, delegateAmount)
+	a.Equal(oldBorrowedVestAcc0.Value, newBorrowedVestAcc0.Value)
+	a.Equal(newDeliveringVestAcc0.Value - oldDeliveringVestAcc0.Value, delegateAmount)
+	a.Equal(uint64(usedVp) * Vest2VotePower(d, oldVestAcc0.Value),
+		uint64(usedVp) * Vest2VotePower(d, newVestAcc0.Value))
 	a.Equal(oldVestAcc1.Value - newVestAcc1.Value, delegateAmount)
+	a.Equal(oldLentVestAcc1.Value, newLentVestAcc1.Value)
+	a.Equal(oldBorrowedVestAcc1.Value - newBorrowedVestAcc1.Value, delegateAmount)
+	a.Equal(oldDeliveringVestAcc1.Value, newDeliveringVestAcc1.Value)
+	a.Equal(uint64(usedVp) * Vest2VotePower(d, oldVestAcc1.Value),
+		uint64(usedVp) * Vest2VotePower(d, newVestAcc1.Value + delegateAmount))
 
 	// actor0's delivery vest is 10000 vest
 	a.Equal(tester.acc0.GetDeliveringVest().Value, delegateAmount)
@@ -238,18 +289,32 @@ func (tester *VestDelegationTester) baseFunction2(t *testing.T, d *Dandelion) {
 	opUnDelegation = UnDelegateVest(tester.acc0.Name, 100)
 	a.Error(tester.acc0.SendTrxAndProduceBlock(opUnDelegation))
 
-	// mismatch undelegate
-	opUnDelegation = UnDelegateVest(tester.acc1.Name, 1)
-	a.Error(tester.acc1.SendTrxAndProduceBlock(opUnDelegation))
-
 	// before VestDelegationDeliveryInBlocks actor0 delegate 10000 vest -> failed
 	opDelegation = DelegateVest(tester.acc0.Name, tester.acc1.Name, delegateAmount, constants.MinVestDelegationInBlocks)
 	a.Error(tester.acc0.SendTrxAndProduceBlock(opDelegation))
 
-	// after VestDelegationDeliveryInBlocks actor0's vest increase 10000
+	// after VestDelegationDeliveryInBlocks actor0's vest increase 10000 and actor0's vote power increase
 	a.NoError(d.ProduceBlocks( int(constants.VestDelegationDeliveryInBlocks) + 1 ))
 	newVestAcc0 = tester.acc0.GetVest()
+	newLentVestAcc0 = tester.acc0.GetLentVest()
+	newBorrowedVestAcc0 = tester.acc0.GetBorrowedVest()
+	newDeliveringVestAcc0 = tester.acc0.GetDeliveringVest()
+	newVestAcc1 = tester.acc1.GetVest()
+	newLentVestAcc1 = tester.acc1.GetLentVest()
+	newBorrowedVestAcc1 = tester.acc1.GetBorrowedVest()
+	newDeliveringVestAcc1 = tester.acc1.GetDeliveringVest()
 	a.Equal(newVestAcc0.Value - oldVestAcc0.Value, delegateAmount)
+	a.Equal(oldLentVestAcc0.Value - newLentVestAcc0.Value, delegateAmount)
+	a.Equal(oldBorrowedVestAcc0.Value, newBorrowedVestAcc0.Value)
+	a.Equal(newDeliveringVestAcc0.Value, uint64(0))
+	a.Equal(uint64(usedVp) * Vest2VotePower(d, oldVestAcc0.Value),
+		uint64(usedVp) * Vest2VotePower(d, newVestAcc0.Value - delegateAmount))
+	a.Equal(oldVestAcc1.Value - newVestAcc1.Value, delegateAmount)
+	a.Equal(oldLentVestAcc1.Value, newLentVestAcc1.Value)
+	a.Equal(oldBorrowedVestAcc1.Value - newBorrowedVestAcc1.Value, delegateAmount)
+	a.Equal(oldDeliveringVestAcc1.Value, newDeliveringVestAcc1.Value)
+	a.Equal(uint64(usedVp) * Vest2VotePower(d, oldVestAcc1.Value),
+		uint64(usedVp) * Vest2VotePower(d, newVestAcc1.Value + delegateAmount))
 
 	// delegate record should be deleted
 	orderId := uint64(1)
@@ -339,6 +404,9 @@ func (tester *VestDelegationTester) powerDownRelated(t *testing.T, d *Dandelion)
 	powerDownAmount := 5000000000
 	opPowerDown := ConvertVest(tester.acc0.Name, uint64(powerDownAmount))
 	a.NoError(tester.acc0.SendTrxAndProduceBlock(opPowerDown))
+
+	// produce some blocks but power down not finish
+	a.NoError(d.ProduceBlocks( constants.HardFork2ConvertWeeks * constants.PowerDownBlockInterval / 2 ))
 
 	// before 5000 vest power down finish, actor0 delegate 10000 vest -> failed
 	delegateAmount := uint64(10000000000)
