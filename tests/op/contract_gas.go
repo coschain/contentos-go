@@ -18,7 +18,7 @@ func NewContractGasTester(seed uint32, cpu uint64) *ContractGasTester {
 }
 
 func NewContractGasTest(seed uint32, cpu uint64) func(*testing.T) {
-	return NewDandelionContractTest(NewContractGasTester(seed, cpu).Test, 1, "actor0.gas_burner")
+	return NewDandelionContractTest(NewContractGasTester(seed, cpu).Test, 0, 1, "actor0.gas_burner")
 }
 
 func (tester *ContractGasTester) Test(t *testing.T, d *Dandelion) {

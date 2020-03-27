@@ -174,8 +174,13 @@ func StakeFund(d *dandelion.Dandelion, actors int) error {
 	return d.ProduceBlocks(1)
 }
 
-func NewDandelionContractTest(f func(*testing.T, *dandelion.Dandelion), actors int, contracts...string) func(*testing.T) {
+func NewDandelionContractTest(f func(*testing.T, *dandelion.Dandelion), createBlocks int, actors int, contracts...string) func(*testing.T) {
 	return dandelion.NewDandelionTest(func(t *testing.T, d *dandelion.Dandelion) {
+		if createBlocks > 0 {
+			if err := d.ProduceBlocks(createBlocks); err != nil {
+				t.Fatal(err)
+			}
+		}
 		err := StakeFund(d, actors)
 		if err != nil {
 			t.Fatal(err)
