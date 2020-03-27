@@ -25,4 +25,5 @@ type Injector interface {
 	StateChangeContext() *blocklog.StateChangeContext
 	NewRecordID() uint64
 	CurrentRecordID() uint64
+	HardFork() uint64
 }

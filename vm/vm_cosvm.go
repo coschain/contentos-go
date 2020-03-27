@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"github.com/coschain/contentos-go/common/constants"
 	"github.com/coschain/contentos-go/iservices"
 	"github.com/coschain/contentos-go/prototype"
 	"github.com/coschain/contentos-go/vm/context"
@@ -38,6 +39,8 @@ func NewCosVM(ctx *vmcontext.Context, db iservices.IDatabaseRW, props *prototype
 }
 
 func (w *CosVM) initNativeFuncs() {
+	hardFork := w.ctx.Injector.HardFork()
+
 	w.register("sha256", e_sha256, 500)
 	w.register("current_block_number", e_currentBlockNumber, 100)
 	w.register("current_timestamp", e_currentTimestamp, 100)
@@ -62,7 +65,6 @@ func (w *CosVM) initNativeFuncs() {
 	w.register("read_calling_contract_owner", e_readCallingContractOwner, 100)
 	w.register("read_calling_contract_name", e_readCallingContractName, 100)
 	w.register("transfer_to_user", e_contractTransferToUser, 800)
-	w.register("transfer_to_user_vest", e_contractTransferToUserVest, 800)
 	w.register("transfer_to_contract", e_contractTransferToContract, 800)
 	w.register("table_get_record", e_tableGetRecord, 800)
 	w.register("table_new_record", e_tableNewRecord, 1200)
@@ -88,6 +90,9 @@ func (w *CosVM) initNativeFuncs() {
 	// for io
 	w.register("copy", e_copy, 100)
 
+	if hardFork >= constants.HardFork1a {
+		w.register("transfer_to_user_vest", e_contractTransferToUserVest, 800)
+	}
 }
 
 func (w *CosVM) readModule() (*wasm.Module, error) {

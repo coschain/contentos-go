@@ -5,6 +5,7 @@ import "github.com/coschain/contentos-go/common/constants"
 var hardForks = []uint64{
 	constants.Original,
 	constants.HardFork1,
+	constants.HardFork1a,
 	constants.HardFork2,
 	constants.HardFork3,
 }

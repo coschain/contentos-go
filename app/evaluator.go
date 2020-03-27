@@ -892,7 +892,7 @@ func (ev *ContractDeployEvaluator) Apply() {
 	}
 	abiString := string(contractAbi)
 
-	vmCtx := vmcontext.NewContextFromDeployOp(op, contractCode, abiString, nil)
+	vmCtx := vmcontext.NewContextFromDeployOp(op, contractCode, abiString, ev.VMInjector())
 
 	cosVM := vm.NewCosVM(vmCtx, nil, nil, nil)
 
