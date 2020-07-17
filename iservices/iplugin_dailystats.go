@@ -6,4 +6,5 @@ var DailyStatisticServiceName = "dailystatservice"
 
 type IDailyStats interface {
 	DailyStatsSince(days int, dapp string) []*itype.Row
+	MonthlyStatsSince(days int, dapp string) []*itype.Row
 }

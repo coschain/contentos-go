@@ -575,7 +575,7 @@ func (as *APIService) GetAccountListByCreTime (ctx context.Context, req *grpcpb.
 	res := &grpcpb.GetAccountListResponse{}
 	var (
 		err error
-	    list []*grpcpb.AccountResponse
+		list []*grpcpb.AccountResponse
 		lastAcctName *prototype.AccountName
 		lastAcctTime *prototype.TimePointSec
 	)
@@ -601,7 +601,7 @@ func (as *APIService) GetAccountListByCreTime (ctx context.Context, req *grpcpb.
 	}
 
 	res.List = list
-	
+
 	return res,err
 }
 
@@ -768,7 +768,7 @@ func (as *APIService) GetTrxListByTime(ctx context.Context, req *grpcpb.GetTrxLi
 			}
 
 			//if len(infoList) >= (maxPageSizeLimit) {
-			//	return false
+			//  return false
 			//}
 			if limit != 0 && len(infoList) >= int(limit) {
 				return false
@@ -931,7 +931,7 @@ func (as *APIService) getAccountResponseByName(name *prototype.AccountName, isNe
 		acctInfo.HasWithdrawn = accWrap.GetHasPowerdown()
 		startWithdrawTime := &prototype.TimePointSec{UtcSeconds: 0}
 		startWithdrawBlock := accWrap.GetStartPowerdownBlockNum()
-		if	currentBlockNum >= startWithdrawBlock && startWithdrawBlock > 0 {
+		if  currentBlockNum >= startWithdrawBlock && startWithdrawBlock > 0 {
 			startWithdrawTime = &prototype.TimePointSec{UtcSeconds:currentTime.UtcSeconds - uint32(currentBlockNum - startWithdrawBlock)}
 		}
 		acctInfo.StartWithdrawTime = startWithdrawTime
@@ -1007,7 +1007,7 @@ func (as *APIService) getBlockProducerResponseByName(name *prototype.AccountName
 		bp.PerTicketPrice        = bpWrap.GetPerTicketPrice()
 		bp.PerTicketWeight       = bpWrap.GetPerTicketWeight()
 		bp.VoterCount            = bpWrap.GetVoterCount()
-		bp.GenBlockCount		 = bpWrap.GetGenBlockCount()
+		bp.GenBlockCount         = bpWrap.GetGenBlockCount()
 	}else {
 		return nil
 	}
@@ -1105,7 +1105,7 @@ func (as *APIService) fetchPostInfoResponseById(postId uint64,isNeedLock bool) *
 			globalRewards = props.PoolReplyRewards.Value
 			globalWeightedVp = props.WeightedVpsReply
 		}
-		res  =	&grpcpb.PostResponse{
+		res  =  &grpcpb.PostResponse{
 			PostId:        pWrap.GetPostId(),
 			Category:      pWrap.GetCategory(),
 			ParentAuthor:  pWrap.GetAuthor(),
@@ -1184,10 +1184,10 @@ func (as *APIService) GetPostInfoById (ctx context.Context, req *grpcpb.GetPostI
 				end := &prototype.ReplyCreatedOrder{ParentId:req.PostId,Created:prototype.NewTimePointSec(1)}
 				err := replyOrderWrap.ForEachByRevOrder(start,end,nil,nil, func(mVal *uint64, sVal *prototype.ReplyCreatedOrder, idx uint32) bool {
 					if mVal != nil {
-                       reply :=  as.fetchPostInfoResponseById(*mVal,false)
-                       if reply != nil {
-						   replyList = append(replyList,reply)
-					   }
+						reply :=  as.fetchPostInfoResponseById(*mVal,false)
+						if reply != nil {
+							replyList = append(replyList,reply)
+						}
 					}
 					if uint32(len(replyList)) >= replyLimit {
 						return false
@@ -1245,7 +1245,7 @@ func (as *APIService) GetBlkIsIrreversibleByTxId (ctx context.Context,
 
 	res.Result = as.judgeBlkIsIrreversibleByTxId(req.TrxId)
 
-    return res,nil
+	return res,nil
 }
 
 func (as *APIService) judgeBlkIsIrreversibleByTxId(trxId *prototype.Sha256) bool {
@@ -1289,7 +1289,7 @@ func (as *APIService) getTrxInfoByTrxId(trxId *prototype.Sha256, blkStateMap map
 				}
 			}
 			if !hasState {
-                info.BlkIsIrreversible = as.judgeBlkIsIrreversibleByHash(info.BlockId.Hash)
+				info.BlkIsIrreversible = as.judgeBlkIsIrreversibleByHash(info.BlockId.Hash)
 			}
 			tInfo = info
 		}
@@ -1308,6 +1308,22 @@ func (as *APIService) GetDailyStats(ctx context.Context, req *grpcpb.GetDailySta
 	res := &grpcpb.GetDailyStatsResponse{}
 	for _, row := range rows {
 		stat = append(stat, &grpcpb.DailyStat{Date: row.Timestamp, Dapp: row.Dapp, Dau: row.Dau, Dnu: row.Dnu, Trxs: row.TrxCount, Amount: row.Amount, TotalUserCount: row.TotalUserCount})
+	}
+	res.Stat = stat
+	return res, nil
+}
+
+func (as *APIService) GetMonthlyStats(ctx context.Context, req *grpcpb.GetMonthlysRequest) (*grpcpb.GetMonthlysResponse, error) {
+	dsservice, err := as.ctx.Service(iservices.DailyStatisticServiceName)
+	if err != nil {
+		return nil, errors.New("plugin daily statistic service isn't running")
+	}
+	ds := dsservice.(iservices.IDailyStats)
+	rows := ds.MonthlyStatsSince(int(req.Months), req.Dapp)
+	var stat []*grpcpb.MonthlyStat
+	res := &grpcpb.GetMonthlysResponse{}
+	for _, row := range rows {
+		stat = append(stat, &grpcpb.MonthlyStat{Date: row.Timestamp, Dapp: row.Dapp, Mau: row.Mau})
 	}
 	res.Stat = stat
 	return res, nil
@@ -1359,7 +1375,7 @@ func (as *APIService) GetContractListByTime(ctx context.Context, req *grpcpb.Get
 
 	}
 	res.ContractList = list
-    return  res,err
+	return  res,err
 }
 
 func (as *APIService) GetBlockProducerListByVoteCount(ctx context.Context, req *grpcpb.GetBlockProducerListByVoteCountRequest) (*grpcpb.GetBlockProducerListResponse,error){
@@ -1410,7 +1426,7 @@ func (as *APIService) GetBlockProducerListByVoteCount(ctx context.Context, req *
 				return true
 			})
 	}
-    res.BlockProducerList = witList
+	res.BlockProducerList = witList
 	return res,err
 }
 
