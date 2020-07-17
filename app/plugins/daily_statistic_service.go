@@ -14,8 +14,10 @@ import (
 )
 
 const LIMIT = 30
+const MLIMIT = 12
 
 type dateRow map[uint64]*itype.Row
+type monthRow map[uint64]*itype.MonthlyInfo
 
 type DailyStatisticService struct {
 	sync.Mutex
@@ -27,6 +29,7 @@ type DailyStatisticService struct {
 	working int32
 	workStop *sync.Cond
 	dappsCache map[string]dateRow
+	dappsMonthlyCache map[string]monthRow
 	dappWithCreator map[string]string
 }
 
@@ -50,8 +53,10 @@ func (s *DailyStatisticService) Start(node *node.Node) error {
 	}
 	s.dappWithCreator = map[string]string{"contentos": "costvtycoon", "photogrid": "photogrid"}
 	s.dappsCache = map[string]dateRow{}
+	s.dappsMonthlyCache = map[string]monthRow{}
 	for dapp, _ := range s.dappWithCreator {
 		s.dappsCache[dapp] = dateRow{}
+		s.dappsMonthlyCache[dapp] = monthRow{}
 	}
 	s.scheduleNextJob()
 	return nil
@@ -94,6 +99,10 @@ func (s *DailyStatisticService) cron() {
 		if row, err := s.make(dapp, yesterdayStr); err == nil {
 			timestamp := row.Timestamp
 			s.dappsCache[dapp][timestamp] = row
+		}
+		if row, err := s.makeMonthly(dapp, yesterdayStr); err == nil {
+			timestamp := row.Timestamp
+			s.dappsMonthlyCache[dapp][timestamp] = row
 		}
 	}
 	s.Lock()
@@ -162,11 +171,48 @@ func (s *DailyStatisticService) make(dapp, datetime string) (*itype.Row, error) 
 	return row, nil
 }
 
+func (s *DailyStatisticService) makeMonthly(dapp, datetime string) (*itype.MonthlyInfo, error) {
+	s.Lock()
+	defer s.Unlock()
+	creator, ok := s.dappWithCreator[dapp]
+	if !ok {
+		return nil, errors.New(fmt.Sprintf("dapp %s is not exist", dapp))
+	}
+	currentDate, err := time.Parse("2006-01-02", datetime)
+	e := currentDate.AddDate(0, 0, -currentDate.Day() + 1)
+	f := time.Date(e.Year(), e.Month(), e.Day(), 0, 0, 0, 0, e.Location())
+	g := f.AddDate(0, 1, -1)
+	if err != nil {
+		return nil, err
+	}
+	start := f.Unix()
+	end := g.Unix()
+
+	var mau uint32
+	mauErr := s.db.Table("create_user_records").Where("create_user_records.creator = ?", creator).
+		Joins("JOIN trxinfo on trxinfo.creator = create_user_records.new_account").
+		Where("trxinfo.block_time > ? AND trxinfo.block_time < ?", start, end).
+		Select("count(distinct(create_user_records.new_account))").
+		Count(&mau).GetErrors()
+	s.printErr(mauErr)
+
+	row := &itype.MonthlyInfo{Timestamp: uint64(start), Dapp: dapp, Mau: mau}
+	return row, nil
+}
+
 func (s *DailyStatisticService) checkLimit(days int) int {
 	if days > LIMIT {
 		return LIMIT
 	} else {
 		return days
+	}
+}
+
+func (s *DailyStatisticService) checkMonthLimit(months int) int {
+	if months > MLIMIT {
+		return MLIMIT
+	} else {
+		return months
 	}
 }
 
@@ -195,6 +241,34 @@ func (s *DailyStatisticService) DailyStatsSince(days int, dapp string) []*itype.
 			}
 		}
 		start = start.Add(24 * time.Hour)
+	}
+	return rows
+}
+
+func (s *DailyStatisticService) MonthlyStatsSince(months int, dapp string) []*itype.MonthlyInfo {
+	var rows []*itype.MonthlyInfo
+	months = s.checkMonthLimit(months)
+	if _, ok := s.dappWithCreator[dapp]; !ok {
+		return rows
+	}
+	dappMRows, _ := s.dappsMonthlyCache[dapp]
+	today := time.Now().UTC()
+	yesterday := today.Add(-24 * time.Hour)
+	for i := months; i >= 0; i-- {
+		e := yesterday.AddDate(0, -i ,0)
+		f := time.Date(e.Year(), e.Month(), e.Day(), 0, 0, 0, 0, e.Location())
+		timestamp := uint64(f.Unix())
+		if row, ok := dappMRows[timestamp]; ok {
+			rows = append(rows, row)
+		} else {
+			tm := time.Unix(int64(timestamp), 0)
+			date := tm.Format("2006-01-02")
+			row, err := s.makeMonthly(dapp, date)
+			if err == nil {
+				dappMRows[timestamp] = row
+				rows = append(rows, row)
+			}
+		}
 	}
 	return rows
 }
