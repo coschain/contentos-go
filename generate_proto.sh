@@ -15,7 +15,7 @@ if [ "$1" == "update" ] ; then
   fi
   go get -u github.com/grpc-ecosystem/grpc-gateway/protoc-gen-grpc-gateway
   go get -u github.com/grpc-ecosystem/grpc-gateway/protoc-gen-swagger
-  go get -u github.com/golang/protobuf/protoc-gen-go
+  go get github.com/golang/protobuf/protoc-gen-go@v1.3.2
   go get -u github.com/golang/mock/gomock
   go get -u github.com/golang/mock/mockgen
 fi

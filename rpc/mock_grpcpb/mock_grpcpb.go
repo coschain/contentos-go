@@ -555,6 +555,26 @@ func (mr *MockApiServiceClientMockRecorder) GetDailyStats(ctx, in interface{}, o
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetDailyStats", reflect.TypeOf((*MockApiServiceClient)(nil).GetDailyStats), varargs...)
 }
 
+// GetMonthlyStats mocks base method
+func (m *MockApiServiceClient) GetMonthlyStats(ctx context.Context, in *pb.GetMonthlysRequest, opts ...grpc.CallOption) (*pb.GetMonthlysResponse, error) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{ctx, in}
+	for _, a := range opts {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "GetMonthlyStats", varargs...)
+	ret0, _ := ret[0].(*pb.GetMonthlysResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetMonthlyStats indicates an expected call of GetMonthlyStats
+func (mr *MockApiServiceClientMockRecorder) GetMonthlyStats(ctx, in interface{}, opts ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{ctx, in}, opts...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMonthlyStats", reflect.TypeOf((*MockApiServiceClient)(nil).GetMonthlyStats), varargs...)
+}
+
 // GetContractListByTime mocks base method
 func (m *MockApiServiceClient) GetContractListByTime(ctx context.Context, in *pb.GetContractListByTimeRequest, opts ...grpc.CallOption) (*pb.GetContractListResponse, error) {
 	m.ctrl.T.Helper()
@@ -1266,6 +1286,21 @@ func (m *MockApiServiceServer) GetDailyStats(arg0 context.Context, arg1 *pb.GetD
 func (mr *MockApiServiceServerMockRecorder) GetDailyStats(arg0, arg1 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetDailyStats", reflect.TypeOf((*MockApiServiceServer)(nil).GetDailyStats), arg0, arg1)
+}
+
+// GetMonthlyStats mocks base method
+func (m *MockApiServiceServer) GetMonthlyStats(arg0 context.Context, arg1 *pb.GetMonthlysRequest) (*pb.GetMonthlysResponse, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetMonthlyStats", arg0, arg1)
+	ret0, _ := ret[0].(*pb.GetMonthlysResponse)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetMonthlyStats indicates an expected call of GetMonthlyStats
+func (mr *MockApiServiceServerMockRecorder) GetMonthlyStats(arg0, arg1 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetMonthlyStats", reflect.TypeOf((*MockApiServiceServer)(nil).GetMonthlyStats), arg0, arg1)
 }
 
 // GetContractListByTime mocks base method
