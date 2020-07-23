@@ -1313,7 +1313,7 @@ func (as *APIService) GetDailyStats(ctx context.Context, req *grpcpb.GetDailySta
 	return res, nil
 }
 
-func (as *APIService) GetMonthlyStats(ctx context.Context, req *grpcpb.GetMonthlysRequest) (*grpcpb.GetMonthlysResponse, error) {
+func (as *APIService) GetMonthlyStats(ctx context.Context, req *grpcpb.GetMonthlyStatsRequest) (*grpcpb.GetMonthlyStatsResponse, error) {
 	dsservice, err := as.ctx.Service(iservices.DailyStatisticServiceName)
 	if err != nil {
 		return nil, errors.New("plugin daily statistic service isn't running")
@@ -1321,7 +1321,7 @@ func (as *APIService) GetMonthlyStats(ctx context.Context, req *grpcpb.GetMonthl
 	ds := dsservice.(iservices.IDailyStats)
 	rows := ds.MonthlyStatsSince(int(req.Months), req.Dapp)
 	var stat []*grpcpb.MonthlyStat
-	res := &grpcpb.GetMonthlysResponse{}
+	res := &grpcpb.GetMonthlyStatsResponse{}
 	for _, row := range rows {
 		stat = append(stat, &grpcpb.MonthlyStat{Date: row.Timestamp, Dapp: row.Dapp, Mau: row.Mau})
 	}
