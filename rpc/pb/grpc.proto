@@ -89,7 +89,7 @@ service ApiService {
 
     }
 
-    rpc GetMonthlyStats (GetMonthlysRequest) returns (GetMonthlysResponse) {
+    rpc GetMonthlyStats (GetMonthlyStatsRequest) returns (GetMonthlyStatsResponse) {
 
     }
 
@@ -607,12 +607,12 @@ message MonthlyStat {
     uint32 mau = 3;
 }
 
-message GetMonthlysRequest {
+message GetMonthlyStatsRequest {
     uint32 months = 1;
     string dapp = 2;
 }
 
-message GetMonthlysResponse {
+message GetMonthlyStatsResponse {
     repeated MonthlyStat stat = 1;
 }
 

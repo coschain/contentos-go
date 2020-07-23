@@ -556,14 +556,14 @@ func (mr *MockApiServiceClientMockRecorder) GetDailyStats(ctx, in interface{}, o
 }
 
 // GetMonthlyStats mocks base method
-func (m *MockApiServiceClient) GetMonthlyStats(ctx context.Context, in *pb.GetMonthlysRequest, opts ...grpc.CallOption) (*pb.GetMonthlysResponse, error) {
+func (m *MockApiServiceClient) GetMonthlyStats(ctx context.Context, in *pb.GetMonthlyStatsRequest, opts ...grpc.CallOption) (*pb.GetMonthlyStatsResponse, error) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{ctx, in}
 	for _, a := range opts {
 		varargs = append(varargs, a)
 	}
 	ret := m.ctrl.Call(m, "GetMonthlyStats", varargs...)
-	ret0, _ := ret[0].(*pb.GetMonthlysResponse)
+	ret0, _ := ret[0].(*pb.GetMonthlyStatsResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
@@ -1289,10 +1289,10 @@ func (mr *MockApiServiceServerMockRecorder) GetDailyStats(arg0, arg1 interface{}
 }
 
 // GetMonthlyStats mocks base method
-func (m *MockApiServiceServer) GetMonthlyStats(arg0 context.Context, arg1 *pb.GetMonthlysRequest) (*pb.GetMonthlysResponse, error) {
+func (m *MockApiServiceServer) GetMonthlyStats(arg0 context.Context, arg1 *pb.GetMonthlyStatsRequest) (*pb.GetMonthlyStatsResponse, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetMonthlyStats", arg0, arg1)
-	ret0, _ := ret[0].(*pb.GetMonthlysResponse)
+	ret0, _ := ret[0].(*pb.GetMonthlyStatsResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
