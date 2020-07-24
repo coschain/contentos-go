@@ -188,7 +188,7 @@ func (s *DailyStatisticService) makeMonthly(dapp, datetime string) (*itype.Month
 	start := f.Unix()
 	end := g.Unix()
 
-	var mau uint32
+	var mau uint32 = 0
 	mauErr := s.db.Table("create_user_records").Where("create_user_records.creator = ?", creator).
 		Joins("JOIN trxinfo on trxinfo.creator = create_user_records.new_account").
 		Where("trxinfo.block_time > ? AND trxinfo.block_time < ?", start, end).
@@ -254,7 +254,7 @@ func (s *DailyStatisticService) MonthlyStatsSince(months int, dapp string) []*it
 	dappMRows, _ := s.dappsMonthlyCache[dapp]
 	today := time.Now().UTC()
 	yesterday := today.Add(-24 * time.Hour)
-	for i := months; i >= 0; i-- {
+	for i := months-1; i >= 0; i-- {
 		e := yesterday.AddDate(0, -i ,0)
 		f := time.Date(e.Year(), e.Month(), e.Day(), 0, 0, 0, 0, e.Location())
 		timestamp := uint64(f.Unix())
