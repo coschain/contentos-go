@@ -78,7 +78,7 @@ service ApiService {
 
     rpc GetContractInfo (GetContractInfoRequest) returns (GetContractInfoResponse) {
     }
-    
+
     rpc GetBlkIsIrreversibleByTxId (GetBlkIsIrreversibleByTxIdRequest) returns (GetBlkIsIrreversibleByTxIdResponse) {
     }
 
@@ -86,6 +86,10 @@ service ApiService {
     }
 
     rpc GetDailyStats (GetDailyStatsRequest) returns (GetDailyStatsResponse) {
+
+    }
+
+    rpc GetMonthlyStats (GetMonthlyStatsRequest) returns (GetMonthlyStatsResponse) {
 
     }
 
@@ -417,7 +421,7 @@ message BlockInfo {
 }
 
 message GetBlockListResponse {
-   repeated    BlockInfo   blocks = 1;
+    repeated    BlockInfo   blocks = 1;
 }
 
 message GetSignedBlockRequest {
@@ -567,7 +571,7 @@ message GetBlkIsIrreversibleByTxIdRequest {
     prototype.sha256       trx_id  = 1;
 }
 
-message GetBlkIsIrreversibleByTxIdResponse {  
+message GetBlkIsIrreversibleByTxIdResponse {
     bool       result   = 1;
 }
 
@@ -595,6 +599,21 @@ message GetDailyStatsRequest {
 
 message GetDailyStatsResponse {
     repeated DailyStat stat = 1;
+}
+
+message MonthlyStat {
+    uint64 date = 1;
+    string dapp = 2;
+    uint32 mau = 3;
+}
+
+message GetMonthlyStatsRequest {
+    uint32 months = 1;
+    string dapp = 2;
+}
+
+message GetMonthlyStatsResponse {
+    repeated MonthlyStat stat = 1;
 }
 
 message ContractInfo {

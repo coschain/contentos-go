@@ -51,3 +51,9 @@ type DappRewardInfo struct {
 	Reward uint64 `json:"reward"`
 	RelatedPostId uint64 `json:"postid"`
 }
+
+type MonthlyInfo struct {
+	Timestamp uint64
+	Dapp string
+	Mau  uint32
+}
