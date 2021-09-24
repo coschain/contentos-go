@@ -15,8 +15,8 @@ type NftRecord struct {
 	BlockHeight uint64			`gorm:"index"`
 	BlockTime time.Time
 	Action string				`gorm:"index"`
-	Symbol string				`gorm:"index"`
-	TokenId uint64
+	Symbol string				`gorm:"index:idx_symbol_token;index:idx_symbol"`
+	TokenId string				`gorm:"index:idx_symbol_token"`
 	From string					`gorm:"index"`
 	To string					`gorm:"index"`
 }
@@ -25,7 +25,7 @@ type NftState struct {
 	ID uint64					`gorm:"primary_key;auto_increment"`
 	Owner string				`gorm:"index"`
 	Symbol string				`gorm:"index:idx_symbol_token"`
-	TokenId uint64				`gorm:"index:idx_symbol_token"`
+	TokenId string				`gorm:"index:idx_symbol_token"`
 }
 
 type NftTokenRecord struct {
@@ -40,9 +40,9 @@ type NftTokenRecord struct {
 }
 
 type NftHoldingRecord struct {
-	TokenId string				`json:"token_id"`
+	GlobalId string				`json:"global_id"`
 	Symbol string				`json:"symbol"`
-	Token uint64				`json:"token"`
+	Token string				`json:"token"`
 	Owner string				`json:"owner"`
 }
 
@@ -122,7 +122,7 @@ func (p *NftProcessor) ProcessChange(db *gorm.DB, change *blocklog.StateChange, 
 			return err
 		}
 		rec.Symbol = tokenRecord.Symbol
-		rec.TokenId = 0
+		rec.TokenId = ""
 		rec.From = op.Caller.Value
 		rec.To = ""
 	} else if change.What == NftContractHoldingsTable {
