@@ -80,6 +80,12 @@ func (p *NftProcessor) Prepare(db *gorm.DB, blockLog *blocklog.BlockLog) (err er
 }
 
 func (p *NftProcessor) ProcessChange(db *gorm.DB, change *blocklog.StateChange, blockLog *blocklog.BlockLog, changeIdx, opIdx, trxIdx int) error {
+	NftContractOwner := "contentos"
+	NftContractName := "cosnft"
+	NftContract := "@" + NftContractOwner + "." + NftContractName
+	NftContractTokensTable := NftContract + ".tokens"
+	NftContractHoldingsTable := NftContract + ".holdings"
+
 	if opIdx < 0 || trxIdx < 0 {
 		return nil
 	}
@@ -95,7 +101,7 @@ func (p *NftProcessor) ProcessChange(db *gorm.DB, change *blocklog.StateChange, 
 	if !ok {
 		return errors.New("failed converting to ContractApplyOperation")
 	}
-	if op.Owner.Value != "contentos" || op.Contract != "cosnft" {
+	if op.Owner.Value != NftContractOwner || op.Contract != NftContractName {
 		return nil
 	}
 
@@ -111,7 +117,7 @@ func (p *NftProcessor) ProcessChange(db *gorm.DB, change *blocklog.StateChange, 
 		Action: op.Method,
 	}
 
-	if op.Method == "issue" && change.What == "@contentos.cosnft.tokens" && change.Kind == blocklog.ChangeKindCreate {
+	if op.Method == "issue" && change.What == NftContractTokensTable && change.Kind == blocklog.ChangeKindCreate {
 		if err := p.parseRecord(change.Change.After, &tokenRecord); err != nil {
 			return err
 		}
@@ -119,7 +125,7 @@ func (p *NftProcessor) ProcessChange(db *gorm.DB, change *blocklog.StateChange, 
 		rec.TokenId = 0
 		rec.From = op.Caller.Value
 		rec.To = ""
-	} else if change.What == "@contentos.cosnft.holdings" {
+	} else if change.What == NftContractHoldingsTable {
 		if err := p.parseRecord(change.Change.Before, &holdingBefore); err != nil {
 			return err
 		}
@@ -148,6 +154,8 @@ func (p *NftProcessor) ProcessChange(db *gorm.DB, change *blocklog.StateChange, 
 			TokenId: holdingRecord.Token,
 		}
 		stateOp = change.Kind
+	} else {
+		return nil
 	}
 	if err := db.Create(rec).Error; err != nil {
 		return err
