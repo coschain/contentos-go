@@ -15,7 +15,7 @@ type NftRecord struct {
 	BlockHeight uint64			`gorm:"index"`
 	BlockTime time.Time
 	Action string				`gorm:"index"`
-	Symbol string				`gorm:"index:idx_symbol_token;index:idx_symbol"`
+	Symbol string				`gorm:"index:idx_symbol_token"`
 	TokenId string				`gorm:"index:idx_symbol_token"`
 	From string					`gorm:"index"`
 	To string					`gorm:"index"`
