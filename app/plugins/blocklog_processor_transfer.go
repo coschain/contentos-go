@@ -17,8 +17,7 @@ type TransferRecord struct {
 	From string					`gorm:"index"`
 	To string					`gorm:"index"`
 	Amount uint64				`gorm:"index"`
-	Memo string					`gorm:"index"`
-
+	Memo string					`gorm:"type:varchar(756);index"`
 }
 
 type TransferProcessor struct {
@@ -62,6 +61,14 @@ func (p *TransferProcessor) ProcessOperation(db *gorm.DB, blockLog *blocklog.Blo
 	if !ok {
 		return errors.New("failed conversion to TransferOperation")
 	}
+
+	const MemoCharsLimit = 700
+	memo := op.Memo
+	memoRunes := []rune(memo)
+	if len(memoRunes) > MemoCharsLimit {
+		memo = string(memoRunes[:MemoCharsLimit])
+	}
+
 	return db.Create(&TransferRecord{
 		BlockHeight: blockLog.BlockNum,
 		BlockTime: time.Unix(int64(blockLog.BlockTime), 0),
@@ -69,7 +76,7 @@ func (p *TransferProcessor) ProcessOperation(db *gorm.DB, blockLog *blocklog.Blo
 		To: op.GetTo().GetValue(),
 		OperationId: operationId,
 		Amount: op.GetAmount().GetValue(),
-		Memo: op.Memo,
+		Memo: memo,
 	}).Error
 }
 
