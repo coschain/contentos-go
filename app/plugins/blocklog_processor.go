@@ -21,6 +21,7 @@ func NewBlockLogProcessor() *BlockLogProcessor {
 		NewPowerUpDownProcessor(),
 		NewVestDelegationProcessor(),
 		NewNftProcessor(),
+		NewSbtProcessor(),
 	)
 	return blockLogProcessor
 }
