@@ -71,8 +71,9 @@ func fetchBlocks(from, to uint64, forkDB *forkdb.DB, blog *blocklog.BLog) ([]com
 		}
 	}
 
-	blocksInBlog := make([]common.ISignedBlock, 0, blogTo-blogFrom+1)
+	var blocksInBlog []common.ISignedBlock
 	if blogFrom > 0 {
+		blocksInBlog = make([]common.ISignedBlock, 0, blogTo-blogFrom+1)
 		for blogFrom <= blogTo {
 			b := &prototype.SignedBlock{}
 			if err := blog.ReadBlock(b, int64(blogFrom-1)); err != nil {

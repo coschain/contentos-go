@@ -20,6 +20,8 @@ func NewBlockLogProcessor() *BlockLogProcessor {
 		NewProducerVoteProcessor(),
 		NewPowerUpDownProcessor(),
 		NewVestDelegationProcessor(),
+		NewNftProcessor(),
+		NewSbtProcessor(),
 	)
 	return blockLogProcessor
 }
