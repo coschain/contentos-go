@@ -55,7 +55,7 @@ var AgentCmd = func() *cobra.Command {
 		Run:   startBackUpAgent,
 	}
 	cmd.Flags().StringVarP(&dataDir, "data_dir", "d", "", "directory of cosd data")
-	cmd.Flags().StringVarP(&dstDir, "dst_dir", "dd", "", "directory of tmp data")
+	cmd.Flags().StringVarP(&dstDir, "dst_dir", "e", "", "directory of tmp data")
 	cmd.Flags().Int32VarP(&interval, "interval", "i", 3 * 86400, "backup data every interval seconds")
 	cmd.Flags().BoolVarP(&fullNodeBackup, "fullNodeBackup", "f", false, "backup a full node or not")
 	//cmd.Flags().StringVarP(&destAddr, "addr", "a", "", "the address of the backup server")
