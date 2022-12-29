@@ -23,6 +23,7 @@ import (
 )
 
 var dataDir string
+var dstDir string
 var interval int32
 var archFileName string
 var archFileNameSuffix string
@@ -54,6 +55,7 @@ var AgentCmd = func() *cobra.Command {
 		Run:   startBackUpAgent,
 	}
 	cmd.Flags().StringVarP(&dataDir, "data_dir", "d", "", "directory of cosd data")
+	cmd.Flags().StringVarP(&dstDir, "dst_dir", "dd", "", "directory of tmp data")
 	cmd.Flags().Int32VarP(&interval, "interval", "i", 3 * 86400, "backup data every interval seconds")
 	cmd.Flags().BoolVarP(&fullNodeBackup, "fullNodeBackup", "f", false, "backup a full node or not")
 	//cmd.Flags().StringVarP(&destAddr, "addr", "a", "", "the address of the backup server")
@@ -102,11 +104,15 @@ func (a *Agent) Run() {
 func (a *Agent) run() error {
 	logrus.Info("start a new backup round")
 
+	if len(dstDir) == 0 {
+		dstDir = dataDir
+	}
+
 	defer func() {
 		// delete old file
-		os.RemoveAll(dataDir + TMP_DIR_NAME)
-		os.Remove(archFileName)
-		os.Remove(ROUTER)
+		os.RemoveAll(dstDir + TMP_DIR_NAME)
+		os.Remove(dstDir + "/" + archFileName)
+		os.Remove(dstDir + "/" + ROUTER)
 	}()
 
 	timeNow := time.Now()
@@ -162,9 +168,9 @@ func (a *Agent) run() error {
 func zip() error {
 	input := make([]*os.File, 3)
 	inputName := []string{
-		dataDir + TMP_DIR_NAME + BLOG_NAME,
-		dataDir + TMP_DIR_NAME + CHECHPOINT_NAME,
-		dataDir + TMP_DIR_NAME + DB_NAME,
+		dstDir + TMP_DIR_NAME + BLOG_NAME,
+		dstDir + TMP_DIR_NAME + CHECHPOINT_NAME,
+		dstDir + TMP_DIR_NAME + DB_NAME,
 	}
 	for i := range inputName {
 		dataFile, err := os.Open(inputName[i])
@@ -300,7 +306,7 @@ func zip() error {
 
 
 func Compress(files []*os.File, dest string) error {
-	d, _ := os.Create(dest)
+	d, _ := os.Create(dstDir + "/" + dest)
 	defer d.Close()
 	gw := gzip.NewWriter(d)
 	defer gw.Close()
@@ -433,7 +439,7 @@ func SendToS3() error {
 // and will set file info like content type and encryption on the uploaded file.
 func AddFileToS3(s *session.Session, fileDir string) error {
 	// Open the file for use
-	file, err := os.Open(fileDir)
+	file, err := os.Open(dstDir + "/" + fileDir)
 	if err != nil {
 		return err
 	}
@@ -488,7 +494,7 @@ func AddFileToS3(s *session.Session, fileDir string) error {
 }
 
 func UpdateRouter(s *session.Session, content string) error {
-	file, err := os.Create(ROUTER)
+	file, err := os.Create(dstDir + "/" + ROUTER)
 	if err != nil {
 		return err
 	}
@@ -504,7 +510,7 @@ func UpdateRouter(s *session.Session, content string) error {
 		return err
 	}
 
-	writeFd, err := os.OpenFile(ROUTER, os.O_APPEND|os.O_WRONLY, 0600)
+	writeFd, err := os.OpenFile(dstDir + "/" + ROUTER, os.O_APPEND|os.O_WRONLY, 0600)
 	if err != nil {
 		panic(err)
 	}
@@ -519,27 +525,27 @@ func UpdateRouter(s *session.Session, content string) error {
 
 func CopyDataFile(prefix string) error {
 	// create tmp directory
-	err := os.Mkdir(prefix+TMP_DIR_NAME, os.ModePerm)
+	err := os.Mkdir(dstDir+TMP_DIR_NAME, os.ModePerm)
 	if err != nil{
 		return errors.New(fmt.Sprintf("Failed to create tmp directory %s", err))
 	}
 
 	// copy blog
-	cmdStr := fmt.Sprintf("cp -r %s %s", prefix+BLOG_NAME, prefix+TMP_DIR_NAME+BLOG_NAME)
+	cmdStr := fmt.Sprintf("cp -r %s %s", prefix+BLOG_NAME, dstDir+TMP_DIR_NAME+BLOG_NAME)
 	cmd := exec.Command("/bin/bash","-c", cmdStr)
 	if err := cmd.Run(); err != nil {
 		return errors.New(fmt.Sprintf("failed to copy blog %s", err))
 	}
 
 	// copy checkpoint
-	cmdStr = fmt.Sprintf("cp -r %s %s", prefix+CHECHPOINT_NAME, prefix+TMP_DIR_NAME+CHECHPOINT_NAME)
+	cmdStr = fmt.Sprintf("cp -r %s %s", prefix+CHECHPOINT_NAME, dstDir+TMP_DIR_NAME+CHECHPOINT_NAME)
 	cmd = exec.Command("/bin/bash","-c", cmdStr)
 	if err := cmd.Run(); err != nil {
 		return errors.New(fmt.Sprintf("failed to copy checkpoint %s", err))
 	}
 
 	// copy db
-	cmdStr = fmt.Sprintf("cp -r %s %s", prefix+DB_NAME, prefix+TMP_DIR_NAME+DB_NAME)
+	cmdStr = fmt.Sprintf("cp -r %s %s", prefix+DB_NAME, dstDir+TMP_DIR_NAME+DB_NAME)
 	cmd = exec.Command("/bin/bash","-c", cmdStr)
 	if err := cmd.Run(); err != nil {
 		return errors.New(fmt.Sprintf("failed to copy db %s", err))
