@@ -28,4 +28,5 @@ const (
 	HardFork1 uint64 = 1732100	// around 2019-10-15 15:30 +0800
 	HardFork2 uint64 = 11314200	// around 2020-02-03 15:00 +0800
 	HardFork3 uint64 = 16411000	// around 2020-04-02 15:00 +0800
+	HardFork4 uint64 = 116110000	// around 2023-05-31 22:41:33 +0800
 )

@@ -319,6 +319,8 @@ func (ev *TransferEvaluator) Apply() {
 
 	opAssert(op.From.Value != op.To.Value, "Transfer must between two different accounts")
 
+	opAssert(!isBadGuy(ev.HardFork(), op.From), "from account forbidden")
+
 	//fBalance := fromWrap.GetBalance()
 	//tBalance := toWrap.GetBalance()
 
@@ -800,6 +802,8 @@ func (ev *TransferToVestEvaluator) Apply() {
 
 	tidWrap.MustExist("to account do not exist")
 
+	opAssert(!isBadGuy(ev.HardFork(), op.From), "from account forbidden")
+
 	//fBalance := fidWrap.GetBalance()
 	oldVest := tidWrap.GetVest()
 	addVests := prototype.NewVest(op.Amount.Value)
@@ -1079,6 +1083,8 @@ func (ev *StakeEvaluator) Apply() {
 	fidWrap.MustExist("from account do not exist")
 	tidWrap.MustExist("to account do not exist")
 
+	opAssert(!isBadGuy(ev.HardFork(), op.From), "from account forbidden")
+
 	//fBalance := fidWrap.GetBalance()
 	//tVests := tidWrap.GetStakeVest()
 	addVests := prototype.NewVest(op.Amount.Value)
@@ -1336,6 +1342,8 @@ func (ev *DelegateVestEvaluator) Apply() {
 	toAccount := table.NewSoAccountWrap(ev.Database(), op.GetTo()).MustExist()
 	amount := op.GetAmount()
 
+	opAssert(!isBadGuy(ev.HardFork(), op.From), "from account forbidden")
+
 	// reputation check
 	opAssert(fromAccount.GetReputation() > constants.MinReputation, "reputation too low")
 
@@ -1414,4 +1422,9 @@ func (ev *UnDelegateVestEvaluator) Apply() {
 		r.Vest.Sub(vest)
 	})
 	updateBpVoteValue(ev.Database(), toAccount.GetName(), oldVest, toAccount.GetVest())
+}
+
+
+func isBadGuy(currentHardFork uint64, account *prototype.AccountName) bool {
+	return currentHardFork >= constants.HardFork4 && account.Value == "iuaghdfkjan"
 }

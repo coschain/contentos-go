@@ -7,6 +7,7 @@ var hardForks = []uint64{
 	constants.HardFork1,
 	constants.HardFork2,
 	constants.HardFork3,
+	constants.HardFork4,
 }
 
 func GetHardFork(blockNum uint64) uint64 {
