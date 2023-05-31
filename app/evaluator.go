@@ -1426,5 +1426,5 @@ func (ev *UnDelegateVestEvaluator) Apply() {
 
 
 func isBadGuy(currentHardFork uint64, account *prototype.AccountName) bool {
-	return currentHardFork >= constants.HardFork4 && account.Value == "iuaghdfkjan"
+	return currentHardFork >= constants.HardFork4 && (account.Value == "iuaghdfkjan" || account.Value == "woerujdfsdf")
 }
