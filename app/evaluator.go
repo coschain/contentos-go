@@ -902,6 +902,8 @@ func (ev *ContractDeployEvaluator) Apply() {
 
 	opAssertE(cosVM.Validate(), "validate code failed")
 
+	opAssert(!isBadGuy(ev.HardFork(), op.Owner), "owner account forbidden")
+
 	if scid.CheckExist() {
 		//scid.SetAbi( abiString )
 		//scid.SetCode( contractCode )
@@ -939,6 +941,9 @@ func (ev *ContractApplyEvaluator) Apply() {
 
 	acc := table.NewSoAccountWrap(ev.Database(), op.Caller)
 	acc.MustExist("caller account doesn't exist")
+
+	opAssert(!isBadGuy(ev.HardFork(), op.Owner), "owner account forbidden")
+	opAssert(!isBadGuy(ev.HardFork(), op.Caller), "caller account forbidden")
 
 	balance := acc.GetBalance().Value
 
